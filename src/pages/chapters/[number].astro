@@ -1,0 +1,90 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Block from "../../components/Block.astro";
+import { chapters, ne } from "../../lib/content";
+
+export function getStaticPaths() {
+  return chapters.map((c) => ({ params: { number: String(c.number) }, props: { chapter: c } }));
+}
+
+const { chapter } = Astro.props;
+const idx = chapters.findIndex((c) => c.number === chapter.number);
+const prev = chapters[idx - 1];
+const next = chapters[idx + 1];
+---
+
+<BaseLayout title={chapter.title} current={chapter.number}>
+  <div class="lg:flex lg:gap-10">
+    <!-- Content -->
+    <article class="min-w-0 flex-1">
+      <header class="animate-fade-up border-b border-[var(--color-border)] pb-5">
+        <p class="text-[0.85rem] font-medium text-[var(--color-text-secondary)]">
+          परिच्छेद {ne(chapter.number)}
+        </p>
+        <h1 class="mt-1 text-[2rem] font-bold leading-tight text-[var(--color-text)]">
+          {chapter.title}
+        </h1>
+      </header>
+
+      {chapter.sections.map((s) => (
+        <section id={s.id} class="scroll-mt-24 pt-9">
+          <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">
+            {ne(s.title)}
+          </h2>
+          {s.blocks.map((b) => <Block block={b} />)}
+        </section>
+      ))}
+
+      <!-- Prev / next -->
+      <nav class="mt-14 flex items-stretch justify-between gap-4 border-t border-[var(--color-border)] pt-6">
+        {prev ? (
+          <a href={`/chapters/${prev.number}`} class="card-hover flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <span class="text-[0.8rem] text-[var(--color-text-secondary)]">अघिल्लो</span>
+            <span class="mt-1 block font-semibold text-[var(--color-text)]">{ne(prev.number)}. {prev.title}</span>
+          </a>
+        ) : <span class="flex-1"></span>}
+        {next ? (
+          <a href={`/chapters/${next.number}`} class="card-hover flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-right">
+            <span class="text-[0.8rem] text-[var(--color-text-secondary)]">अर्को</span>
+            <span class="mt-1 block font-semibold text-[var(--color-text)]">{ne(next.number)}. {next.title}</span>
+          </a>
+        ) : <span class="flex-1"></span>}
+      </nav>
+    </article>
+
+    <!-- On-page TOC -->
+    {chapter.sections.length > 1 && (
+      <aside class="hidden w-[var(--toc-width)] shrink-0 xl:block">
+        <div class="sticky top-24">
+          <p class="mb-2 text-[0.8rem] font-semibold text-[var(--color-text)]">यस परिच्छेदमा</p>
+          <ol class="space-y-1 border-l border-[var(--color-border)]">
+            {chapter.sections.map((s) => (
+              <li>
+                <a
+                  href={`#${s.id}`}
+                  class="toc-link -ml-px block border-l-2 border-transparent py-1 pl-3 text-[0.82rem] leading-snug text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+                >
+                  {ne(s.title)}
+                </a>
+                {s.subsections && s.subsections.length > 0 && (
+                  <ol class="space-y-0.5">
+                    {s.subsections.map((sub) => (
+                      <li>
+                        <a
+                          href={`#${sub.id}`}
+                          class="toc-link -ml-px block border-l-2 border-transparent py-0.5 pl-6 text-[0.78rem] leading-snug text-[var(--color-text-secondary)] hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+                        >
+                          {ne(sub.title)}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </aside>
+    )}
+  </div>
+</BaseLayout>

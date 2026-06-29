@@ -1,0 +1,45 @@
+---
+interface Props {
+  src: string;
+  caption?: string;
+  width?: number | null;
+  height?: number | null;
+}
+const { src, caption } = Astro.props;
+const isMap = caption ? /नक्शा/.test(caption) : false;
+---
+
+<figure class="reveal my-7" data-pagefind-ignore>
+  <div class="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+    <a href={src} target="_blank" rel="noopener" class="block">
+      <img
+        src={src}
+        alt={caption ?? "तुलसीपुर प्रोफाइल चित्र"}
+        loading="lazy"
+        decoding="async"
+        class="img-zoom w-full bg-[#f5f5f5] object-contain"
+      />
+    </a>
+  </div>
+  {caption && (
+    <figcaption class="mt-2 text-[0.9rem] font-medium text-[var(--color-text)]">
+      {isMap && (
+        <span class="mr-1.5 inline-block rounded bg-[var(--color-primary)] px-1.5 py-0.5 text-[0.7rem] font-semibold text-white">
+          नक्शा
+        </span>
+      )}
+      {caption}
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  .img-zoom {
+    transition: transform 420ms cubic-bezier(0, 0, 0.2, 1);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    figure:hover .img-zoom {
+      transform: scale(1.02);
+    }
+  }
+</style>

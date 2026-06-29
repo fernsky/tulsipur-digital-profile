@@ -1,0 +1,47 @@
+---
+import { chapters, ne } from "../lib/content";
+const { current } = Astro.props as { current?: number };
+---
+
+<nav aria-label="विषयसूची" class="flex h-full flex-col">
+  <a href="/" class="flex items-center gap-3 border-b border-[#33415580] px-4 py-4">
+    <img src="/tulsipur-logo.jpg" alt="तुलसीपुर उपमहानगरपालिका" width="44" height="44"
+      class="h-11 w-11 shrink-0 rounded-full bg-white object-contain ring-1 ring-white/20" />
+    <span class="min-w-0">
+      <span class="block text-[0.98rem] font-bold leading-tight text-white">तुलसीपुर उपमहानगरपालिका</span>
+      <span class="block text-[0.78rem] text-[#cbd5e1]">वस्तुगत विवरण – डिजिटल प्रोफाइल</span>
+    </span>
+  </a>
+  <div class="flex-1 overflow-y-auto py-3">
+    <ol class="space-y-0.5 px-2">
+      {chapters.map((c) => (
+        <li>
+          <a
+            href={`/chapters/${c.number}`}
+            class:list={[
+              "flex items-start gap-2 rounded-md px-3 py-2 text-[0.9rem] font-semibold leading-snug",
+              current === c.number ? "bg-white text-[#0a0a0a]" : "text-white hover:bg-[#33415580]",
+            ]}
+          >
+            <span class="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[0.72rem] font-semibold"
+              class:list={[current === c.number ? "bg-[#0a0a0a] text-white" : "bg-[#5a5a5a] text-white"]}>
+              {ne(c.number)}
+            </span>
+            <span>{c.title}</span>
+          </a>
+          {current === c.number && c.sections.length > 1 && (
+            <ol class="mb-1 ml-9 mt-0.5 space-y-0.5 border-l border-[#404040] pl-3">
+              {c.sections.map((s) => (
+                <li>
+                  <a href={`/chapters/${c.number}#${s.id}`} class="block py-1 text-[0.82rem] font-medium text-[#d8d8d8] hover:text-white">
+                    {s.title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          )}
+        </li>
+      ))}
+    </ol>
+  </div>
+</nav>

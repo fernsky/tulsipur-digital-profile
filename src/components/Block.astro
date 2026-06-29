@@ -1,0 +1,55 @@
+---
+import type { Block } from "../lib/content";
+import DataTable from "./DataTable.astro";
+import Figure from "./Figure.astro";
+import Chart from "./Chart.astro";
+import { ne, autoChart } from "../lib/content";
+const { block } = Astro.props as { block: Block };
+const chart = block.type === "table" ? autoChart(block) : null;
+---
+
+{block.type === "image" && (
+  <Figure src={block.src} caption={block.caption} width={block.width} height={block.height} />
+)}
+
+{block.type === "heading" && block.level === 3 && (
+  <h3 id={block.id} class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">
+    {ne(block.text)}
+  </h3>
+)}
+{block.type === "heading" && block.level >= 4 && (
+  <h4 id={block.id} class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">
+    {ne(block.text)}
+  </h4>
+)}
+
+{block.type === "paragraph" && (
+  <div class="prose-ne reveal">
+    <p>{ne(block.text)}</p>
+  </div>
+)}
+
+{block.type === "note" && (
+  <p class="reveal text-[0.85rem] text-[var(--color-text-secondary)]">{ne(block.text)}</p>
+)}
+
+{block.type === "list" && (
+  <ul class="prose-ne reveal my-3 ml-1 space-y-1.5">
+    {block.items.map((it) => (
+      <li class="flex gap-2.5">
+        <span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span>
+        <span class="flex-1">{ne(it)}</span>
+      </li>
+    ))}
+  </ul>
+)}
+
+{block.type === "table" && (
+  <div>
+    {block.caption && (
+      <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{ne(block.caption)}</h3>
+    )}
+    <DataTable caption={block.caption} rows={block.rows} source={block.source} />
+    {chart && <Chart chart={chart} />}
+  </div>
+)}

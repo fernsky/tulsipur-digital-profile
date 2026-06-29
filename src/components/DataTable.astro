@@ -1,0 +1,49 @@
+---
+import type { Cell } from "../lib/content";
+import { isNumericCell, isTotalRow, ne } from "../lib/content";
+
+interface Props {
+  caption?: string;
+  rows: Cell[][];
+  source?: string;
+}
+const { rows, source } = Astro.props;
+
+// first row is treated as the header row when it is mostly header cells or
+// the table's first row (Word tables rarely mark <th>, so we promote row 0).
+const headerRowCount = rows.length > 0 ? 1 : 0;
+---
+
+<figure class="my-6">
+  <div class="overflow-x-auto rounded-xl border border-[var(--color-border)] shadow-[0_1px_2px_rgba(10,10,10,0.04)]">
+    <table class="data-table">
+      {rows.map((row, ri) => {
+        const isHeader = ri < headerRowCount;
+        const total = isTotalRow(row);
+        const Cellize = isHeader ? "th" : "td";
+        return (
+          <tr class={total ? "total-row" : undefined}>
+            {row.map((cell) => {
+              const numeric = !isHeader && !total && isNumericCell(cell.text);
+              return (
+                <Cellize
+                  colspan={cell.colspan > 1 ? cell.colspan : undefined}
+                  rowspan={cell.rowspan > 1 ? cell.rowspan : undefined}
+                  class={numeric ? "num" : undefined}
+                  scope={isHeader ? "col" : undefined}
+                >
+                  {ne(cell.text)}
+                </Cellize>
+              );
+            })}
+          </tr>
+        );
+      })}
+    </table>
+  </div>
+  {source && (
+    <figcaption class="mt-2 text-[0.85rem] text-[var(--color-text-secondary)]">
+      {ne(source)}
+    </figcaption>
+  )}
+</figure>

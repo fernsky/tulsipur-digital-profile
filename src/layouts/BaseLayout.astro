@@ -1,0 +1,226 @@
+---
+import "../styles/global.css";
+import { ClientRouter } from "astro:transitions";
+import Sidebar from "../components/Sidebar.astro";
+import { meta } from "../lib/content";
+
+interface Props {
+  title: string;
+  description?: string;
+  current?: number;
+}
+const { title, description, current } = Astro.props;
+const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
+---
+
+<!doctype html>
+<html lang="ne">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description ?? meta.subtitle} />
+    <link
+      rel="preload"
+      href="/fonts/Kalimati.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+    <script src="/pagefind/pagefind-ui.js" is:inline></script>
+    <ClientRouter />
+  </head>
+  <body>
+    <div class="flex min-h-screen">
+      <!-- Sidebar (drawer on mobile, fixed on desktop) -->
+      <div
+        id="drawer-backdrop"
+        class="fixed inset-0 z-40 hidden bg-[rgba(10,10,10,0.45)] lg:hidden"
+      ></div>
+      <aside
+        id="sidebar"
+        data-pagefind-ignore
+        class="fixed inset-y-0 left-0 z-50 w-[var(--sidebar-width)] -translate-x-full bg-[var(--color-primary)] transition-transform duration-300 ease-out lg:z-30 lg:translate-x-0"
+      >
+        <Sidebar current={current} />
+      </aside>
+
+      <!-- Main -->
+      <div class="flex min-h-screen w-full flex-col lg:pl-[var(--sidebar-width)]">
+        <header
+          data-pagefind-ignore
+          class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_85%,transparent)] px-5 backdrop-blur lg:px-8"
+        >
+          <button
+            id="menu-trigger"
+            type="button"
+            aria-label="मेनु खोल्नुहोस्"
+            class="-ml-1 inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-text)] transition-colors hover:bg-[var(--color-background)] lg:hidden"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M3 6h18M3 12h18M3 18h18"></path>
+            </svg>
+          </button>
+          <a href="/" class="text-[1rem] font-bold lg:hidden">तुलसीपुर</a>
+          <button
+            id="search-trigger"
+            type="button"
+            class="ml-auto flex items-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 py-2 text-[0.9rem] text-[var(--color-text-secondary)] transition-colors hover:border-[#c4c4c4] hover:bg-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path>
+            </svg>
+            <span>प्रोफाइलमा खोज्नुहोस्</span>
+            <kbd class="ml-2 hidden rounded border border-[var(--color-border)] bg-white px-1.5 py-0.5 text-[0.7rem] sm:inline">⌘K</kbd>
+          </button>
+        </header>
+
+        <!-- Search modal -->
+        <div
+          id="search-modal"
+          class="fixed inset-0 z-50 hidden items-start justify-center bg-[rgba(10,10,10,0.48)] px-4 pt-[12vh] backdrop-blur-sm"
+        >
+          <div
+            id="search-panel"
+            class="w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_60px_rgba(10,10,10,0.25)]"
+          >
+            <div id="search"></div>
+          </div>
+        </div>
+
+        <main class="mx-auto w-full max-w-[var(--content-max-width)] flex-1 px-5 py-8 lg:px-10 lg:py-10">
+          <slot />
+        </main>
+
+        <footer class="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-5 lg:px-10">
+          <p class="text-[0.8rem] text-[var(--color-text-secondary)]">© {meta.place}</p>
+        </footer>
+      </div>
+    </div>
+
+    <script is:inline>
+      function initSearch() {
+        var el = document.getElementById("search");
+        if (el && window.PagefindUI && !el.dataset.ready) {
+          el.dataset.ready = "1";
+          new window.PagefindUI({
+            element: "#search",
+            showSubResults: true,
+            showImages: false,
+            translations: {
+              placeholder: "प्रोफाइलमा खोज्नुहोस्...",
+              zero_results: "[SEARCH_TERM] का लागि कुनै नतिजा भेटिएन",
+            },
+          });
+        }
+      }
+
+      function setupSearchModal() {
+        var modal = document.getElementById("search-modal");
+        var trigger = document.getElementById("search-trigger");
+        var panel = document.getElementById("search-panel");
+        if (!modal || !trigger || modal.dataset.wired) return;
+        modal.dataset.wired = "1";
+        function open() {
+          modal.style.display = "flex";
+          requestAnimationFrame(function () {
+            modal.classList.add("is-open");
+            var input = modal.querySelector("input");
+            if (input) input.focus();
+          });
+        }
+        function close() {
+          modal.classList.remove("is-open");
+          setTimeout(function () { modal.style.display = "none"; }, 180);
+        }
+        trigger.addEventListener("click", open);
+        modal.addEventListener("click", function (e) { if (!panel.contains(e.target)) close(); });
+        document.addEventListener("keydown", function (e) {
+          if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); open(); }
+          if (e.key === "Escape") close();
+        });
+      }
+
+      function armReveals() {
+        var els = document.querySelectorAll(".reveal, .reveal-stagger");
+        if (!("IntersectionObserver" in window) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          els.forEach(function (e) { e.classList.add("is-visible"); });
+          return;
+        }
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (en) {
+              if (en.isIntersecting) {
+                en.target.classList.add("is-visible");
+                io.unobserve(en.target);
+              }
+            });
+          },
+          { rootMargin: "0px 0px 240px 0px", threshold: 0 }
+        );
+        els.forEach(function (e) { io.observe(e); });
+        // safety net: never leave content hidden if the observer misses it
+        setTimeout(function () {
+          els.forEach(function (e) { e.classList.add("is-visible"); });
+        }, 2500);
+      }
+
+      var NE = "०१२३४५६७८९";
+      function toNe(s) { return String(s).replace(/[0-9]/g, function (d) { return NE[+d]; }); }
+
+      function animateCounts() {
+        var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.querySelectorAll("[data-count]").forEach(function (el) {
+          if (el.dataset.counted) return;
+          var raw = el.getAttribute("data-count");
+          var target = parseFloat(raw.replace(/[^0-9.]/g, ""));
+          if (isNaN(target) || reduce) { el.textContent = toNe(raw); el.dataset.counted = "1"; return; }
+          var decimals = (raw.split(".")[1] || "").replace(/[^0-9]/g, "").length;
+          var start = null, dur = 1100;
+          function step(ts) {
+            if (start === null) start = ts;
+            var p = Math.min((ts - start) / dur, 1);
+            var eased = 1 - Math.pow(1 - p, 3);
+            var v = target * eased;
+            el.textContent = toNe(decimals ? v.toFixed(decimals) : Math.round(v).toString());
+            if (p < 1) requestAnimationFrame(step);
+            else el.textContent = toNe(raw); // restore exact source formatting, Devanagari
+          }
+          var io = new IntersectionObserver(function (e) {
+            if (e[0].isIntersecting) { el.dataset.counted = "1"; requestAnimationFrame(step); io.disconnect(); }
+          });
+          io.observe(el);
+        });
+      }
+
+      function setupDrawer() {
+        var sidebar = document.getElementById("sidebar");
+        var backdrop = document.getElementById("drawer-backdrop");
+        var trigger = document.getElementById("menu-trigger");
+        if (!sidebar || !trigger || trigger.dataset.wired) return;
+        trigger.dataset.wired = "1";
+        function open() {
+          sidebar.classList.remove("-translate-x-full");
+          backdrop.classList.remove("hidden");
+        }
+        function close() {
+          sidebar.classList.add("-translate-x-full");
+          backdrop.classList.add("hidden");
+        }
+        trigger.addEventListener("click", open);
+        backdrop.addEventListener("click", close);
+        // close when a nav link is tapped
+        sidebar.addEventListener("click", function (e) {
+          var a = e.target.closest("a");
+          if (a && window.innerWidth < 1024) close();
+        });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+      }
+
+      function boot() { initSearch(); setupSearchModal(); setupDrawer(); armReveals(); animateCounts(); }
+      document.addEventListener("astro:page-load", boot);
+      window.addEventListener("DOMContentLoaded", boot);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,94 @@
+---
+import type { Chart } from "../lib/content";
+const { chart } = Astro.props as { chart: Chart };
+const data = JSON.stringify(chart);
+const uid = "chart-" + Math.random().toString(36).slice(2, 9);
+---
+
+<figure class="reveal my-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5" data-pagefind-ignore>
+  <figcaption class="mb-3 flex items-center gap-2 text-[0.9rem] font-semibold text-[var(--color-text)]">
+    <span class="inline-block h-2.5 w-2.5 rounded-sm bg-[var(--color-chart-1)]"></span>
+    चित्रण
+  </figcaption>
+  <div id={uid} class="chart-host" data-chart={data}></div>
+</figure>
+
+<script>
+  import * as d3 from "d3";
+
+  // vibrant categorical palette
+  const RAMP = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d", "#ea580c", "#0d9488", "#4f46e5", "#ca8a04"];
+  const NE = "०१२३४५६७८९";
+  const neNum = (v: number) => d3.format(",")(Math.round(v)).replace(/[0-9]/g, (d) => NE[+d]);
+
+  function draw(host: HTMLElement) {
+    const chart = JSON.parse(host.dataset.chart!);
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    host.innerHTML = "";
+    const width = host.clientWidth || 640;
+
+    if (chart.type === "donut") {
+      const size = Math.min(width, 360);
+      const r = size / 2;
+      const svg = d3.select(host).append("svg").attr("width", width).attr("height", size).append("g").attr("transform", `translate(${width / 2},${r})`);
+      const total = d3.sum(chart.values);
+      const pie = d3.pie<number>().sort(null)(chart.values);
+      const arc = d3.arc<any>().innerRadius(r * 0.58).outerRadius(r * 0.98);
+      const g = svg.selectAll("path").data(pie).enter().append("g");
+      g.append("path")
+        .attr("fill", (_d, i) => RAMP[i % RAMP.length])
+        .attr("d", arc as any)
+        .each(function (d: any) { (this as any)._cur = { startAngle: 0, endAngle: reduce ? d.endAngle : 0 }; })
+        .transition().duration(reduce ? 0 : 900).delay((_d, i) => (reduce ? 0 : i * 60))
+        .attrTween("d", function (d: any) {
+          const i = d3.interpolate({ startAngle: d.startAngle, endAngle: d.startAngle }, d);
+          return (t) => arc(i(t)) as string;
+        });
+      svg.append("text").attr("text-anchor", "middle").attr("dy", "-0.1em").attr("font-size", "1.4rem").attr("font-weight", "700").attr("fill", "#0a0a0a").text(neNum(total));
+      svg.append("text").attr("text-anchor", "middle").attr("dy", "1.2em").attr("font-size", "0.8rem").attr("fill", "#404040").text("जम्मा");
+      // legend
+      const legend = d3.select(host).append("div").attr("class", "mt-3 flex flex-wrap gap-x-4 gap-y-1");
+      chart.labels.forEach((l: string, i: number) => {
+        const item = legend.append("div").attr("class", "flex items-center gap-1.5 text-[0.8rem]");
+        item.append("span").attr("style", `display:inline-block;width:10px;height:10px;border-radius:2px;background:${RAMP[i % RAMP.length]}`);
+        item.append("span").text(`${l} (${neNum(chart.values[i])})`);
+      });
+    } else {
+      const m = { top: 8, right: 16, bottom: 8, left: 8 };
+      const barH = 26, gap = 8;
+      const h = chart.labels.length * (barH + gap) + m.top + m.bottom;
+      const max = d3.max(chart.values) as number;
+      const svg = d3.select(host).append("svg").attr("width", width).attr("height", h);
+      const labelW = Math.min(160, width * 0.32);
+      const x = d3.scaleLinear().domain([0, max]).range([labelW + 8, width - 70]);
+      const rows = svg.selectAll("g").data(chart.values).enter().append("g")
+        .attr("transform", (_d, i) => `translate(0,${m.top + i * (barH + gap)})`);
+      rows.append("text").attr("x", labelW).attr("y", barH / 2).attr("dy", "0.35em").attr("text-anchor", "end").attr("font-size", "0.82rem").attr("fill", "#0a0a0a").text((_d, i) => chart.labels[i]);
+      rows.append("rect").attr("x", labelW + 8).attr("y", 0).attr("height", barH).attr("rx", 4).attr("fill", (_d, i) => RAMP[i % RAMP.length]).attr("width", 0)
+        .transition().duration(reduce ? 0 : 800).delay((_d, i) => (reduce ? 0 : i * 50)).ease(d3.easeCubicOut)
+        .attr("width", (d: any) => x(d) - (labelW + 8));
+      rows.append("text").attr("y", barH / 2).attr("dy", "0.35em").attr("font-size", "0.8rem").attr("font-weight", "600").attr("fill", "#0a0a0a")
+        .attr("x", labelW + 14).attr("opacity", 0)
+        .text((d: any) => neNum(d))
+        .transition().delay(reduce ? 0 : 500).duration(reduce ? 0 : 400)
+        .attr("x", (d: any) => x(d) + 6).attr("opacity", 1);
+    }
+  }
+
+  function init() {
+    document.querySelectorAll<HTMLElement>(".chart-host").forEach((host) => {
+      if (host.dataset.drawn) return;
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) { host.dataset.drawn = "1"; draw(host); io.disconnect(); }
+        });
+      }, { threshold: 0.2 });
+      io.observe(host);
+    });
+    let t: any;
+    window.addEventListener("resize", () => {
+      clearTimeout(t);
+      t = setTimeout(() => document.querySelectorAll<HTMLElement>(".chart-host[data-drawn]").forEach(draw), 200);
+    });
+  }
+  document.addEventListener("astro:page-load", init);

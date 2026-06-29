@@ -1,0 +1,301 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Kalimati";
+  src: url("/fonts/Kalimati.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/*
+  Design system — PencilPlaybook "Minimal / Neutral" token map, applied
+  directly (the Pencil .pen tooling is not reachable in this environment, so
+  the playbook lives in CSS instead).
+
+  Three hard rules, enforced globally:
+    1. NO uppercase text         -> text-transform is never applied
+    2. NO muted/low-contrast text-> secondary tone raised to #404040 (AA on white)
+    3. NO wider letter-spacing    -> letter-spacing stays normal everywhere
+*/
+
+@theme {
+  --color-primary: #1e293b;
+  --color-primary-dark: #0f172a;
+  --color-accent: #2563eb;
+  --color-brand: #2563eb;
+  --color-brand-soft: #eff6ff;
+
+  --color-chart-1: #2563eb;
+  --color-chart-2: #16a34a;
+  --color-chart-3: #f59e0b;
+  --color-chart-4: #dc2626;
+  --color-chart-5: #7c3aed;
+  --color-chart-6: #0891b2;
+  --color-background: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e5e5e5;
+  --color-text: #0a0a0a;
+  --color-text-secondary: #404040; /* "muted" raised to full-contrast */
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-error: #b91c1c;
+
+  --font-sans: "Kalimati", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Kalimati", ui-monospace, monospace;
+
+  --content-max-width: 1088px;
+  --sidebar-width: 288px;
+  --toc-width: 224px;
+}
+
+:root {
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  /* Rule 1 & 3: never transform case, never widen tracking */
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+html {
+  font-family: var(--font-sans);
+  background: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.7; /* generous for Devanagari readability */
+}
+
+/* Base link styling lives in @layer base so explicit text-* utilities
+   (text-white in the sidebar, text-[#0a0a0a] on the active item) always win. */
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+/* Verbatim narrative prose */
+.prose-ne p {
+  color: var(--color-text);
+  line-height: 1.85;
+  margin: 0 0 1rem;
+  font-size: 1.0625rem;
+  text-wrap: pretty;
+}
+.prose-ne p:last-child {
+  margin-bottom: 0;
+}
+
+/* Data tables */
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9375rem;
+  background: var(--color-surface);
+}
+.data-table th,
+.data-table td {
+  border: 1px solid var(--color-border);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  color: var(--color-text);
+}
+.data-table thead th,
+.data-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+.data-table tbody tr:nth-child(even) td {
+  background: #fbfbfb;
+}
+/* numeric cells right-aligned (detected at render) */
+.data-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.data-table tr.total-row td {
+  background: #f0f0f0;
+  font-weight: 600;
+}
+
+/* Pagefind search UI tuning to match the design system */
+:root {
+  --pagefind-ui-primary: #171717;
+  --pagefind-ui-text: #0a0a0a;
+  --pagefind-ui-background: #ffffff;
+  --pagefind-ui-border: #e5e5e5;
+  --pagefind-ui-tag: #f5f5f5;
+  --pagefind-ui-border-radius: 8px;
+  --pagefind-ui-font: var(--font-sans);
+}
+
+/* focus visibility (WCAG 2.4.13): ring offset 2px */
+:where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Motion (PencilPlaybook defaults: 200-300ms, decelerate easing) ------ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 320ms cubic-bezier(0, 0, 0.2, 1),
+      transform 320ms cubic-bezier(0, 0, 0.2, 1);
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  /* staggered children */
+  .reveal-stagger > * {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+      opacity 300ms cubic-bezier(0, 0, 0.2, 1),
+      transform 300ms cubic-bezier(0, 0, 0.2, 1);
+  }
+  .reveal-stagger.is-visible > * {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal-stagger.is-visible > *:nth-child(1) { transition-delay: 0ms; }
+  .reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 60ms; }
+  .reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 120ms; }
+  .reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 180ms; }
+  .reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 240ms; }
+  .reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 300ms; }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+  .animate-fade-up { animation: fade-up 360ms cubic-bezier(0, 0, 0.2, 1) both; }
+}
+
+/* interactive transitions (always on, cheap) */
+.card-hover {
+  transition:
+    transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(10, 10, 10, 0.08);
+  border-color: #d4d4d4;
+}
+.data-table tbody tr {
+  transition: background-color 140ms ease;
+}
+a, button, .sidebar-link {
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+/* ---- Search modal --------------------------------------------------------- */
+#search-modal {
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+#search-modal.is-open {
+  opacity: 1;
+}
+#search-panel {
+  transform: translateY(-12px) scale(0.98);
+  transition: transform 220ms cubic-bezier(0, 0, 0.2, 1);
+}
+#search-modal.is-open #search-panel {
+  transform: none;
+}
+/* Pagefind UI tuned to the design system */
+.pagefind-ui {
+  --pagefind-ui-scale: 0.9;
+}
+#search .pagefind-ui__search-input {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  padding: 20px 22px 20px 48px;
+  font-weight: 500;
+}
+#search .pagefind-ui__search-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+#search .pagefind-ui__form::before {
+  left: 20px;
+  top: 24px;
+  opacity: 0.6;
+}
+#search .pagefind-ui__search-clear {
+  top: 16px;
+  right: 14px;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+#search .pagefind-ui__results-area {
+  max-height: 56vh;
+  overflow-y: auto;
+  padding: 8px 18px 18px;
+}
+#search .pagefind-ui__result {
+  border-top: 1px solid var(--color-border);
+  padding: 14px 4px;
+}
+#search .pagefind-ui__result-title {
+  font-weight: 600;
+  color: var(--color-text);
+}
+#search .pagefind-ui__result-excerpt {
+  color: var(--color-text-secondary);
+}
+#search mark {
+  background: #ffe9b3;
+  color: var(--color-text);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ---- Table polish --------------------------------------------------------- */
+.data-table tr:first-child th {
+  background: #f3f3f3;
+  box-shadow: inset 0 -1px 0 var(--color-border);
+}
+.data-table th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.data-table td,
+.data-table th {
+  padding: 9px 14px;
+}
+.data-table tbody tr:hover td {
+  background: #f4f4f5;
+}
+.data-table td.num {
+  white-space: nowrap;
+}
+/* keep tables from getting too tall visually but scrollable */
+.table-scroll {
+  max-height: 540px;
+  overflow: auto;
+}

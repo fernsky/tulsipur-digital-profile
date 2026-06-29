@@ -1,0 +1,29 @@
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+*-debug.log*
+
+# env
+.env
+.env.production
+
+# macOS
+.DS_Store
+
+# editors
+.idea/
+.vscode/
+
+# python venv (parser tooling)
+scripts/.venv/
+
+# large unused conversion intermediates (the Preeti .docx is the source of truth)
+scripts/source.docx
+scripts/source.html
+scripts/original.html
+scripts/clean-tables.json
