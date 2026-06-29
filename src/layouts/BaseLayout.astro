@@ -2,7 +2,7 @@
 import "../styles/global.css";
 import { ClientRouter } from "astro:transitions";
 import Sidebar from "../components/Sidebar.astro";
-import { meta } from "../lib/content";
+import { site as meta } from "../site";
 
 interface Props {
   title: string;
@@ -62,7 +62,7 @@ const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
               <path d="M3 6h18M3 12h18M3 18h18"></path>
             </svg>
           </button>
-          <a href="/" class="text-[1rem] font-bold lg:hidden">तुलसीपुर</a>
+          <a href="/home" class="text-[1rem] font-bold lg:hidden">तुलसीपुर</a>
           <button
             id="search-trigger"
             type="button"
@@ -85,7 +85,13 @@ const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
             id="search-panel"
             class="w-full max-w-xl overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_20px_60px_rgba(10,10,10,0.25)]"
           >
-            <div id="search"></div>
+            <div class="ps-head">
+              <svg class="shrink-0 text-[var(--color-text-secondary)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              <input id="ps-input" type="search" autocomplete="off" class="ps-input"
+                placeholder="प्रोफाइलमा खोज्नुहोस्..." aria-label="खोज्नुहोस्" />
+              <kbd class="hidden rounded border border-[var(--color-border)] bg-[var(--color-background)] px-1.5 py-0.5 text-[0.7rem] text-[var(--color-text-secondary)] sm:inline">esc</kbd>
+            </div>
+            <div id="ps-results" class="ps-results"></div>
           </div>
         </div>
 
@@ -100,20 +106,47 @@ const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
     </div>
 
     <script is:inline>
+      var __pf = null, __deb = null;
+      async function __getPf() {
+        if (__pf) return __pf;
+        __pf = await import("/pagefind/pagefind.js");
+        if (__pf.init) await __pf.init();
+        return __pf;
+      }
+      function __esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; }
+      async function __run(q, results) {
+        if (!q || q.trim().length < 2) { results.innerHTML = '<div class="ls-empty">कम्तीमा दुई अक्षर लेख्नुहोस्...</div>'; return; }
+        var api;
+        try { api = await __getPf(); }
+        catch (e) { results.innerHTML = '<div class="ls-empty">खोज सूचकांक लोड हुन सकेन</div>'; return; }
+        var s = await api.search(q);
+        var items = await Promise.all(s.results.slice(0, 8).map(function (r) { return r.data(); }));
+        if (!items.length) { results.innerHTML = '<div class="ls-empty">“' + __esc(q) + '” का लागि कुनै नतिजा भेटिएन</div>'; return; }
+        results.innerHTML = items.map(function (it) {
+          var sub = (it.sub_results && it.sub_results[0]) ? it.sub_results[0] : null;
+          var url = (sub && sub.url) || it.url;
+          var title = __esc(it.meta && it.meta.title ? it.meta.title : (sub ? sub.title : "नतिजा"));
+          var ex = (sub ? sub.excerpt : it.excerpt) || "";
+          return '<a class="ls-result" href="' + url + '"><span class="ls-result-title">' + title +
+            '</span><span class="ls-result-excerpt">' + ex + '</span></a>';
+        }).join("");
+      }
       function initSearch() {
-        var el = document.getElementById("search");
-        if (el && window.PagefindUI && !el.dataset.ready) {
-          el.dataset.ready = "1";
-          new window.PagefindUI({
-            element: "#search",
-            showSubResults: true,
-            showImages: false,
-            translations: {
-              placeholder: "प्रोफाइलमा खोज्नुहोस्...",
-              zero_results: "[SEARCH_TERM] का लागि कुनै नतिजा भेटिएन",
-            },
-          });
-        }
+        var input = document.getElementById("ps-input");
+        var results = document.getElementById("ps-results");
+        if (!input || !results || input.dataset.wired) return;
+        input.dataset.wired = "1";
+        input.addEventListener("input", function () {
+          clearTimeout(__deb);
+          var q = input.value;
+          __deb = setTimeout(function () { __run(q, results); }, 150);
+        });
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            var f = results.querySelector("a.ls-result");
+            if (f) window.location.href = f.getAttribute("href");
+          }
+        });
       }
 
       function setupSearchModal() {

@@ -1,0 +1,24 @@
+---
+import DataTable from "../../components/DataTable.astro";
+import Chart from "../../components/Chart.astro";
+import Figure from "../../components/Figure.astro";
+import SectionKpis from "../../components/SectionKpis.astro";
+import { chartFromRows } from "../../lib/chart";
+
+const meta = {"chapter":3,"order":7,"id":"s-3-7-३-७-घरमूलीको-विवरण","title":"३.७ घरमूलीको विवरण","subsections":[]};
+
+// Section KPIs — auto-seeded from the main table. Edit freely.
+const kpis = [{"label":"पुरुष परिवारमूली","value":"२८४३१"},{"label":"महिला परिवारमूली","value":"१७५८७"},{"label":"जम्मा परिवार संख्या","value":"४६०१८"}];
+
+const t1 = {"caption":"तालिका नं. ११ – लिङ्ग अनुसार परिवारमूलीको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["उमेर समूह","पुरुष परिवारमूली","महिला परिवारमूली","जम्मा परिवार संख्या"],["१०-१४","३०","२८","५८"],["१५-१९","४६६","५५९","१०२५"],["२०-२९","२८८२","४२६६","७१४८"],["३०-३९","६५५२","५९८०","१२५३२"],["४०-४९","७२५९","३३१३","१०५७२"],["५०-५९","५७८४","१७३४","७५१८"],["६०-६९","३७४७","१११०","४८५७"],["७० वर्ष माथि","१७११","५९७","२३०८"],["जम्मा","२८४३१","१७५८७","४६०१८"],["प्रतिशत","६१.७८","३८.२२","१००"]]};
+const t1Chart = chartFromRows(t1.rows);
+---
+
+<section id={meta.id} class="scroll-mt-24 pt-9">
+  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
+  <SectionKpis items={kpis} />
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  {t1Chart && <Chart chart={t1Chart} />}
+  <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेको कुल घरपरिवार संख्या ४६,०१८ मध्ये २८,४३१ अर्थात ६१.७८ प्रतिशत घरपरिवारमा पुरुष घरमूली रहेका छन् भने १७,५८७ अर्थात ३८.२२ प्रतिशत घरपरिवारमा महिला घरमूली रहेका छन् । जसको विस्तृत विवरण तालिकामा उल्लेख गरिएको छ :–</p></div>
+</section>

@@ -1,0 +1,24 @@
+---
+import DataTable from "../../components/DataTable.astro";
+import Chart from "../../components/Chart.astro";
+import Figure from "../../components/Figure.astro";
+import SectionKpis from "../../components/SectionKpis.astro";
+import { chartFromRows } from "../../lib/chart";
+
+const meta = {"chapter":2,"order":9,"id":"s-2-9-२-९-मानव-विकास-सुचकाङ्क","title":"२.९ मानव विकास सुचकाङ्क","subsections":[]};
+
+// Section KPIs — auto-seeded from the main table. Edit freely.
+const kpis = [];
+
+const t1 = {"caption":"तालिका नं. ३ – मानव विकास र गरिबी सूचकाङ्क विवरण","source":"","rows":[["प्रदेश","बहु–आयामिक गरिबीको दर (प्रतिशत)","गरिबीको (प्रतिशत)","गरिबीको विषमता (प्रतिशत)","गरिबीको गहनता (प्रतिशत)","गरीबहरूको संख्या","मानव विकास सूचकाङ्क"],["लुमि्बनी प्रदेश","२९.९","२५.८","६.५","२.३","१,०५३,३७९","०.४६८"]]};
+const t1Chart = chartFromRows(t1.rows);
+---
+
+<section id={meta.id} class="scroll-mt-24 pt-9">
+  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
+  <SectionKpis items={kpis} />
+  <div class="prose-ne reveal"><p>संयुक्त राष्ट्रसंघीय विकास कार्यक्रम (UNDP) को २०२५ को प्रतिवेदन अनुसार नेपालको मानव विकास सुचकाङ्क ०.६२२ रहेको र यसका आधारमा विश्वका १९३ देशहरु मध्ये नेपाल १४५ श्रेणीमा रहेको छ । विश्वका १९३ देशहरु मध्ये गत वर्ष नेपाल १४६ औँ स्थानमा रहेको थियो भने यस वर्ष केही सुधार भएर एक स्थान माथि उक्लिएको हो । सन् १९९० मा नेपालको यो सूचकाङ्क ०.३७८ थियो । सो अवधिमा नेपालीको औषत आयु ७०.४ वर्ष रहेको छ । यसैगरी लुमि्बनी प्रदेशको दोस्रो आवधिक योजना ८०/८१ का अनुसार मानव विकास सुचकाङ्क ०.५६३ छ भने औसत आयु ६९.५ वर्ष रहेको छ । गरिबी सूचकाङ्कको विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  {t1Chart && <Chart chart={t1Chart} />}
+</section>

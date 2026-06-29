@@ -1,0 +1,25 @@
+---
+import DataTable from "../../components/DataTable.astro";
+import Chart from "../../components/Chart.astro";
+import Figure from "../../components/Figure.astro";
+import SectionKpis from "../../components/SectionKpis.astro";
+import { chartFromRows } from "../../lib/chart";
+
+const meta = {"chapter":5,"order":6,"id":"s-5-6-५-५-३-शान्ति-तथा-सुरक्षाको-विवरण","title":"५.५.३ शान्ति तथा सुरक्षाको विवरण","subsections":[]};
+
+// Section KPIs — auto-seeded from the main table. Edit freely.
+const kpis = [];
+
+const t1 = {"caption":"तालिका नं. ९८ – उप–महानगरपालिकामा रहेका प्रमुख सुरक्षा निकायहरुको विवरण","source":"स्रोत– नगर कार्यपालिकाको कार्यालय","rows":[["क्र.सं.","सुरक्षा निकायहरूको नाम"],["१","इर्लाका प्रहरी कार्यालय, तुलसीपुर"],["२","सशस्त्र प्रहरी बल (APF) बेस क्याम्प, तुलसीपुर"],["३","नगर प्रहरी (तुलसीपुर उप–महानगरपालिका)"],["४","इर्लाका प्रशासन कार्यालय, तुलसीपुर"],["५","उच्च अदालत तुलसीपुर (सुरक्षा इकाई)"],["६","ट्राफिक प्रहरी पोष्ट (उप–महानगर क्षेत्र भित्र विभिन्न स्थानहरुमा)"]]};
+const t1Chart = chartFromRows(t1.rows);
+---
+
+<section id={meta.id} class="scroll-mt-24 pt-9">
+  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
+  <SectionKpis items={kpis} />
+  <div class="prose-ne reveal"><p>संविधानमा उल्लेख भए अनुरुप राज्यले नागरिकलाई सुरक्षाको अनुभूति दिलाउन सक्नुपर्दछ । हरेक राष्ट्रका नागरिकहरूलाई नागरिक सुरक्षा प्रदान गर्नु राज्यको प्रमुख दायित्व हो । नागरिकले आफ्नो राज्यमा सुरक्षित महशुस गर्न पाउनुपर्छ । यसलाई चुस्त र दुरुस्त बनाउन नागरिक समाजको पनि त्यतिकै महत्वपूर्ण भूमिका रहन जान्छ ।</p></div>
+  <div class="prose-ne reveal"><p>उप–महानगरपालिकामा भएका अपराधिक तथा सामाजिक नियम बाहिरका कार्य चोरी–डकैती लगायतका अन्य कार्यहरू सुरक्षा निकाय मार्फत समाधान हुने गरेको पाइन्छ । यस उप–महानगरपालिकामा वर्षभरिमा कुनै अप्रिय घटना घटेको दर्ता खासै गरिएको देखिदैन् । उप–महानगरपालिकामा सानातिना झै–झगडा, कुटपिट, साँध, सिमानामा विवाद, चोरी डकैती, ठगी, घरेलु हिंसाका घटनाहरू यदाकदा हुने गरेको स्थानीयबासीको भनाई छ । यस उप–महानगरपालिकाभित्र रहेका मुख्य मुख्य सुरक्षा निकायहरुको विवरण तालिकामा प्रस्तुत गरिएको छ ।</p></div>
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  {t1Chart && <Chart chart={t1Chart} />}
+</section>

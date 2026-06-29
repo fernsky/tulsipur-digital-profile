@@ -1,0 +1,29 @@
+---
+import DataTable from "../../components/DataTable.astro";
+import Chart from "../../components/Chart.astro";
+import Figure from "../../components/Figure.astro";
+import SectionKpis from "../../components/SectionKpis.astro";
+import { chartFromRows } from "../../lib/chart";
+
+const meta = {"chapter":1,"order":2,"id":"s-1-2-१-२-उद्देश्य","title":"१.२ उद्देश्य","subsections":[]};
+
+// Section KPIs — auto-seeded from the main table. Edit freely.
+const kpis = [];
+
+
+---
+
+<section id={meta.id} class="scroll-mt-24 pt-9">
+  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
+  <SectionKpis items={kpis} />
+  <ul class="prose-ne reveal my-3 ml-1 space-y-1.5">
+    <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">पार्श्वचित्र निर्माणको प्रमुख उद्देश्य भनेकै उप–महानगरपालिकाको समग्र वस्तुगत अवस्थाको जानकारीहरूलाई सुव्यवस्थित ढङ्गले अभिलेखीकरण गर्ने र ती तथ्याङ्क वा सूचनाहरूलाई अद्यावधिक गर्दै आवश्यक पर्दा सरोकारवालाहरूलाई सूचना उपलब्ध गराउनु हो । पार्श्वचित्रका अन्य विशिष्ट उद्देश्यहरू निम्नानुसार रहेका छन् :–</span></li>
+    <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">क) उप–महानगरपालिकाको समग्र भौतिक पूर्वाधार, आर्थिक पक्ष, सामाजिक पक्ष, प्राकृतिक सम्पदा तथा विपद् व्यवस्थापन सम्बद्ध पक्षहरूको सूचना तथा तथ्याङ्कको अभिलेख तयार पार्ने ।</span></li>
+    <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">ख) सेवा प्रवाह तथा संस्थागत संयन्त्रहरूका बारेमा सूचना तथा तथ्याङ्कहरूको अभिलेख तयार गर्ने ।</span></li>
+    <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">ग) सबल पक्षहरू, दुबर्ल पक्षहरू, अवसरहरू, चुनौतीहरू तथा सम्भावनाहरूको विश्लेषण गर्ने ।</span></li>
+    <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">घ) विभिन्न विषयगत आधार नक्शा तयार गर्ने ।</span></li>
+    <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">ङ) समग्र जनसांख्यिक, आर्थिक, सामाजिक, भौतिक, प्राकृतिक, ऐतिहासिक, धार्मिक, साँस्कृतिक तथ्याङ्कहरूको व्याख्या र विश्लेषण गर्ने ।</span></li>
+    <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">च) प्राप्त सूचनाहरूको वर्गीकरण गरी सुव्यवस्थित र सरल ढंगले सर्वसाधारणले बुझ्न सक्ने गरी विभिन्न खण्डमा विभाजन गरी प्रस्तुत गर्ने ।</span></li>
+    <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">छ) माथि उल्लेखित सम्पूर्ण विषयसँग सम्बन्धित एकमुष्ठ तथ्याङ्कीय आधार तयार पार्ने ।</span></li>
+  </ul>
+</section>

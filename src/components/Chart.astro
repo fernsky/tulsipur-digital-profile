@@ -1,5 +1,5 @@
 ---
-import type { Chart } from "../lib/content";
+import type { Chart } from "../lib/chart";
 const { chart } = Astro.props as { chart: Chart };
 const data = JSON.stringify(chart);
 const uid = "chart-" + Math.random().toString(36).slice(2, 9);

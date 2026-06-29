@@ -5,6 +5,7 @@
   "scripts": {
     "parse": "node scripts/extract.mjs && python3 scripts/parse_docx.py",
     "dev": "astro dev",
+    "search:index": "astro build && pagefind --site dist && rm -rf public/pagefind && cp -r dist/pagefind public/pagefind",
     "build": "astro build",
     "postbuild": "pagefind --site dist",
     "preview": "astro preview",

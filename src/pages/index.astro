@@ -1,58 +1,158 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
-import { chapters, meta, getKpis, ne } from "../lib/content";
-const kpis = getKpis();
+import "../styles/global.css";
+import { ClientRouter } from "astro:transitions";
+import { site } from "../site";
+
+// Important sections surfaced as square CTAs on the landing.
+const ctas = [
+  { href: "/chapters/2", title: "चिनारी", caption: "भौगोलिक तथा प्रशासनिक", color: "#2563eb",
+    path: "M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11Z M12 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" },
+  { href: "/chapters/3", title: "जनसांख्यिक", caption: "जनसंख्या तथा परिवार", color: "#16a34a",
+    path: "M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2 M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z M21 21v-2a4 4 0 0 0-3-3.87" },
+  { href: "/chapters/4", title: "आर्थिक अवस्था", caption: "उत्पादन तथा रोजगारी", color: "#f59e0b",
+    path: "M3 3v18h18 M7 14l3-3 3 3 5-6" },
+  { href: "/chapters/5", title: "सामाजिक अवस्था", caption: "शिक्षा तथा स्वास्थ्य", color: "#dc2626",
+    path: "M22 10v6 M2 10l10-5 10 5-10 5z M6 12v5c0 1 3 3 6 3s6-2 6-3v-5" },
+  { href: "/chapters/7", title: "भौतिक विकास", caption: "पूर्वाधार तथा सडक", color: "#7c3aed",
+    path: "M3 21h18 M5 21V7l8-4v18 M19 21V11l-6-4 M9 9v.01 M9 13v.01 M9 17v.01" },
+  { href: "/chapters/8", title: "सुशासन", caption: "संस्थागत व्यवस्था", color: "#0891b2",
+    path: "M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z M9 12l2 2 4-4" },
+];
 ---
 
-<BaseLayout title={meta.title} description={meta.subtitle}>
-  <!-- Hero -->
-  <section class="animate-fade-up">
-    <p class="text-[0.9rem] font-medium text-[var(--color-text-secondary)]">{meta.place}</p>
-    <h1 class="mt-2 text-[2.4rem] font-bold leading-tight text-[var(--color-text)] lg:text-[3rem]">
-      {meta.title}
-    </h1>
-    <p class="mt-3 max-w-2xl text-[1.15rem] text-[var(--color-text)]">{meta.subtitle}</p>
-    <p class="mt-4 max-w-3xl text-[1rem] leading-relaxed text-[var(--color-text)]">
-      यो पोर्टलमा उपमहानगरपालिकाको वस्तुगत विवरण प्रतिवेदनका सम्पूर्ण {ne(chapters.length)} परिच्छेद,
-      {ne(meta.sections)} खण्ड र {ne(meta.tables)} तालिका विवरणसहित प्रस्तुत गरिएको छ ।
-    </p>
-  </section>
+<!doctype html>
+<html lang="ne">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{site.title}</title>
+    <meta name="description" content={site.subtitle} />
+    <link rel="preload" href="/fonts/Kalimati.ttf" as="font" type="font/ttf" crossorigin />
+    <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+    <script src="/pagefind/pagefind-ui.js" is:inline></script>
+    <ClientRouter />
+  </head>
+  <body>
+    <div class="landing" data-pagefind-ignore>
+      <div class="landing-overlay"></div>
 
-  <!-- KPI band -->
-  {kpis.length > 0 && (
-    <section class="reveal-stagger mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {kpis.map((k) => (
-        <div class="card-hover rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-          <div class="text-[1.7rem] font-bold leading-none text-[var(--color-text)]" data-count={k.value}>
-            {ne(k.value)}
-          </div>
-          {k.unit && <div class="mt-1 text-[0.8rem] text-[var(--color-text-secondary)]">{k.unit}</div>}
-          <div class="mt-2 text-[0.85rem] leading-snug text-[var(--color-text)]">{k.label}</div>
-        </div>
-      ))}
-    </section>
-  )}
-
-  <!-- Chapter cards -->
-  <section class="mt-12">
-    <h2 class="mb-4 text-[1.4rem] font-bold text-[var(--color-text)]">परिच्छेदहरू</h2>
-    <div class="reveal-stagger grid gap-4 sm:grid-cols-2">
-      {chapters.map((c) => (
-        <a
-          href={`/chapters/${c.number}`}
-          class="card-hover group flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
-        >
-          <div class="flex items-center gap-3">
-            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[0.95rem] font-bold text-white">
-              {ne(c.number)}
-            </span>
-            <h3 class="text-[1.1rem] font-semibold text-[var(--color-text)]">{c.title}</h3>
-          </div>
-          <p class="mt-3 text-[0.9rem] text-[var(--color-text-secondary)]">
-            {ne(c.sections.length)} खण्ड · {ne(c.tableCount)} तालिका
-          </p>
+      <!-- Top header -->
+      <header class="landing-header">
+        <a href="/" class="flex min-w-0 items-center gap-3">
+          <img src="/tulsipur-logo.jpg" alt="तुलसीपुर उपमहानगरपालिका" width="60" height="60"
+            class="h-12 w-12 shrink-0 rounded-full bg-white object-contain p-1 ring-1 ring-white/30 sm:h-[60px] sm:w-[60px]" />
+          <span class="truncate text-[0.95rem] font-semibold text-white sm:text-[1.05rem]">तुलसीपुर उपमहानगरपालिका</span>
         </a>
-      ))}
+        <nav class="hidden items-center gap-2 sm:flex">
+          <a href="/home" class="rounded-lg px-3 py-2 text-[0.9rem] font-medium text-white/90 transition-colors hover:bg-white/15">पोर्टल</a>
+          <a href="/chapters/1" class="rounded-lg px-3 py-2 text-[0.9rem] font-medium text-white/90 transition-colors hover:bg-white/15">प्रतिवेदन</a>
+          <a href="/home" class="rounded-lg border border-white/25 bg-white/10 px-3.5 py-2 text-[0.9rem] font-semibold text-white backdrop-blur transition-colors hover:bg-white/20">पूरा हेर्नुहोस्</a>
+        </nav>
+      </header>
+
+      <!-- Center: logo + title + search -->
+      <main class="landing-main">
+        <div class="animate-fade-up flex flex-col items-center text-center">
+          <img src="/tulsipur-logo.jpg" alt="तुलसीपुर उपमहानगरपालिका" width="92" height="92"
+            class="h-20 w-20 rounded-2xl bg-white object-contain p-2 shadow-2xl ring-1 ring-white/20 sm:h-[92px] sm:w-[92px]" />
+          <h1 class="mt-6 text-[2rem] font-bold leading-tight text-white drop-shadow sm:text-[2.7rem]">{site.title}</h1>
+          <p class="mt-3 max-w-xl text-[1.05rem] text-white/85">{site.subtitle}</p>
+
+          <!-- Google-style search (plain input wired to Pagefind API) -->
+          <div class="landing-search-wrap">
+            <div class="landing-search">
+              <svg class="shrink-0 text-[var(--color-text-secondary)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              <input id="ls-input" type="search" autocomplete="off" class="hero-search-input"
+                placeholder="प्रोफाइलभित्र खोज्नुहोस्..." aria-label="खोज्नुहोस्" />
+            </div>
+            <div id="ls-results" class="landing-results" hidden></div>
+          </div>
+
+          <!-- square section CTAs -->
+          <div class="landing-cta-head">
+            <span class="text-[0.92rem] font-medium text-white/80">प्रमुख खण्डहरू</span>
+            <a href="/home" class="inline-flex items-center gap-1.5 text-[0.92rem] font-semibold text-white transition-colors hover:text-white/80">
+              सबै हेर्नुहोस्
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+            </a>
+          </div>
+          <div class="landing-cta-grid">
+            {ctas.map((c) => (
+              <a href={c.href} class="landing-cta card-hover">
+                <span class="landing-cta-icon" style={`background:${c.color}`}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={c.path}></path></svg>
+                </span>
+                <span class="landing-cta-title">{c.title}</span>
+                <span class="landing-cta-caption">{c.caption}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      <footer class="landing-footer">
+        <span>© {site.place}</span>
+        <span class="text-white/60">वस्तुगत विवरण — डिजिटल प्रोफाइल</span>
+      </footer>
     </div>
-  </section>
-</BaseLayout>
+
+    <script is:inline>
+      (function () {
+        var pf = null, debounce = null;
+        async function getPf() {
+          if (pf) return pf;
+          pf = await import("/pagefind/pagefind.js");
+          if (pf.init) await pf.init();
+          return pf;
+        }
+        function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; }
+        async function run(q, results) {
+          if (!q || q.trim().length < 2) { results.hidden = true; results.innerHTML = ""; return; }
+          var api;
+          try { api = await getPf(); } catch (e) { return; }
+          var search = await api.search(q);
+          var top = search.results.slice(0, 6);
+          var items = await Promise.all(top.map(function (r) { return r.data(); }));
+          if (!items.length) {
+            results.innerHTML = '<div class="ls-empty">“' + esc(q) + '” का लागि कुनै नतिजा भेटिएन</div>';
+            results.hidden = false;
+            return;
+          }
+          results.innerHTML = items.map(function (it) {
+            var sub = (it.sub_results && it.sub_results[0]) ? it.sub_results[0] : null;
+            var url = (sub && sub.url) || it.url;
+            var title = esc(it.meta && it.meta.title ? it.meta.title : (sub ? sub.title : "नतिजा"));
+            var excerpt = (sub ? sub.excerpt : it.excerpt) || "";
+            return '<a class="ls-result" href="' + url + '"><span class="ls-result-title">' + title +
+              '</span><span class="ls-result-excerpt">' + excerpt + '</span></a>';
+          }).join("");
+          results.hidden = false;
+        }
+        function wire() {
+          var input = document.getElementById("ls-input");
+          var results = document.getElementById("ls-results");
+          if (!input || !results || input.dataset.wired) return;
+          input.dataset.wired = "1";
+          input.addEventListener("input", function () {
+            clearTimeout(debounce);
+            var q = input.value;
+            debounce = setTimeout(function () { run(q, results); }, 160);
+          });
+          input.addEventListener("focus", function () { getPf(); });
+          input.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+              var first = results.querySelector("a.ls-result");
+              if (first) window.location.href = first.getAttribute("href");
+            }
+          });
+          document.addEventListener("click", function (e) {
+            if (!results.contains(e.target) && e.target !== input) results.hidden = true;
+          });
+          setTimeout(function () { input.focus(); }, 60);
+        }
+        document.addEventListener("astro:page-load", wire);
+        window.addEventListener("DOMContentLoaded", wire);
+      })();
+    </script>
+  </body>
+</html>

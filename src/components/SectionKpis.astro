@@ -1,0 +1,37 @@
+---
+// Section-level KPI band. Each section component passes its own `items`.
+// Auto-seeded by the eject generator from the section's main table — fully
+// editable: change labels/values/units, add or remove cards freely.
+import { ne } from "../lib/table";
+export interface Kpi {
+  label: string;
+  value: string;
+  unit?: string;
+}
+const { items = [] } = Astro.props as { items?: Kpi[] };
+const accents = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+  "var(--color-chart-6)",
+];
+---
+
+{items.length > 0 && (
+  <div class="reveal-stagger my-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    {items.map((k, i) => (
+      <div
+        class="card-hover rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+        style={`border-top: 3px solid ${accents[i % accents.length]}`}
+      >
+        <div class="text-[1.5rem] font-bold leading-none text-[var(--color-text)]" data-count={k.value}>
+          {ne(k.value)}
+        </div>
+        {k.unit && <div class="mt-1 text-[0.78rem] text-[var(--color-text-secondary)]">{ne(k.unit)}</div>}
+        <div class="mt-2 text-[0.85rem] leading-snug text-[var(--color-text)]">{k.label}</div>
+      </div>
+    ))}
+  </div>
+)}

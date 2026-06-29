@@ -27,3 +27,6 @@ scripts/source.docx
 scripts/source.html
 scripts/original.html
 scripts/clean-tables.json
+
+# generated search index copied for dev
+public/pagefind/
