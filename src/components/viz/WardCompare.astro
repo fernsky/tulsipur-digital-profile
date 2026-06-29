@@ -1,0 +1,138 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe } from "../../lib/ne";
+
+// Interactive ward comparison: metric tabs switch the bar metric; the
+// population metric renders a male/female split.
+export interface WardMetric {
+  key: string;
+  label: string;
+  split?: boolean;          // male/female stacked
+  fields: { value?: string; male?: string; female?: string; total?: string };
+  color?: string;
+  format?: "int" | "dec1" | "dec2" | "area" | "pct";
+}
+interface Props {
+  title?: string;
+  subtitle?: string;
+  items: Record<string, any>[]; // each has labelField + numeric fields
+  labelField: string;
+  metrics: WardMetric[];
+  initial?: string;
+}
+const { title, subtitle, items, labelField, metrics, initial } = Astro.props;
+const first = initial ?? metrics[0].key;
+const uid = "wc-" + Math.abs(items.length * 31 + metrics.length).toString(36);
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div slot="head-extra" class="wc-tabs" id={`${uid}-tabs`}>
+    {metrics.map((m) => (
+      <button type="button" class:list={["wc-tab", m.key === first && "is-active"]} data-metric={m.key}>{m.label}</button>
+    ))}
+  </div>
+  <div class="wc-legend" id={`${uid}-legend`}>
+    <span class="wc-leg"><span class="wc-dot" style="background:#2563eb"></span>पुरूष</span>
+    <span class="wc-leg"><span class="wc-dot" style="background:#db2777"></span>महिला</span>
+  </div>
+  <div class="wc-bars" id={`${uid}-bars`}>
+    {items.map((w) => (
+      <div class="wc-row" data-k={String(w[labelField])}>
+        <span class="wc-badge">{toNe(String(w[labelField]))}</span>
+        <div class="wc-track"><div class="wc-seg wc-a"></div><div class="wc-seg wc-b"></div></div>
+        <span class="wc-val"></span>
+      </div>
+    ))}
+  </div>
+</VizCard>
+
+<script is:inline define:vars={{ uid, items, labelField, metrics, first }}>
+  (function () {
+    var NE = "०१२३४५६७८९";
+    function ne(s) { return String(s).replace(/[0-9]/g, function (d) { return NE[+d]; }); }
+    function fmt(v, f) {
+      if (f === "int") return ne(Math.round(v).toLocaleString("en-US"));
+      if (f === "dec1") return ne(v.toFixed(1));
+      if (f === "dec2") return ne(v.toFixed(2));
+      if (f === "area") return ne(v.toFixed(2)) + " वर्ग कि.मि.";
+      if (f === "pct") return ne(v.toFixed(1)) + "%";
+      return ne(v);
+    }
+    var mByKey = {};
+    metrics.forEach(function (m) { mByKey[m.key] = m; });
+
+    function init() {
+      var bars = document.getElementById(uid + "-bars");
+      var tabs = document.getElementById(uid + "-tabs");
+      var legend = document.getElementById(uid + "-legend");
+      if (!bars || bars.dataset.ready) return;
+      bars.dataset.ready = "1";
+      var rows = Array.prototype.slice.call(bars.querySelectorAll(".wc-row"));
+      var byK = {};
+      items.forEach(function (w) { byK[String(w[labelField])] = w; });
+
+      function val(w, m) {
+        if (m.split) return +w[m.fields.total] || 0;
+        return +w[m.fields.value] || 0;
+      }
+      function render(key) {
+        var m = mByKey[key];
+        var max = 0;
+        items.forEach(function (w) { max = Math.max(max, val(w, m)); });
+        if (max <= 0) max = 1;
+        if (legend) legend.style.display = m.split ? "" : "none";
+        rows.forEach(function (row) {
+          var w = byK[row.getAttribute("data-k")];
+          var a = row.querySelector(".wc-a"), b = row.querySelector(".wc-b"), out = row.querySelector(".wc-val");
+          if (m.split) {
+            var male = +w[m.fields.male] || 0, female = +w[m.fields.female] || 0, tot = +w[m.fields.total] || 1;
+            var totPct = (tot / max) * 100;
+            a.style.width = (totPct * (male / tot)) + "%"; a.style.background = "#2563eb";
+            b.style.width = (totPct * (female / tot)) + "%"; b.style.background = "#db2777";
+            out.textContent = fmt(tot, m.format || "int");
+          } else {
+            var v = val(w, m);
+            a.style.width = (v / max) * 100 + "%"; a.style.background = m.color || "#2563eb";
+            b.style.width = "0%";
+            out.textContent = fmt(v, m.format || "int");
+          }
+        });
+      }
+      if (tabs && !tabs.dataset.wired) {
+        tabs.dataset.wired = "1";
+        tabs.addEventListener("click", function (e) {
+          var btn = e.target.closest(".wc-tab");
+          if (!btn) return;
+          tabs.querySelectorAll(".wc-tab").forEach(function (t) { t.classList.remove("is-active"); });
+          btn.classList.add("is-active");
+          render(btn.getAttribute("data-metric"));
+        });
+      }
+      requestAnimationFrame(function () { render(first); });
+    }
+    document.addEventListener("astro:page-load", init);
+    window.addEventListener("DOMContentLoaded", init);
+  })();
+</script>
+
+<style>
+  .wc-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .wc-tab {
+    font-family: var(--font-sans); font-size: 0.84rem; font-weight: 600;
+    padding: 0.4rem 0.85rem; border-radius: 9999px; border: 1px solid var(--color-border);
+    background: var(--color-surface); color: var(--color-text-secondary); cursor: pointer;
+    transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+  }
+  .wc-tab:hover { border-color: #c4c4c4; color: var(--color-text); }
+  .wc-tab.is-active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+  .wc-legend { margin-bottom: 0.75rem; display: flex; gap: 1rem; font-size: 0.82rem; color: var(--color-text-secondary); }
+  .wc-leg { display: flex; align-items: center; gap: 0.4rem; }
+  .wc-dot { width: 0.65rem; height: 0.65rem; border-radius: 9999px; }
+  .wc-bars { display: flex; flex-direction: column; gap: 0.4rem; }
+  .wc-row { display: flex; align-items: center; gap: 0.6rem; }
+  .wc-badge { flex: 0 0 auto; width: 1.9rem; text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--color-text-secondary); }
+  .wc-track { flex: 1 1 auto; display: flex; height: 20px; border-radius: 9999px; background: var(--color-background); overflow: hidden; }
+  .wc-seg { height: 100%; width: 0; transition: width 700ms cubic-bezier(0.2, 0, 0.2, 1), background 250ms ease; }
+  .wc-a { border-radius: 9999px 0 0 9999px; }
+  .wc-val { flex: 0 0 auto; min-width: 5.5rem; text-align: right; font-size: 0.84rem; font-weight: 600; color: var(--color-text); font-variant-numeric: tabular-nums; }
+</style>

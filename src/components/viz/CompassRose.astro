@@ -1,0 +1,79 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe } from "../../lib/ne";
+
+// Compass rose: petals positioned at real bearings, length scaled by value.
+export interface Petal { name: string; value: number; valueText?: string; deg: number; color: string; }
+interface Props {
+  title?: string;
+  subtitle?: string;
+  petals: Petal[];
+}
+const { title, subtitle, petals } = Astro.props;
+const maxV = Math.max(...petals.map((p) => p.value), 1);
+const CX = 200, CY = 200, R0 = 34, RMAX = 158, SPAN = 22;
+const pt = (r: number, deg: number): [number, number] => {
+  const rad = (deg * Math.PI) / 180;
+  return [CX + r * Math.sin(rad), CY - r * Math.cos(rad)];
+};
+const path = (deg: number, value: number) => {
+  const r = R0 + (value / maxV) * (RMAX - R0);
+  const [a1x, a1y] = pt(R0, deg - SPAN);
+  const [a2x, a2y] = pt(r, deg - SPAN);
+  const [a3x, a3y] = pt(r, deg + SPAN);
+  const [a4x, a4y] = pt(R0, deg + SPAN);
+  return `M ${a1x.toFixed(1)} ${a1y.toFixed(1)} L ${a2x.toFixed(1)} ${a2y.toFixed(1)} A ${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${a3x.toFixed(1)} ${a3y.toFixed(1)} L ${a4x.toFixed(1)} ${a4y.toFixed(1)} A ${R0} ${R0} 0 0 0 ${a1x.toFixed(1)} ${a1y.toFixed(1)} Z`;
+};
+const marks = [{ t: "उ", deg: 0 }, { t: "पू", deg: 90 }, { t: "द", deg: 180 }, { t: "प", deg: 270 }];
+const sorted = petals.slice().sort((a, b) => b.value - a.value);
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div class="cr">
+    <div class="cr-svg-wrap">
+      <svg viewBox="0 0 400 400" class="cr-svg" role="img" aria-label={title}>
+        <circle cx="200" cy="200" r="158" fill="none" stroke="var(--color-border)" stroke-width="1" />
+        <circle cx="200" cy="200" r="96" fill="none" stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 4" />
+        <circle cx="200" cy="200" r="34" fill="var(--color-background)" stroke="var(--color-border)" stroke-width="1" />
+        {marks.map((m) => {
+          const [x, y] = pt(RMAX + 18, m.deg);
+          return <text x={x} y={y} text-anchor="middle" dominant-baseline="middle" class="cr-mark">{m.t}</text>;
+        })}
+        {petals.map((p, i) => (
+          <path d={path(p.deg, p.value)} fill={p.color} fill-opacity="0.88" stroke="#fff" stroke-width="1.5"
+            class="cr-petal" style={`--d:${i * 80}ms`}>
+            <title>{p.name}: {p.valueText ?? toNe(p.value)}</title>
+          </path>
+        ))}
+      </svg>
+    </div>
+    <div class="cr-legend reveal-stagger">
+      {sorted.map((p) => (
+        <div class="cr-leg">
+          <span class="cr-leg-dot" style={`background:${p.color}`}></span>
+          <span class="cr-leg-name">{p.name}</span>
+          <span class="cr-leg-val">{p.valueText ?? toNe(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</VizCard>
+
+<style>
+  .cr { display: grid; align-items: center; gap: 1.5rem; }
+  @media (min-width: 1024px) { .cr { grid-template-columns: auto 1fr; } }
+  .cr-svg-wrap { width: 100%; max-width: 360px; margin-inline: auto; }
+  .cr-svg { width: 100%; height: auto; }
+  .cr-mark { font-family: var(--font-sans); font-size: 15px; font-weight: 700; fill: var(--color-text-secondary); }
+  .cr-legend { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+  .cr-leg { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border: 1px solid var(--color-border); border-radius: 0.75rem; padding: 0.5rem 0.75rem; }
+  .cr-leg-dot { width: 0.65rem; height: 0.65rem; border-radius: 9999px; flex: 0 0 auto; }
+  .cr-leg-name { flex: 1 1 auto; min-width: 0; font-size: 0.86rem; font-weight: 500; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cr-leg-val { flex: 0 0 auto; font-size: 0.86rem; font-weight: 700; color: var(--color-text); }
+  .cr-petal { transform-origin: 200px 200px; }
+  .cr-petal:hover { fill-opacity: 1; }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal .cr-petal { opacity: 0; transform: scale(0.2); transition: opacity 500ms ease, transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1); transition-delay: var(--d, 0ms); }
+    :global(.reveal.is-visible) .cr-petal { opacity: 0.88; transform: scale(1); }
+  }
+</style>

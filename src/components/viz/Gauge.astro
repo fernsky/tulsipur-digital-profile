@@ -1,0 +1,59 @@
+---
+import { toNe } from "../../lib/ne";
+
+// Semicircle gauge (no card; meant to compose inside a panel).
+interface Props {
+  value: number; // 0..max
+  max?: number;
+  display: string; // pre-formatted central number
+  label: string;
+  minLabel?: string;
+  maxLabel?: string;
+  color?: string;
+}
+const { value, max = 1, display, label, minLabel = "०.०", maxLabel = "१.०", color = "#16a34a" } = Astro.props;
+const A0 = -90, A1 = 90, CX = 110, CY = 112, R = 86;
+const polar = (deg: number): [number, number] => {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return [CX + R * Math.cos(a), CY + R * Math.sin(a)];
+};
+const arc = (a0: number, a1: number) => {
+  const [x0, y0] = polar(a0);
+  const [x1, y1] = polar(a1);
+  const large = Math.abs(a1 - a0) > 180 ? 1 : 0;
+  const sweep = a1 >= a0 ? 1 : 0;
+  return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 ${large} ${sweep} ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+};
+const frac = Math.min(Math.max(value / max, 0), 1);
+const vAngle = A0 + frac * (A1 - A0);
+const [mx, my] = polar(vAngle);
+---
+
+<div class="gauge">
+  <svg viewBox="0 0 220 132" class="gauge-svg" role="img" aria-label={label}>
+    <path d={arc(A0, A1)} fill="none" stroke="var(--color-background)" stroke-width="16" stroke-linecap="round" />
+    <path d={arc(A0, vAngle)} fill="none" stroke={color} stroke-width="16" stroke-linecap="round" class="gauge-fill" pathLength="100" />
+    <circle cx={mx} cy={my} r="8" fill={color} stroke="#fff" stroke-width="3" class="gauge-mark" />
+    <text x="36" y="128" class="gauge-scale">{toNe(minLabel)}</text>
+    <text x="184" y="128" class="gauge-scale" text-anchor="end">{toNe(maxLabel)}</text>
+  </svg>
+  <div class="gauge-readout">
+    <div class="gauge-val">{toNe(display)}</div>
+    <div class="gauge-label">{label}</div>
+  </div>
+</div>
+
+<style>
+  .gauge { display: flex; flex-direction: column; align-items: center; }
+  .gauge-svg { width: 100%; max-width: 240px; height: auto; }
+  .gauge-scale { font-family: var(--font-sans); font-size: 12px; font-weight: 600; fill: var(--color-text-secondary); }
+  .gauge-readout { margin-top: -1.5rem; text-align: center; }
+  .gauge-val { font-size: 2.1rem; font-weight: 700; line-height: 1; color: var(--color-text); }
+  .gauge-label { margin-top: 0.25rem; font-size: 0.85rem; color: var(--color-text-secondary); }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal .gauge-fill { stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 1100ms cubic-bezier(0.2, 0, 0.2, 1); }
+    :global(.reveal.is-visible) .gauge-fill { stroke-dashoffset: 0; }
+    .reveal .gauge-mark { opacity: 0; transition: opacity 300ms ease 900ms; }
+    :global(.reveal.is-visible) .gauge-mark { opacity: 1; }
+  }
+</style>

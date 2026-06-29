@@ -1,0 +1,87 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe } from "../../lib/ne";
+
+// Donut / ring chart with a centered total and a legend.
+export interface Seg {
+  label: string;
+  value: number;
+  color: string;
+}
+interface Props {
+  title?: string;
+  subtitle?: string;
+  segments: Seg[];
+  centerValue: string;
+  centerLabel: string;
+}
+const { title, subtitle, segments, centerValue, centerLabel } = Astro.props;
+const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+const R = 70, C = +(2 * Math.PI * R).toFixed(2);
+let acc = 0;
+const arcs = segments.map((s) => {
+  const len = +((s.value / total) * C).toFixed(2);
+  const off = -acc;
+  acc += len;
+  return { ...s, len, off, pct: (s.value / total) * 100 };
+});
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div class="dn">
+    <div class="dn-wrap">
+      <svg viewBox="0 0 180 180" class="dn-svg" role="img" aria-label={centerLabel}>
+        <g transform="rotate(-90 90 90)">
+          {arcs.map((a) => (
+            <circle cx="90" cy="90" r={R} fill="none" stroke={a.color} stroke-width="26"
+              stroke-dasharray={`${a.len} ${C}`} stroke-dashoffset={a.off} class="dn-seg" />
+          ))}
+        </g>
+      </svg>
+      <div class="dn-center">
+        <div class="dn-total">{toNe(centerValue)}</div>
+        <div class="dn-total-label">{centerLabel}</div>
+      </div>
+    </div>
+    <div class="dn-legend">
+      {arcs.map((a) => (
+        <div class="dn-leg">
+          <span class="dn-leg-dot" style={`background:${a.color}`}></span>
+          <span class="dn-leg-label">{a.label}</span>
+          <span class="dn-leg-val">{toNe(a.pct.toFixed(1))}%</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</VizCard>
+
+<style>
+  .dn { display: flex; flex-wrap: wrap; align-items: center; gap: 1.75rem; }
+  .dn-wrap { position: relative; width: 100%; max-width: 220px; margin-inline: auto; }
+  .dn-svg { width: 100%; height: auto; }
+  .dn-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .dn-total { font-size: 1.4rem; font-weight: 700; line-height: 1; color: var(--color-text); }
+  .dn-total-label { margin-top: 0.25rem; font-size: 0.78rem; color: var(--color-text-secondary); }
+  .dn-legend { flex: 1 1 12rem; display: flex; flex-direction: column; gap: 0.6rem; min-width: 12rem; }
+  .dn-leg { display: flex; align-items: center; gap: 0.6rem; }
+  .dn-leg-dot { width: 0.7rem; height: 0.7rem; border-radius: 9999px; flex: 0 0 auto; }
+  .dn-leg-label { flex: 1 1 auto; font-size: 0.9rem; color: var(--color-text); }
+  .dn-leg-val { font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal .dn-seg {
+      opacity: 0;
+      transform: scale(0.7);
+      transform-origin: 90px 90px;
+      transition: opacity 500ms ease, transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    :global(.reveal.is-visible) .dn-seg { opacity: 1; transform: scale(1); }
+  }
+</style>

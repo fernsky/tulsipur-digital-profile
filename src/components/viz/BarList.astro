@@ -1,0 +1,95 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe } from "../../lib/ne";
+
+// Generic animated horizontal-bar list. Each item: a colored bar sized by
+// `value`, with an optional value text, count badge, sub-line and chips.
+export interface BarItem {
+  label: string;
+  value: number;
+  color?: string;
+  valueText?: string; // pre-formatted; falls back to Devanagari value
+  badge?: string;
+  sub?: string;
+  chips?: string[];
+}
+interface Props {
+  title?: string;
+  subtitle?: string;
+  items: BarItem[];
+  max?: number;
+  palette?: string[];
+}
+const DEF = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04"];
+const { title, subtitle, items, max, palette = DEF } = Astro.props;
+const peak = max ?? Math.max(...items.map((i) => i.value), 1);
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div class="bl reveal-stagger">
+    {items.map((it, i) => {
+      const color = it.color ?? palette[i % palette.length];
+      const pct = (it.value / peak) * 100;
+      return (
+        <div class="bl-row">
+          <div class="bl-top">
+            <div class="bl-name">
+              <span class="bl-dot" style={`background:${color}`}></span>
+              <span class="bl-label">{it.label}</span>
+              {it.badge && <span class="bl-badge">{it.badge}</span>}
+            </div>
+            <span class="bl-val">{it.valueText ?? toNe(it.value)}</span>
+          </div>
+          <div class="bl-track">
+            <div class="bl-fill" style={`--w:${pct}%;width:${pct}%;background:${color}`}></div>
+          </div>
+          {(it.sub || it.chips) && (
+            <div class="bl-meta">
+              {it.sub && <span class="bl-sub">{it.sub}</span>}
+              {it.chips && it.chips.map((c) => <span class="bl-chip">{c}</span>)}
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+</VizCard>
+
+<style>
+  .bl { display: flex; flex-direction: column; gap: 1rem; }
+  .bl-top {
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .bl-name { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+  .bl-dot { width: 0.75rem; height: 0.75rem; border-radius: 9999px; flex: 0 0 auto; }
+  .bl-label { font-size: 1rem; font-weight: 700; color: var(--color-text); }
+  .bl-badge {
+    border-radius: 9999px;
+    background: var(--color-background);
+    padding: 0.1rem 0.5rem;
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+  .bl-val { flex: 0 0 auto; font-size: 0.95rem; font-weight: 700; color: var(--color-text); }
+  .bl-track { height: 22px; width: 100%; border-radius: 9999px; background: var(--color-background); overflow: hidden; }
+  .bl-fill { height: 100%; border-radius: 9999px; min-width: 0.4rem; }
+  .bl-meta { margin-top: 0.4rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+  .bl-sub { font-size: 0.78rem; color: var(--color-text-secondary); }
+  .bl-chip {
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    padding: 0.05rem 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--color-text);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .bl-fill { width: 0 !important; transition: width 900ms cubic-bezier(0.2, 0, 0.2, 1); }
+    :global(.reveal-stagger.is-visible) .bl-fill { width: var(--w, 0) !important; }
+  }
+</style>

@@ -3,15 +3,38 @@ import DataTable from "../../components/DataTable.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
+import CompassRose from "../../components/viz/CompassRose.astro";
 import { chartFromRows } from "../../lib/chart";
+import { cellStr, toNum, toNe } from "../../lib/ne";
 
 const meta = {"chapter":2,"order":4,"id":"s-2-4-२-४-धरातलीय-अवस्था","title":"२.४ धरातलीय अवस्था","subsections":[]};
 
 // Section KPIs — auto-seeded from the main table. Edit freely.
-const kpis = [{"label":"क्षेत्रफल (वर्ग कि.मी.)","value":"३८४.५२"},{"label":"प्रतिशत","value":"१००"}];
+const kpis = [{"label":"क्षेत्रफल (वर्ग कि.मी.)","value":"३८४.५२"}];
 
 const t1 = {"caption":"तालिका नं. २ – जमिनको मोहडाको विवरण","source":"स्रोतः GIS तथ्याङ्कमा आधारित","rows":[["जमिनको मोहडा","क्षेत्रफल (वर्ग कि.मी.)","प्रतिशत"],["उत्तर मोहडा","३७.८६","९.८५"],["उत्तर पूर्वी मोहडा","३२.३९","८.४२"],["पूर्व मोहडा","३५.९३","९.३४"],["दक्षिण पूर्वी मोहडा","५९.६८","१५.५२"],["दक्षिण मोहडा","६७.५१","१७.५६"],["दक्षिण पश्चिम मोहडा","६०.४०","१५.७१"],["पश्चिम मोहडा","५०.५७","१३.१५"],["उत्तर पश्चिम मोहडा","४०.१८","१०.४५"],["जम्मा","३८४.५२","१००"]]};
 const t1Chart = chartFromRows(t1.rows);
+
+// --- Compass-rose: land aspect (मोहडा) by direction -------------------------
+const bearings = [
+  { key: "उत्तर पूर्व", deg: 45, color: "#16a34a" },
+  { key: "उत्तर पश्चिम", deg: 315, color: "#0891b2" },
+  { key: "दक्षिण पूर्व", deg: 135, color: "#f59e0b" },
+  { key: "दक्षिण पश्चिम", deg: 225, color: "#7c3aed" },
+  { key: "उत्तर", deg: 0, color: "#2563eb" },
+  { key: "पूर्व", deg: 90, color: "#dc2626" },
+  { key: "दक्षिण", deg: 180, color: "#db2777" },
+  { key: "पश्चिम", deg: 270, color: "#ca8a04" },
+];
+const matchBearing = (name) => bearings.find((b) => name.includes(b.key)) ?? bearings[bearings.length - 1];
+const aspectPetals = t1.rows
+  .slice(1)
+  .filter((r) => !/जम्मा/.test(cellStr(r[0])))
+  .map((r) => {
+    const name = cellStr(r[0]).replace(/मोहडा/g, "").trim();
+    const b = matchBearing(name);
+    return { name, value: toNum(r[2]), valueText: toNe(toNum(r[2]).toFixed(1)) + "%", deg: b.deg, color: b.color };
+  });
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
@@ -39,6 +62,12 @@ const t1Chart = chartFromRows(t1.rows);
   <div class="prose-ne reveal"><p>जमिनको भिरालोपन र मोहडा सामान्यतया एक अर्काका परिपूरक हुन्छन् । अर्थात् भिरालोपन विषम हुँदा मोहडामा पनि विषमता हुन्छ । समथर क्षेत्रमा मोहडामा विषमता नभए तापनि उप–महानगरपालिकामा निम्नानुसारको मोहडाको विवरण रहेको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  {t1Chart && <Chart chart={t1Chart} />}
+
+  <CompassRose
+    title="मोहडा अनुसार क्षेत्रफलको दिशात्मक वितरण"
+    subtitle="प्रत्येक पंखुडीको लम्बाइ सम्बन्धित दिशाको क्षेत्रफल प्रतिशत अनुसार छ"
+    petals={aspectPetals}
+  />
+
   <Figure src="/images/image11.jpeg" caption={"उप–महानगरपालिकाको भिरालोपन नक्शा" || undefined} />
 </section>

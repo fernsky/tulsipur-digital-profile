@@ -1,0 +1,67 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe, neInt } from "../../lib/ne";
+
+// Population pyramid: left vs right bars across ordered groups.
+export interface PyrRow { label: string; left: number; right: number; }
+interface Props {
+  title?: string;
+  subtitle?: string;
+  rows: PyrRow[]; // already ordered top -> bottom
+  leftLabel: string;
+  rightLabel: string;
+  leftColor?: string;
+  rightColor?: string;
+}
+const { title, subtitle, rows, leftLabel, rightLabel, leftColor = "#2563eb", rightColor = "#db2777" } = Astro.props;
+const peak = Math.max(...rows.flatMap((r) => [r.left, r.right]), 1);
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div slot="head-extra" class="pyr-legend">
+    <span class="pyr-leg"><span class="pyr-dot" style={`background:${leftColor}`}></span>{leftLabel}</span>
+    <span class="pyr-leg"><span class="pyr-dot" style={`background:${rightColor}`}></span>{rightLabel}</span>
+  </div>
+  <div class="pyr reveal-stagger">
+    {rows.map((r) => (
+      <div class="pyr-row">
+        <div class="pyr-half pyr-l">
+          <span class="pyr-num">{neInt(r.left)}</span>
+          <div class="pyr-track pyr-track-r">
+            <div class="pyr-bar pyr-bar-l" style={`--w:${(r.left / peak) * 100}%;width:${(r.left / peak) * 100}%;background:${leftColor}`}></div>
+          </div>
+        </div>
+        <div class="pyr-age">{toNe(r.label)}</div>
+        <div class="pyr-half pyr-r">
+          <div class="pyr-track pyr-track-l">
+            <div class="pyr-bar pyr-bar-r" style={`--w:${(r.right / peak) * 100}%;width:${(r.right / peak) * 100}%;background:${rightColor}`}></div>
+          </div>
+          <span class="pyr-num">{neInt(r.right)}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+</VizCard>
+
+<style>
+  .pyr-legend { display: flex; gap: 1rem; font-size: 0.84rem; }
+  .pyr-leg { display: flex; align-items: center; gap: 0.4rem; }
+  .pyr-dot { width: 0.65rem; height: 0.65rem; border-radius: 9999px; }
+  .pyr { display: flex; flex-direction: column; gap: 0.25rem; }
+  .pyr-row { display: grid; grid-template-columns: 1fr 4.5rem 1fr; align-items: center; gap: 0.5rem; }
+  .pyr-half { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+  .pyr-track { flex: 1 1 auto; display: flex; }
+  .pyr-track-r { justify-content: flex-end; }
+  .pyr-track-l { justify-content: flex-start; }
+  .pyr-bar { height: 15px; min-width: 2px; }
+  .pyr-bar-l { border-radius: 3px 0 0 3px; }
+  .pyr-bar-r { border-radius: 0 3px 3px 0; }
+  .pyr-age { text-align: center; font-size: 0.76rem; font-weight: 600; color: var(--color-text-secondary); white-space: nowrap; }
+  .pyr-num { flex: 0 0 auto; font-size: 0.74rem; font-variant-numeric: tabular-nums; color: var(--color-text); min-width: 2.6rem; }
+  .pyr-l .pyr-num { text-align: left; }
+  .pyr-r .pyr-num { text-align: right; }
+  @media (prefers-reduced-motion: no-preference) {
+    .pyr-bar { width: 0 !important; transition: width 800ms cubic-bezier(0.2, 0, 0.2, 1); }
+    :global(.reveal-stagger.is-visible) .pyr-bar { width: var(--w, 0) !important; }
+  }
+</style>

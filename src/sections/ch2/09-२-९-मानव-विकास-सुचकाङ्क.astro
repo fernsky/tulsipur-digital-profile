@@ -3,7 +3,10 @@ import DataTable from "../../components/DataTable.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
+import VizCard from "../../components/viz/VizCard.astro";
+import Gauge from "../../components/viz/Gauge.astro";
 import { chartFromRows } from "../../lib/chart";
+import { cellStr, toNum, toNe } from "../../lib/ne";
 
 const meta = {"chapter":2,"order":9,"id":"s-2-9-२-९-मानव-विकास-सुचकाङ्क","title":"२.९ मानव विकास सुचकाङ्क","subsections":[]};
 
@@ -12,6 +15,19 @@ const kpis = [];
 
 const t1 = {"caption":"तालिका नं. ३ – मानव विकास र गरिबी सूचकाङ्क विवरण","source":"","rows":[["प्रदेश","बहु–आयामिक गरिबीको दर (प्रतिशत)","गरिबीको (प्रतिशत)","गरिबीको विषमता (प्रतिशत)","गरिबीको गहनता (प्रतिशत)","गरीबहरूको संख्या","मानव विकास सूचकाङ्क"],["लुमि्बनी प्रदेश","२९.९","२५.८","६.५","२.३","१,०५३,३७९","०.४६८"]]};
 const t1Chart = chartFromRows(t1.rows);
+
+// --- HDI gauge + poverty indicators -----------------------------------------
+const row = t1.rows[1];
+const province = cellStr(row[0]);
+const hdi = toNum(row[6]);
+const poorCount = cellStr(row[5]);
+const metrics = [
+  { label: "बहु–आयामिक गरिबीको दर", v: toNum(row[1]), color: "#dc2626" },
+  { label: "गरिबीको दर", v: toNum(row[2]), color: "#f59e0b" },
+  { label: "गरिबीको विषमता", v: toNum(row[3]), color: "#7c3aed" },
+  { label: "गरिबीको गहनता", v: toNum(row[4]), color: "#0891b2" },
+];
+const maxM = Math.max(...metrics.map((m) => m.v), 1);
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
@@ -20,5 +36,47 @@ const t1Chart = chartFromRows(t1.rows);
   <div class="prose-ne reveal"><p>संयुक्त राष्ट्रसंघीय विकास कार्यक्रम (UNDP) को २०२५ को प्रतिवेदन अनुसार नेपालको मानव विकास सुचकाङ्क ०.६२२ रहेको र यसका आधारमा विश्वका १९३ देशहरु मध्ये नेपाल १४५ श्रेणीमा रहेको छ । विश्वका १९३ देशहरु मध्ये गत वर्ष नेपाल १४६ औँ स्थानमा रहेको थियो भने यस वर्ष केही सुधार भएर एक स्थान माथि उक्लिएको हो । सन् १९९० मा नेपालको यो सूचकाङ्क ०.३७८ थियो । सो अवधिमा नेपालीको औषत आयु ७०.४ वर्ष रहेको छ । यसैगरी लुमि्बनी प्रदेशको दोस्रो आवधिक योजना ८०/८१ का अनुसार मानव विकास सुचकाङ्क ०.५६३ छ भने औसत आयु ६९.५ वर्ष रहेको छ । गरिबी सूचकाङ्कको विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  {t1Chart && <Chart chart={t1Chart} />}
+
+  <VizCard title={`मानव विकास तथा गरिबीको अवस्था — ${province}`}>
+    <div class="hdp">
+      <div class="hdp-gauge">
+        <Gauge value={hdi} max={1} display={hdi.toFixed(3)} label="मानव विकास सूचकाङ्क" color="#16a34a" />
+      </div>
+      <div class="hdp-bars reveal-stagger">
+        {metrics.map((m) => (
+          <div class="hdp-row">
+            <div class="hdp-rowtop">
+              <span class="hdp-label">{m.label}</span>
+              <span class="hdp-val">{toNe(m.v.toFixed(1))}%</span>
+            </div>
+            <div class="hdp-track">
+              <div class="hdp-fill" style={`--w:${(m.v / maxM) * 100}%;width:${(m.v / maxM) * 100}%;background:${m.color}`}></div>
+            </div>
+          </div>
+        ))}
+        <div class="hdp-poor">
+          <span>गरीबहरूको संख्या</span>
+          <span class="hdp-poor-val">{toNe(poorCount)}</span>
+        </div>
+      </div>
+    </div>
+  </VizCard>
 </section>
+
+<style>
+  .hdp { display: grid; align-items: center; gap: 1.75rem; }
+  @media (min-width: 1024px) { .hdp { grid-template-columns: 260px 1fr; } }
+  .hdp-gauge { display: flex; justify-content: center; }
+  .hdp-bars { display: flex; flex-direction: column; gap: 0.9rem; }
+  .hdp-rowtop { margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: space-between; }
+  .hdp-label { font-size: 0.9rem; font-weight: 500; color: var(--color-text); }
+  .hdp-val { font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
+  .hdp-track { height: 18px; border-radius: 9999px; background: var(--color-background); overflow: hidden; }
+  .hdp-fill { height: 100%; border-radius: 9999px; }
+  .hdp-poor { margin-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; border-radius: 0.75rem; background: var(--color-background); padding: 0.75rem 1rem; }
+  .hdp-poor-val { font-size: 1.25rem; font-weight: 700; color: var(--color-text); }
+  @media (prefers-reduced-motion: no-preference) {
+    .hdp-fill { width: 0 !important; transition: width 900ms cubic-bezier(0.2, 0, 0.2, 1); }
+    :global(.reveal-stagger.is-visible) .hdp-fill { width: var(--w, 0) !important; }
+  }
+</style>

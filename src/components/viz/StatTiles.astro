@@ -1,0 +1,55 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe } from "../../lib/ne";
+
+// Grid of stat tiles, each with a colored top accent.
+export interface Tile {
+  label: string;
+  value: string | number;
+  sub?: string;
+  color?: string;
+}
+interface Props {
+  title?: string;
+  subtitle?: string;
+  tiles: Tile[];
+  cols?: number;
+}
+const DEF = ["#2563eb", "#16a34a", "#f59e0b", "#0891b2", "#7c3aed", "#dc2626"];
+const { title, subtitle, tiles, cols = 3 } = Astro.props;
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div class="st reveal-stagger" style={`--cols:${cols}`}>
+    {tiles.map((t, i) => (
+      <div class="st-tile">
+        <span class="st-accent" style={`background:${t.color ?? DEF[i % DEF.length]}`}></span>
+        <div class="st-val">{toNe(t.value)}</div>
+        <div class="st-label">{t.label}</div>
+        {t.sub && <div class="st-sub">{t.sub}</div>}
+      </div>
+    ))}
+  </div>
+</VizCard>
+
+<style>
+  .st {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  @media (min-width: 640px) {
+    .st { grid-template-columns: repeat(var(--cols), 1fr); }
+  }
+  .st-tile {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-border);
+    padding: 0.9rem;
+  }
+  .st-accent { position: absolute; inset-inline: 0; top: 0; height: 0.25rem; }
+  .st-val { font-size: 1.35rem; font-weight: 700; line-height: 1; color: var(--color-text); }
+  .st-label { margin-top: 0.4rem; font-size: 0.84rem; font-weight: 500; color: var(--color-text); }
+  .st-sub { font-size: 0.74rem; color: var(--color-text-secondary); }
+</style>

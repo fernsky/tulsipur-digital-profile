@@ -3,7 +3,9 @@ import DataTable from "../../components/DataTable.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
+import Treemap from "../../components/viz/Treemap.astro";
 import { chartFromRows } from "../../lib/chart";
+import { cellStr, toNum, toNe, neInt } from "../../lib/ne";
 
 const meta = {"chapter":2,"order":3,"id":"s-2-3-२-३-राजनीतिक-र-प्रशासनिक-संरचना","title":"२.३ राजनीतिक र प्रशासनिक संरचना","subsections":[]};
 
@@ -12,6 +14,30 @@ const kpis = [{"label":"समावेश गाविस/नगरपालि
 
 const t1 = {"caption":"तालिका नं. १ – राजनीतिक र प्रशासनिक संरचना","source":"स्रोतः राष्ट्रिय जनगणना, २०६८ तथा भू–सूचना प्रणालीमा आधारित स्थलगत तथ्याङ्क","rows":[["वडा नं.","समावेश गाविस/नगरपालिका","जनसंख्या","क्षेत्रफल (वर्ग कि.मि.)"],["१","पवननगर (१,२,३,४)","४३६१","१९.८८"],["२","पवननगर (५,६,७,८,९)","४३१२","१३.०५"],["३","तुलसीपुर (१,७,१०)","७४७९","५५.६३"],["४","तुलसीपुर (२,१६,१७)","८१२६","३६.३८"],["५","तुलसीपुर (५)","११६४८","१.६२"],["६","तुलसीपुर (६)","१२९६९","७.५२"],["७","तुलसीपुर (३,४,१५)","१०८१७","१२.७४"],["८","तुलसीपुर (८,११)","५६४१","१०.७३"],["९","तुलसीपुर (९)","४९२५","५.९७"],["१०","तुलसीपुर (१३,१४)","६४९७","१७.२६"],["११","तुलसीपुर (१९,२०)","८६६१८","१७.२९"],["१२","तुलसीपुर (१२,१८)","८८३८","१५.७७"],["१३","फुलबारी (१–९)","५४८९","५२.३"],["१४","डुरुवा (२,३,८,९)","६०४०","२०.५७"],["१५","डुरुवा (१,४,५,६,७)","६९३९","१४.३२"],["१६","मानपुर (२,३,४,५,६)","७६०३","१७.११"],["१७","मानपुर (१,७,८,९)","७२६१","१६.०७"],["१८","विजौरी (१,३,४,५,७)","७६७१","१६.२४"],["१९","विजौरी (२,६,८,९)","६२५१","३४.२"],[{"text":"जम्मा","colspan":2,"rowspan":1},"१,४१,५२८","३८४.६५"]]};
 const t1Chart = chartFromRows(t1.rows);
+
+// --- Grouped visualization: wards grouped by former VDC / municipality ------
+const palette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"];
+const wardRows = t1.rows.slice(1).filter((r) => r.length === 4 && /^[०-९]+$/.test(cellStr(r[0]).trim()));
+const groupMap = [];
+for (const r of wardRows) {
+  const base = cellStr(r[1]).split("(")[0].trim();
+  let g = groupMap.find((x) => x.name === base);
+  if (!g) { g = { name: base, wards: [], pop: 0, area: 0 }; groupMap.push(g); }
+  g.wards.push(cellStr(r[0]).trim());
+  g.pop += toNum(r[2]);
+  g.area += toNum(r[3]);
+}
+const totalArea = groupMap.reduce((s, g) => s + g.area, 0);
+const treeItems = groupMap
+  .map((g, i) => ({
+    label: g.name,
+    value: g.area,
+    color: palette[i % palette.length],
+    badge: toNe(g.area.toFixed(1)) + " वर्ग कि.मि. · " + toNe(((g.area / totalArea) * 100).toFixed(1)) + "%",
+    sub: neInt(g.pop) + " जनसंख्या · " + toNe(g.wards.length) + " वडा",
+  }))
+  .sort((a, b) => b.value - a.value);
+const wardCount = wardRows.length;
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
@@ -20,7 +46,12 @@ const t1Chart = chartFromRows(t1.rows);
   <div class="prose-ne reveal"><p>तुलसीपुर उप–महानरपालिका साविकका तुलसीपुर नगरपालिका, हलवार, टरिगाउँ, उरहरी, पवनपुर, मानपुर, विजौरी, डुरुवा र फुलवारी गा.वि.स. लाई गाभेर २०७३/११/२२ गतेको नेपाल सरकारको निर्णय तथा २०७३/११/२७ मा राजपत्रको सूचना प्रकाशन गरी उप–महानगरपालिकाको रुपमा स्थापना भएको हो । यसरी स्थापना गरिएको यस उप–महानगरपालिकामा हाल १९ वटा वडा कायम गरिएको छ । जसको विस्तृत विवरण तलको तालिकामा प्रस्तुत गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  {t1Chart && <Chart chart={t1Chart} />}
+
+  <Treemap
+    title="समावेश गाविस/नगरपालिका अनुसार क्षेत्रफल"
+    subtitle={`आयतनको क्षेत्रफल अनुसार — साविकका ${toNe(treeItems.length)} गा.वि.स./नगरपालिकाका ${toNe(wardCount)} वडा`}
+    items={treeItems}
+  />
   <Figure src="/images/image8.jpeg" caption={"" || undefined} />
   <Figure src="/images/image9.jpeg" caption={"प्रशासनिक विभाजन नक्शा" || undefined} />
 </section>
