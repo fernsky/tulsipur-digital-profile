@@ -18,5 +18,4 @@ const t1Chart = chartFromRows(t1.rows);
   <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  {t1Chart && <Chart chart={t1Chart} />}
 </section>

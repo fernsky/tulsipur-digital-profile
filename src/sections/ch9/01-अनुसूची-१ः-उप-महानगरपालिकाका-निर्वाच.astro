@@ -24,12 +24,8 @@ const t4Chart = chartFromRows(t4.rows);
   <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  {t1Chart && <Chart chart={t1Chart} />}
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
-  {t2Chart && <Chart chart={t2Chart} />}
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
-  {t3Chart && <Chart chart={t3Chart} />}
   <p class="reveal text-[0.85rem] text-[var(--color-text-secondary)]">उप–महानगरपालिकामा कार्यरत बालविकास सहजकर्ताहरुको विवरण</p>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
-  {t4Chart && <Chart chart={t4Chart} />}
 </section>
