@@ -3,7 +3,8 @@ import DataTable from "../../components/DataTable.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
-import { chartFromRows } from "../../lib/chart";
+import Treemap from "../../components/viz/Treemap.astro";
+import { cellStr, toNum, toNe } from "../../lib/ne";
 
 const meta = {"chapter":4,"order":2,"id":"s-4-2-४-२-भू-उपयोग-तथा-स्वामित्व","title":"४.२ भू–उपयोग तथा स्वामित्व","subsections":[{"id":"h-36-४-२-१-भू-उपयोग-क्षेत्रको-विव","title":"४.२.१ भू–उपयोग क्षेत्रको विवरण"},{"id":"h-37-४-२-२-खेतीयोग्य-जमिन-सम्बन्ध","title":"४.२.२ खेतीयोग्य जमिन सम्बन्धी विवरण"},{"id":"h-38-४-२-३-बाँझो-जमिन-सम्बन्धी-वि","title":"४.२.३ बाँझो जमिन सम्बन्धी विवरण"}]};
 
@@ -11,7 +12,15 @@ const meta = {"chapter":4,"order":2,"id":"s-4-2-४-२-भू-उपयोग-�
 const kpis = [];
 
 const t1 = {"caption":"","source":"","rows":[["भू–उपयोगका क्षेत्र","क्षेत्रफल (वर्ग कि.मि.)","क्षेत्रफल प्रतिशतमा"],["कृषि","१८२.१९","४७.३८"],["सार्बजनिक प्रयोग को जग्गा","०.२९","०.०८"],["धार्मिक क्षेत्र","०.०१","०.००"],["जंगल","१६७.५५","४३.५७"],["जल क्षेत्र","११.१७","२.९०"],["औधोगिक क्षेत्र","१.०४","०.२७"],["खानी तथा खनिज क्षेत्र","०.१७","०.०४"],["अन्य","०.०३","०.०१"],["सार्बजनिक स्थल","५.७५","१.४९"],["बस्ती क्षेत्र","१६.३४","४.२५"],["जम्मा","३८४.५२","१००.००"]]};
-const t1Chart = chartFromRows(t1.rows);
+const luPalette = ["#16a34a", "#65a30d", "#0891b2", "#2563eb", "#f59e0b", "#dc2626", "#7c3aed", "#db2777", "#ca8a04", "#a3a3a3"];
+const landTotal = toNum((t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [])[1]);
+const landItems = t1.rows
+  .slice(1)
+  .filter((r) => !/जम्मा/.test(cellStr(r[0])))
+  .map((r) => ({ label: cellStr(r[0]), area: toNum(r[1]) }))
+  .filter((r) => r.area > 0)
+  .sort((a, b) => b.area - a.area)
+  .map((r, i) => ({ label: r.label, value: r.area, color: luPalette[i % luPalette.length], badge: toNe(r.area.toFixed(2)) + " वर्ग कि.मि.", sub: toNe(((r.area / landTotal) * 100).toFixed(1)) + "%" }));
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
@@ -20,7 +29,11 @@ const t1Chart = chartFromRows(t1.rows);
   <h3 id="h-36-४-२-१-भू-उपयोग-क्षेत्रको-विव" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">४.२.१ भू–उपयोग क्षेत्रको विवरण</h3>
   <div class="prose-ne reveal"><p>भूमि महत्वपूर्ण प्राकृतिक साधन हो । आर्थिक विकासको लागि यसको समुचित उपयोग गर्नु पर्दछ । भूमिलाई कृषि, आवास, सडक, पिउने पानी, सिँचाई, विद्युत तथा उर्जा, सूचना तथा सञ्चार आदिको प्रवन्धको लागि प्रयोग गर्ने गरिन्छ । यस खण्डमा विशेष गरी उप–महानगरपालिकाको भू–उपयोग र भू–आवरणको वस्तुगत चित्रण गरिएको छ ।</p></div>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  {t1Chart && <Chart chart={t1Chart} />}
+  <Treemap
+    title="भू–उपयोग क्षेत्रको संरचना"
+    subtitle="क्षेत्रफल अनुसार भू–उपयोगको हिस्सा"
+    items={landItems}
+  />
   <div class="prose-ne reveal"><p>स्रोतः GIS तथ्याङ्कमा आधारित</p></div>
   <Figure src="/images/image12.jpeg" caption={"उप–महानगरपालिकाको मोहोडा नक्शा" || undefined} />
   <h3 id="h-37-४-२-२-खेतीयोग्य-जमिन-सम्बन्ध" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">४.२.२ खेतीयोग्य जमिन सम्बन्धी विवरण</h3>
