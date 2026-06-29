@@ -3,7 +3,12 @@ import DataTable from "../../components/DataTable.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
+import StackedBar from "../../components/viz/StackedBar.astro";
+import { cellStr, toNum } from "../../lib/ne";
 import { chartFromRows } from "../../lib/chart";
+
+const eduPalette=["#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed"];
+const segsFromTotals=(table)=>{const names=table.rows[0].slice(1,-1).map(cellStr);const tot=(table.rows.find((r)=>/जम्मा/.test(cellStr(r[0])))||[]).slice(1,-1);return names.map((n,i)=>({label:n,value:toNum(tot[i]),color:eduPalette[i%eduPalette.length]})).filter((x)=>x.value>0);};
 
 const meta = {"chapter":5,"order":1,"id":"s-5-1-५-१-शैक्षिक-तथा-मानव-संसाधन-विका","title":"५.१ शैक्षिक तथा मानव संसाधन विकास","subsections":[{"id":"h-58-५-१-१-पाँच-वर्ष-माथिको-जनसंख","title":"५.१.१ पाँच वर्ष माथिको जनसंख्याको साक्षरता"},{"id":"h-60-५-१-२-तहगत-रुपमा-शैक्षिक-संस","title":"५.१.२ तहगत रुपमा शैक्षिक संस्था/विद्यालय र विद्यार्थी विवरण"},{"id":"h-67-५-१-३-विद्यालयमा-अध्ययन-गरिर","title":"५.१.३ विद्यालयमा अध्ययन गरिरहेका छात्रछात्राको विवरण"},{"id":"h-68-५-१-४-शिक्षक-तथा-शैक्षिक-जनश","title":"५.१.४ शिक्षक तथा शैक्षिक जनशक्ति विवरण"},{"id":"h-69-५-१-५-उप-महानगरपालिकाको-प्रा","title":"५.१.५ उप–महानगरपालिकाको प्राविधिक धारका कलेज तथा विद्यार्थीको संख्या सम्बन्धी विवरण"},{"id":"h-70-५-१-६-शैक्षिक-गुणस्तर-सम्बन्","title":"५.१.६ शैक्षिक गुणस्तर सम्बन्धी विवरण"},{"id":"h-71-५-१-७-बालमैत्री-शिक्षा-सम्बन","title":"५.१.७ बालमैत्री शिक्षा सम्बन्धी विवरण"}]};
 
@@ -26,6 +31,7 @@ const t7 = {"caption":"","source":"स्रोतः उप–महानग�
 const t7Chart = chartFromRows(t7.rows);
 const t8 = {"caption":"तालिका नं. ६८ – तुलसीपुर उप–महानगरपालिकाका विद्यालयहरुमा अध्ययनरत विद्यार्थीहरुको विवरण","source":"स्रोतः उप–महानगरपालिका शिक्षा शाखा","rows":[["वडा","सरकारी","निजी","क्याम्पस","जम्मा"],["१।","१०४६","४६०","१७२","१६७८"],["२।","५३०","९३१","१६७","१६२८"],["३।","१०९७","४८३","१९०","१७७०"],["४।","२५६३","२२९०","२०७","५०६०"],["५।","३६७","२९८९","५८२","३९३८"],["६।","११५३","८७२६","७४४","१०६२३"],["७।","९८४","२४०५","६३१","४०२०"],["८।","७७५","१२९१","३३८","२४०४"],["९।","६७८","२२१८","२२७","३१२३"],["१०।","४७६","१०७३","१७८","१७२७"],["११।","९७८","१०७४","२३३","२२८५"],["१२।","२०१७","१७०१","२७६","३९९४"],["१३।","११४४","१७२","१०७","१४२३"],["१४।","१३२१","३३१","१९८","१८५०"],["१५।","५४५","९७७","२२१","१७४३"],["१६।","३१७","७४४","२६७","१३२८"],["१७।","१२७५","१४५६","३७९","३११०"],["१८।","२३२२","२५७४","४५३","५३४९"],["१९।","६५९","११५७","१८९","२००५"],["जम्मा","२०२४७","३३०५२","५७५९","५९०५८"]]};
 const t8Chart = chartFromRows(t8.rows);
+const studentSeg = segsFromTotals(t8);
 const t9 = {"caption":"तालिका नं. ६९ – उप–महानगरपालिकाको शिक्षक तथा शैक्षिक जनशक्ति विवरण","source":"स्रोतः उप–महानगरपालिका शिक्षा शाखा","rows":[["क्र.स.","विवरण","शिक्षिका","शिक्षक","जम्मा"],["१।","सामुदायिक विद्यालय","२४०","४१९","६५९"],["२।","संस्थागत विद्यालय","६१५","७०१","१३१६"],["३।","क्याम्पस","९","१३७","१४६"],["४।","टेक्निकल स्कुल तथा कलेज","२","२२","२४"],["५।","प्राइभेट क्याम्पस","३","३४","३९"],["६।","विश्व विद्यालय","०","४६","४६"],[{"text":"जम्मा","colspan":2,"rowspan":1},"८६९","१३५९","२२३०"]]};
 const t9Chart = chartFromRows(t9.rows);
 const t10 = {"caption":"","source":"","rows":[[{"text":"कलेज/क्याम्पसको नाम","colspan":1,"rowspan":2},{"text":"वडा","colspan":1,"rowspan":2},{"text":"संकाय","colspan":1,"rowspan":2},{"text":"पढाई हुने तह","colspan":1,"rowspan":2},{"text":"पढाई हुने प्रमुख विषय","colspan":1,"rowspan":2},{"text":"विद्यार्थी संख्या","colspan":3,"rowspan":1}],["छात्रा","छात्र","जम्मा"],["Campus of live science","१३","B.Sc.Ag","Bachelor","B.Sc.Ag","१०८","९०","१९९"]]};
@@ -51,47 +57,37 @@ const t11Chart = chartFromRows(t11.rows);
   <h3 id="h-58-५-१-१-पाँच-वर्ष-माथिको-जनसंख" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.१ पाँच वर्ष माथिको जनसंख्याको साक्षरता</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  {t1Chart && <Chart chart={t1Chart} />}
   <div class="prose-ne reveal"><p>साक्षरताले पढ्न र लेख्न सक्ने सीपभन्दा माथि समग्र मानव विकास सूचकलाई इंगित गर्दछ । उप–महानगरपालिकामा ५ वर्ष वा सो भन्दा माथिको उमेर समूहका कुल १,६५,८४३ जनसंख्या मध्ये १,३७,८७४ अर्थात् ८३.१४ प्रतिशत साक्षर रहेका छन् । पालिकामा पढ्न मात्र सक्ने साक्षर जनसंख्या ४६५ जना अर्थात ०.२८ प्रतिशत छन् भने पढ्ने र लेख्न नजान्ने (दुवै सिप नभएका अर्थात निरक्षर) जनसंख्या २७,४१० अर्थात १६.५३ प्रतिशत रहेको छ । जसको वडागत विस्तृत विवरण तालिकामा उल्लेख गरिएको छ ।</p></div>
   <h4 id="h-59-क-औपचारिक-शिक्षाको-आधारमा-जन" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) औपचारिक शिक्षाको आधारमा जनसंख्याको साक्षरताको स्थिति</h4>
   <div class="prose-ne reveal"><p>युनेस्कोले सन् १९५६ मा सामान्य पढ्न, लेख्न र दैनिक जीवनमा आइपर्ने गणितीय जोड घटाउ गर्न सक्ने व्यक्ति साक्षर भएको मानिने भनी परिभाषा गरेको थियो । नेपालले पनि यसै परिभाषालाई आधार मानेर साक्षरता अभियान सञ्चालन गरिरहेको छ । यस उप–महानगरपालिकामा रहेका ५ वर्ष देखि २५ वर्ष सम्मका कुल जनसंख्या मध्ये ४२,५५३ अर्थात ७६.११ प्रतिशत हाल विद्यालय तथा कलेज गइरहेका, १२,४२५ जना अर्थात २२.२२ प्रतिशत जनसंख्या पहिला विद्यालय तथा कलेज गएका र ८४१ जना अर्थात १.५० प्रतिशत कहिले पनि स्कुल तथा कलेज औपचारिक शिक्षा हाँसिल नगरेको पाउन सकिन्छ । जसको विस्तृत विवरण तलको तालिकामा प्रस्तुत गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
-  {t2Chart && <Chart chart={t2Chart} />}
   <h3 id="h-60-५-१-२-तहगत-रुपमा-शैक्षिक-संस" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.२ तहगत रुपमा शैक्षिक संस्था/विद्यालय र विद्यार्थी विवरण</h3>
   <h4 id="h-61-क-सामुदायिक-विद्यालयहरुको-वि" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) सामुदायिक विद्यालयहरुको विवरण</h4>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
-  {t3Chart && <Chart chart={t3Chart} />}
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका शिक्षा शाखा</p></div>
   <h4 id="h-62-ख-संस्थागत-विद्यालयहरूको-विव" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ख) संस्थागत विद्यालयहरूको विवरण</h4>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
-  {t4Chart && <Chart chart={t4Chart} />}
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका शिक्षा शाखा</p></div>
   <h4 id="h-63-ग-सामुदायिक-विद्यालयमा-कार्य" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ग) सामुदायिक विद्यालयमा कार्यरत शैक्षिक जनशक्तिको विवरण</h4>
   <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
-  {t5Chart && <Chart chart={t5Chart} />}
   <h4 id="h-64-घ-शैक्षिक-तह-अनुसार-विद्यार्" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">घ) शैक्षिक तह अनुसार विद्यार्थीहरुको विवरण</h4>
   <DataTable caption={t6.caption} rows={t6.rows} source={t6.source} />
-  {t6Chart && <Chart chart={t6Chart} />}
   <h4 id="h-65-ङ-उप-महानगरपालिका-भित्र-रहेक" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ङ) उप–महानगरपालिका भित्र रहेका विश्वविद्यालय तथा क्याम्पसहरुको विवरण</h4>
   <DataTable caption={t7.caption} rows={t7.rows} source={t7.source} />
-  {t7Chart && <Chart chart={t7Chart} />}
   <h4 id="h-66-च-उप-महानगरपालिकाको-आन्तरिक-" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">च) उप–महानगरपालिकाको आन्तरिक श्रोतबाट सञ्चालित बालविकास केन्द्रको विवरण</h4>
   <div class="prose-ne reveal"><p>यस उप–महानगरपालिकामा रहेका सबै आधारभूत विद्यालयहरुमा बाल विकास केन्द्र रहेको छ । आधारभूत तहका साना कक्षाहरुमा अध्ययन गर्ने बालबालिकाहरुको लागि बालविकास केन्द्रमा मनोरञ्जन, खेलकुद, नाचगान लगायतका क्रियाकलापहरु सञ्चालन गरी विद्यार्थीहरुलाई पढाई र स्कुल प्रति ध्यान केन्द्रित गर्ने गरिएको छ । बालबालिकालाई विद्यालय तर्फ आकर्षित गर्नका लागि बालविकास केन्द्रहरुलाई व्यवस्थित गरिएको छ ।</p></div>
   <h3 id="h-67-५-१-३-विद्यालयमा-अध्ययन-गरिर" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.३ विद्यालयमा अध्ययन गरिरहेका छात्रछात्राको विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t8.caption}</h3>
   <DataTable caption={t8.caption} rows={t8.rows} source={t8.source} />
-  {t8Chart && <Chart chart={t8Chart} />}
+  <StackedBar title="विद्यालय प्रकार अनुसार विद्यार्थी संरचना" subtitle="सरकारी, निजी र क्याम्पसमा अध्ययनरत विद्यार्थीको हिस्सा" segments={studentSeg} unit="विद्यार्थी" />
   <h3 id="h-68-५-१-४-शिक्षक-तथा-शैक्षिक-जनश" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.४ शिक्षक तथा शैक्षिक जनशक्ति विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
   <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
-  {t9Chart && <Chart chart={t9Chart} />}
   <h3 id="h-69-५-१-५-उप-महानगरपालिकाको-प्रा" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.५ उप–महानगरपालिकाको प्राविधिक धारका कलेज तथा विद्यार्थीको संख्या सम्बन्धी विवरण</h3>
   <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
-  {t10Chart && <Chart chart={t10Chart} />}
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
   <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
-  {t11Chart && <Chart chart={t11Chart} />}
   <h3 id="h-70-५-१-६-शैक्षिक-गुणस्तर-सम्बन्" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.६ शैक्षिक गुणस्तर सम्बन्धी विवरण</h3>
   <ul class="prose-ne reveal my-3 ml-1 space-y-1.5">
     <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">विद्यालय सहयोग संयन्त्र</span></li>
