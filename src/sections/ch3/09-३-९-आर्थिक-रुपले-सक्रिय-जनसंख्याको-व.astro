@@ -3,7 +3,9 @@ import DataTable from "../../components/DataTable.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
-import { chartFromRows } from "../../lib/chart";
+import StackedBar from "../../components/viz/StackedBar.astro";
+import Donut from "../../components/viz/Donut.astro";
+import { cellStr, toNum } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":9,"id":"s-3-9-३-९-आर्थिक-रुपले-सक्रिय-जनसंख्या","title":"३.९ आर्थिक रुपले सक्रिय जनसंख्याको विवरण","subsections":[]};
 
@@ -11,9 +13,17 @@ const meta = {"chapter":3,"order":9,"id":"s-3-9-३-९-आर्थिक-र�
 const kpis = [{"label":"३ महिना भन्दा कम","value":"१३,५७४"},{"label":"३ महिना वा सो भन्दा बढी","value":"१८,११५"},{"label":"६ महिना वा सो भन्दा बढी","value":"५३,७०४"},{"label":"कुनै पनि आर्थिक काम नगरेको","value":"६३,८६३"}];
 
 const t1 = {"caption":"तालिका नं. १३ – १२ महिनासम्म आर्थिक काम गरेको अवधि (महिना) अनुसार जनसंख्याको विवरण","source":"स्रोतः राष्ट्रिय जनगणना,२०७८","rows":[["लिङ्ग","३ महिना भन्दा कम","३ महिना वा सो भन्दा बढी","६ महिना वा सो भन्दा बढी","कुनै पनि आर्थिक काम नगरेको","जम्मा"],["पुरुष","४,९४३","६,९५४","३१,४२९","२५१६७","६८,४९३"],["महिला","८,६३१","११,१६१","२२,२७५","३८,६९६","८०,७६३"],["जम्मा","१३,५७४","१८,११५","५३,७०४","६३,८६३","१४९,२५६"],["प्रतिशत","९.०९","१२.१४","३५.९८","४२.७९","१००"]]};
-const t1Chart = chartFromRows(t1.rows);
 const t2 = {"caption":"तालिका नं. १४ – आर्थिक रुपले सक्रिय/निस्क्रिय जनसंख्याको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["लिङ्ग","आर्थिक रुपले सक्रिय रहेका","आर्थिक रुपले सक्रिय नरहेका","जम्मा"],["पुरुष","३४,८६२","१०,३४४","४५,२०६"],["महिला","२५,८६८","१८,६१९","४४,४८७"],["जम्मा","६०,७३०","२८,९६३","८९,६९३"],["प्रतिशत","६७.७१","३२.२९","१००"]]};
-const t2Chart = chartFromRows(t2.rows);
+const durPalette = ["#dc2626", "#f59e0b", "#16a34a", "#a3a3a3"];
+const durHeader = t1.rows[0].slice(1, 5).map(cellStr);
+const durTotals = (t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || []).slice(1, 5);
+const durSegments = durHeader.map((name, i) => ({ label: name, value: toNum(durTotals[i]), color: durPalette[i % durPalette.length] }));
+
+const actTotals = t2.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const actSegs = [
+  { label: "आर्थिक रुपले सक्रिय", value: toNum(actTotals[1]), color: "#16a34a" },
+  { label: "आर्थिक रुपले सक्रिय नरहेका", value: toNum(actTotals[2]), color: "#dc2626" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
@@ -22,9 +32,19 @@ const t2Chart = chartFromRows(t2.rows);
   <div class="prose-ne reveal"><p>१० वर्ष वा सो भन्दा माथिका व्यक्तिले गणनाको समयदेखि अघिको १२ महिनासम्म आर्थिक काम गरेको अवधि (महिना) अनुसारको जनसंख्याको विस्तृत विवरण तलको तालिकामा प्रस्तुत गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  {t1Chart && <Chart chart={t1Chart} />}
+  <StackedBar
+    title="आर्थिक कामको अवधि अनुसार वितरण"
+    subtitle="१२ महिनामा आर्थिक काम गरेको अवधि"
+    segments={durSegments}
+    unit="जना"
+  />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
-  {t2Chart && <Chart chart={t2Chart} />}
+  <Donut
+    title="आर्थिक सक्रियता"
+    segments={actSegs}
+    centerValue="८९,६९३"
+    centerLabel="१० वर्षमाथि जनसंख्या"
+  />
   <div class="prose-ne reveal"><p>्</p></div>
 </section>
