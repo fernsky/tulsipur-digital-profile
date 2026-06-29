@@ -1,0 +1,60 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe, neInt } from "../../lib/ne";
+
+// 100% proportional "share bar" — one full-width bar split into segments,
+// with a ranked legend. Ideal for composition data (languages, caste, etc).
+export interface Share { label: string; value: number; color: string; }
+interface Props {
+  title?: string;
+  subtitle?: string;
+  segments: Share[];
+  unit?: string; // legend value unit, e.g. "जना"
+}
+const { title, subtitle, segments, unit } = Astro.props;
+const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+const parts = segments
+  .map((s) => ({ ...s, pct: (s.value / total) * 100 }))
+  .sort((a, b) => b.value - a.value);
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div class="sb reveal">
+    <div class="sb-bar">
+      {parts.map((p, i) => (
+        <div class="sb-seg" style={`--w:${p.pct}%;width:${p.pct}%;background:${p.color};--d:${i * 90}ms`} title={`${p.label} · ${toNe(p.pct.toFixed(2))}%`}>
+          {p.pct >= 8 && <span class="sb-seg-label">{toNe(p.pct.toFixed(1))}%</span>}
+        </div>
+      ))}
+    </div>
+    <div class="sb-legend reveal-stagger">
+      {parts.map((p) => (
+        <div class="sb-leg">
+          <span class="sb-leg-dot" style={`background:${p.color}`}></span>
+          <span class="sb-leg-name">{p.label}</span>
+          <span class="sb-leg-pct">{toNe(p.pct.toFixed(2))}%</span>
+          <span class="sb-leg-val">{neInt(p.value)}{unit ? " " + unit : ""}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</VizCard>
+
+<style>
+  .sb { display: flex; flex-direction: column; gap: 1.25rem; }
+  .sb-bar { display: flex; width: 100%; height: 42px; border-radius: 0.6rem; overflow: hidden; background: var(--color-background); }
+  .sb-seg { height: 100%; display: flex; align-items: center; justify-content: center; min-width: 2px; transition: filter 180ms ease; }
+  .sb-seg:hover { filter: brightness(1.1); }
+  .sb-seg-label { font-size: 0.78rem; font-weight: 700; color: #fff; white-space: nowrap; }
+  .sb-legend { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+  @media (min-width: 640px) { .sb-legend { grid-template-columns: 1fr 1fr; } }
+  .sb-leg { display: flex; align-items: center; gap: 0.5rem; }
+  .sb-leg-dot { width: 0.7rem; height: 0.7rem; border-radius: 9999px; flex: 0 0 auto; }
+  .sb-leg-name { flex: 1 1 auto; min-width: 0; font-size: 0.88rem; font-weight: 500; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sb-leg-pct { flex: 0 0 auto; font-size: 0.88rem; font-weight: 700; color: var(--color-text); min-width: 3.4rem; text-align: right; }
+  .sb-leg-val { flex: 0 0 auto; font-size: 0.78rem; color: var(--color-text-secondary); min-width: 4.5rem; text-align: right; }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal .sb-seg { width: 0 !important; transition: width 700ms cubic-bezier(0.2, 0, 0.2, 1); transition-delay: var(--d, 0ms); }
+    .reveal.is-visible .sb-seg { width: var(--w, 0) !important; }
+  }
+</style>
