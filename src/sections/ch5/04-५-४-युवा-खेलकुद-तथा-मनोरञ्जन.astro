@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -26,6 +27,7 @@ const t2Chart = chartFromRows(t2.rows);
   <Figure src="/images/image25.jpeg" caption={"" || undefined} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
   <Figure src="/images/image26.jpeg" caption={"" || undefined} />
   <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेका पार्क तथा उद्यानहरू सार्वजनिक सम्पत्तिहरू हुन् । उप–महानगरपालिकाको पर्यावरणीय प्रणालीलाई सुरक्षित गरी हरित क्षेत्रलाई प्रवर्द्धन गर्न यी क्षेत्रहरूको संरक्षण गर्नु आवश्यक छ । दैनिक नियमित कामकाजबाट पर रही मानसिक स्फूर्ति र स्वच्छताका लागि मनोरञ्जनको आवश्यकता पर्दछ । मनोरञ्जनका विभिन्न उपायहरू मध्ये स्वच्छ तथा प्राकृतिक वातावरणमा रमाउने तथा वनभोज गर्ने चलन सर्वव्यापी र प्राचिन चलन हो ।</p></div>
   <Figure src="/images/image27.jpeg" caption={"" || undefined} />
@@ -36,4 +38,5 @@ const t2Chart = chartFromRows(t2.rows);
   <h3 id="h-96-५-४-२-व्यवसायिक-खेलाडी-सम्बन" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.४.२ व्यवसायिक खेलाडी सम्बन्धी विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+  <AutoViz table={t2} title={t2.caption} />
 </section>

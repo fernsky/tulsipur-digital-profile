@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -36,6 +37,7 @@ const maxM = Math.max(...metrics.map((m) => m.v), 1);
   <div class="prose-ne reveal"><p>संयुक्त राष्ट्रसंघीय विकास कार्यक्रम (UNDP) को २०२५ को प्रतिवेदन अनुसार नेपालको मानव विकास सुचकाङ्क ०.६२२ रहेको र यसका आधारमा विश्वका १९३ देशहरु मध्ये नेपाल १४५ श्रेणीमा रहेको छ । विश्वका १९३ देशहरु मध्ये गत वर्ष नेपाल १४६ औँ स्थानमा रहेको थियो भने यस वर्ष केही सुधार भएर एक स्थान माथि उक्लिएको हो । सन् १९९० मा नेपालको यो सूचकाङ्क ०.३७८ थियो । सो अवधिमा नेपालीको औषत आयु ७०.४ वर्ष रहेको छ । यसैगरी लुमि्बनी प्रदेशको दोस्रो आवधिक योजना ८०/८१ का अनुसार मानव विकास सुचकाङ्क ०.५६३ छ भने औसत आयु ६९.५ वर्ष रहेको छ । गरिबी सूचकाङ्कको विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
 
   <VizCard title={`मानव विकास तथा गरिबीको अवस्था — ${province}`}>
     <div class="hdp">

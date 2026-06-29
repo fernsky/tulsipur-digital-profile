@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -21,4 +22,5 @@ const t1Chart = chartFromRows(t1.rows);
   <div class="prose-ne reveal"><p>उप–महानगरपालिकामा भएका अपराधिक तथा सामाजिक नियम बाहिरका कार्य चोरी–डकैती लगायतका अन्य कार्यहरू सुरक्षा निकाय मार्फत समाधान हुने गरेको पाइन्छ । यस उप–महानगरपालिकामा वर्षभरिमा कुनै अप्रिय घटना घटेको दर्ता खासै गरिएको देखिदैन् । उप–महानगरपालिकामा सानातिना झै–झगडा, कुटपिट, साँध, सिमानामा विवाद, चोरी डकैती, ठगी, घरेलु हिंसाका घटनाहरू यदाकदा हुने गरेको स्थानीयबासीको भनाई छ । यस उप–महानगरपालिकाभित्र रहेका मुख्य मुख्य सुरक्षा निकायहरुको विवरण तालिकामा प्रस्तुत गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
 </section>

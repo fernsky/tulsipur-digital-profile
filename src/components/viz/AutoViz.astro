@@ -1,0 +1,65 @@
+---
+import VizCard from "./VizCard.astro";
+import StackedBar from "./StackedBar.astro";
+import Donut from "./Donut.astro";
+import BarList from "./BarList.astro";
+import { cellStr, toNum, toNe } from "../../lib/ne";
+
+// Auto-pick a chart from a table's shape:
+//  - simple header + a totals (जम्मा) row + many category columns -> StackedBar
+//    (or Donut when there are exactly 2 categories)
+//  - otherwise rank rows by their last numeric column -> BarList
+//  - non-numeric / inventory tables -> renders nothing
+interface Props { table: any; title?: string; }
+const { table, title } = Astro.props;
+const rows: any[] = table?.rows ?? [];
+const caption = title ?? table?.caption ?? "";
+
+const PAL = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#65a30d", "#e11d48", "#a3a3a3", "#0284c7", "#ea580c"];
+const isTotal = (s: string) => /^(जम्मा|कुल|योग|प्रतिशत)/.test(s.trim());
+const numericCell = (c: any) => { const t = cellStr(c).trim(); return t !== "" && /^[०-९0-9][०-९0-9,.\s]*$/.test(t); };
+
+let mode: "stacked" | "donut" | "bar" | "none" = "none";
+let segments: any[] = [];
+let items: any[] = [];
+
+if (rows.length >= 2) {
+  const header = rows[0];
+  const headerSimple = header.every((c: any) => typeof c === "string");
+  const totalsRow = rows.find((r) => isTotal(cellStr(r[0])));
+
+  // STACKED / DONUT: aligned simple header + totals row + >=3 columns
+  if (headerSimple && totalsRow && header.length >= 4 && header.length === totalsRow.length) {
+    const names = header.slice(1, -1).map(cellStr);
+    const vals = totalsRow.slice(1, -1).map(toNum);
+    segments = names
+      .map((n: string, i: number) => ({ label: n, value: vals[i], color: PAL[i % PAL.length] }))
+      .filter((s) => s.value > 0 && s.label.trim() !== "");
+    if (segments.length >= 2) mode = segments.length === 2 ? "donut" : "stacked";
+  }
+
+  // BARLIST fallback: rank data rows by last numeric column
+  if (mode === "none") {
+    // label column: skip a serial-number first column
+    const serial = /क्र|सि\.?\s*नं|क्रम|सं\./.test(cellStr(header[0]));
+    const labelCol = serial && header.length > 2 ? 1 : 0;
+    // value column: last column (usually the row total)
+    const valueCol = header.length - 1;
+    const valid = rows.filter((r, i) => i > 0 && !isTotal(cellStr(r[0])) && cellStr(r[labelCol]).trim() !== "" && numericCell(r[valueCol]));
+    items = valid
+      .map((r) => ({ label: cellStr(r[labelCol]), value: toNum(r[valueCol]) }))
+      .filter((x) => x.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 20)
+      .map((x, i) => ({ label: x.label, value: x.value, color: PAL[i % PAL.length], valueText: toNe(x.value) }));
+    if (items.length >= 2) mode = "bar";
+  }
+
+  // donut center value
+}
+const donutTotal = segments.reduce((s, x) => s + x.value, 0);
+---
+
+{mode === "stacked" && <StackedBar title={caption} segments={segments} />}
+{mode === "donut" && <Donut title={caption} segments={segments} centerValue={toNe(donutTotal.toLocaleString("en-US"))} centerLabel="जम्मा" />}
+{mode === "bar" && <BarList title={caption} items={items} />}

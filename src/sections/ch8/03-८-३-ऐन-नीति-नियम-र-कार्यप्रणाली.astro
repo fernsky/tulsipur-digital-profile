@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -19,4 +20,5 @@ const t1Chart = chartFromRows(t1.rows);
   <SectionKpis items={kpis} />
   <h3 id="h-141-८-३-१-उप-महानगरपालिकाका-स्वी" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">८.३.१ उप–महानगरपालिकाका स्वीकृत ऐन, नीति, नियम, निर्देशिका तथा मापदण्डहरु</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
 </section>

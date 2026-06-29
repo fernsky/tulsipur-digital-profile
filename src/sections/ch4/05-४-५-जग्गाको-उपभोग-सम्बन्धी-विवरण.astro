@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -56,55 +57,74 @@ const t19Chart = chartFromRows(t19.rows);
   <div class="prose-ne reveal"><p>राष्ट्रिय कृषिगणना, २०७८ को नतिजा अनुसार यस उप–महानगरपालिकामा जग्गाको उपभोग सम्बन्धी विवरण हेर्दा कृषक परिवारले परिवारको स्वामित्वको जग्गामा मात्र कृषि चलन गर्ने परिवार सङ्ख्या २५,२१६ रहेको देखिन्छ जसले १२५२३.४ हेक्टर जग्गामा कृषि चलन गरेको पाइन्छ । त्यस्तै अरूको स्वामित्वको जग्गामा मात्रै कुनै सर्तनामा लिई खेतीपाती गर्ने कृषक परिवार परिवार सङ्ख्या १८,६२३ रहेको देखिन्छ जसले ६९०१.३ हेक्टर जग्गामा कृषि चलन गरेको पाइन्छ र अन्य प्रकारको उपभोग अन्तर्गत खेतिपाती गर्ने कृषक यस उप–महानगरपालिकामा छैनन् । त्यस्तै एकभन्दा बढी प्रकारको स्वामित्व भएको जग्गा कमाउने कृषक परिवार सङख्या ६,१०७ रहेको र यस्तो जग्गाको क्षेत्रफल ५२७३.१ हेक्टर रहेको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+  <AutoViz table={t2} title={t2.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
+  <AutoViz table={t3} title={t3.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t4.caption}</h3>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
+  <AutoViz table={t4} title={t4.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t5.caption}</h3>
   <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
+  <AutoViz table={t5} title={t5.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t6.caption}</h3>
   <DataTable caption={t6.caption} rows={t6.rows} source={t6.source} />
+  <AutoViz table={t6} title={t6.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <DataTable caption={t7.caption} rows={t7.rows} source={t7.source} />
+  <AutoViz table={t7} title={t7.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <DataTable caption={t8.caption} rows={t8.rows} source={t8.source} />
+  <AutoViz table={t8} title={t8.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
   <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
+  <AutoViz table={t9} title={t9.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t10.caption}</h3>
   <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
+  <AutoViz table={t10} title={t10.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
   <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
+  <AutoViz table={t11} title={t11.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t12.caption}</h3>
   <DataTable caption={t12.caption} rows={t12.rows} source={t12.source} />
+  <AutoViz table={t12} title={t12.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t13.caption}</h3>
   <DataTable caption={t13.caption} rows={t13.rows} source={t13.source} />
+  <AutoViz table={t13} title={t13.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t14.caption}</h3>
   <DataTable caption={t14.caption} rows={t14.rows} source={t14.source} />
+  <AutoViz table={t14} title={t14.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t15.caption}</h3>
   <DataTable caption={t15.caption} rows={t15.rows} source={t15.source} />
+  <AutoViz table={t15} title={t15.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t16.caption}</h3>
   <DataTable caption={t16.caption} rows={t16.rows} source={t16.source} />
+  <AutoViz table={t16} title={t16.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t17.caption}</h3>
   <DataTable caption={t17.caption} rows={t17.rows} source={t17.source} />
+  <AutoViz table={t17} title={t17.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t18.caption}</h3>
   <DataTable caption={t18.caption} rows={t18.rows} source={t18.source} />
+  <AutoViz table={t18} title={t18.caption} />
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t19.caption}</h3>
   <DataTable caption={t19.caption} rows={t19.rows} source={t19.source} />
+  <AutoViz table={t19} title={t19.caption} />
 </section>

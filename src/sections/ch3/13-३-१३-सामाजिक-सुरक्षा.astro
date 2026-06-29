@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -27,6 +28,7 @@ const ssSegments = ssHeader
   <div class="prose-ne reveal"><p>समाजमा पछािड पारिएका तथा परेका ज्येष्ठ नागरिक, एकल महिला, अपाङ्गता भएका व्यक्तिहरूलाई सामाजिक सुरक्षा भत्ताको नाममा राज्य कोषबाट सहयोग गर्ने अवधारणा कल्याणकारी राज्यको अवधारणा हो । वि.सं. २०५१ देखि ज्येष्ठ नागरिकलाई मासिक १०० रूपैयाँ भत्ता दिने नारा सहित शुरु गरिएको सामाजिक सुरक्षा भत्ता अहिले ज्येष्ठ नागरिकका साथसाथै एकल महिला, अपाङ्गता भएका र दलित ज्येष्ठ नागरिकलाई समेत प्रदान गरिदै आएको छ । यसले समाजमा पछाडि परेका अशक्तहरूलाई सम्मानपूर्वक बाँच्न प्रोत्साहन हुने विश्वास गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
   <div class="prose-ne reveal"><p>स्रोत– नगरकार्यपालिकाको कार्यालय</p></div>
   <div class="prose-ne reveal"><p>सामाजिक सुरक्षा ऐन, २०७५ अनुसार देहाय बमोजिमका नेपाली नागरिकलाई सामाजिक सुरक्षा भत्ता पाउने उल्लेख गरिएको छ :–</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>

@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -59,10 +60,13 @@ const t17Chart = chartFromRows(t17.rows);
   <h3 id="h-72-५-२-१-स्वास्थ्य-संस्थाको-विव" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.१ स्वास्थ्य संस्थाको विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+  <AutoViz table={t2} title={t2.caption} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
+  <AutoViz table={t3} title={t3.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिकाको स्वास्थ्य शाखा</p></div>
   <h3 id="h-73-५-२-२-खोप-सेवा-तथा-सुरक्षित-" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.२ खोप सेवा तथा सुरक्षित मातृत्व सम्बन्धी विवरण</h3>
   <h4 id="h-74-क-खोपको-विवरण" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) खोपको विवरण</h4>
@@ -70,15 +74,19 @@ const t17Chart = chartFromRows(t17.rows);
   <div class="prose-ne reveal"><p>बाल्यकाल तथा उमेर पुगेपछि लाग्न सक्ने प्राणघातक रोगहरू जस्तैः क्षयरोग, भ्यागुते रोग, लहरे खोकी, धनुष्टंकार, हेपाटाइटिस बी, इन्फुल्युन्जा टाइप बी, पोलियो, न्यूमोनिया, दादुरा, रुबेला र जापानीज इन्सफ्लाइटिस् विरुद्ध चरणबद्ध रुपमा समयमै खोपहरू अनिवार्य रुपमा लगाउनु पर्दछ । ती खोपहरू क्रमशः BCG, DPT, OPV, PCV, IPV, MR, JE / ID हुन् । यसरी खोपहरू समयमै लगाउँदा सिमित लगानीमा ठूला रोगहरूको जोखिमबाट मुक्त भई बाल मृत्युदर नियन्त्रण गर्ने प्रभावकारी उपाय हुन्छ ।</p></div>
   <div class="prose-ne reveal"><p>खोप सम्बन्धी विवरण</p></div>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
+  <AutoViz table={t4} title={t4.caption} />
   <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
+  <AutoViz table={t5} title={t5.caption} />
   <h4 id="h-75-ख-सुरक्षित-मातृत्वको-अवस्थाक" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ख) सुरक्षित मातृत्वको अवस्थाको विवरण</h4>
   <div class="prose-ne reveal"><p>बालबालिकालाई गर्भमा रहँदा देखि र जन्मेपछि स्याहार तथा रेखदेख गर्न सकिएन भने उनीहरू विभिन्न रोगबाट संक्रमित हुने जोखिम हुन्छ । गर्भमा रहँदा मूलतः आमाको उमेर, पोषण, आराम, मादक तथा सुर्तिजन्य पदार्थको सेवन लगायतका अवस्थाले बालबालिकाको स्वास्थ्य निर्भर रहन्छ । बालबालिका स्वस्थ जन्मनका लागि गर्भवती महिलाले कम्तीमा पनि चारपटक नियमित स्वास्थ्य जाँच गराउनुपर्दछ र आवश्यक खोप (टि.टि.) तथा आइरन, भिटामिन चक्कीहरू नियमित सेवन गर्नुपर्दछ । कम उमेरमै गर्भवती हुँदा आमा र शिशु दुवैको स्वास्थ्यमा हानी नोक्सानी पुग्ने भएकाले सरकारले कानूनी रुपमा विवाह गर्ने न्यूनतम उमेर २० वर्ष तोकेको छ । तर, १७ प्रतिशत किशोरीहरू १५ देखि १९ वर्ष उमेरमा गर्भवती भएका वा आमा भइसकेका हुन्छन् (नेपाल जनसांख्यिक तथा स्वास्थ्य सर्वेक्षण, २०११) । सरकारले स्वास्थ्य सेवा विभाग मार्फत सुरक्षित मातृत्व तथा नव शिशु स्वास्थ्यका लागि समुदायमा आधारित कार्यक्रम सञ्चालन गरिरहेको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t6.caption}</h3>
   <DataTable caption={t6.caption} rows={t6.rows} source={t6.source} />
+  <AutoViz table={t6} title={t6.caption} />
   <h3 id="h-76-५-२-३-बालस्वास्थ्य-तथा-कुपोष" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.३ बालस्वास्थ्य तथा कुपोषणको अवस्था</h3>
   <div class="prose-ne reveal"><p>कुनै पनि ठाउँको पोषणको अवस्था त्यस ठाउँका बालबालिकालाई हेरेर सजिलै अनुमान लगाउन सकिन्छ । पोषित बालबालिकालाई कुनै पनि ठाउँको सामाजिक र आर्थिक विकासको सूचकको रुपमा हेर्न सकिन्छ । सरकारले पनि पोषणलाई प्राथमिकता दिई ५ वर्षमुनिका बालबालिकाहरूलाई नियमित रुपमा बालवृद्धि अनुमान गर्दै आएको छ । बालअधिकार सम्बन्धी महासन्धी, १९८९ ले समेत बालबालिकालाई अवहेलना, बेवास्ता, हेलचेक्राइर्, दुव्यर्वहार, हिंसा लगायतबाट जोगाई खाना र पोषणको अधिकार सुनिश्चित गर्नुपर्ने उल्लेख गरेको छ । नेपालको संविधान (२०७२) ले पनि खाद्य सम्प्रभुतालाई मौलिक हकका रुपमा राखेको छ । स्वास्थ्य र पोषण मानव जीवनको पहिलो महत्वपूर्ण आवश्यकता भएको र स्वस्थ नागरिक बिना राष्ट्रका अन्य विकास क्रियाकलापहरू प्रभावकारी हुन नसक्ने भएको हुँदा जनस्वास्थ्यको अध्ययन योजना तर्जुमा प्रक्रियाको एक महत्वपूर्ण हिस्सा हुन आउँछ । यस उप–महानगरपालिकामा राष्ट्रिय नीति तथा कार्यक्रममा आधारित भई नेपाल सरकारले प्रदान गर्दै आएको बालपोषण भत्तालाई पोषणमा सुधार ल्याउने गरी प्रभावकारी रुपमा अनुगमन गर्दै बालबालिकाको पोषणमा सुधार ल्याउने व्यवस्था गर्नुका साथै बहुक्षेत्रीय पोषण कार्यक्रमलाई विगतबाट शिक्षा लिएर प्रभावकारी पोषणमा सुधार ल्याउने जस्ता कार्यक्रमहरू सञ्चालन हुँदै आएका छन् । यस बाहेक स्वास्थ्य तथा पोषण सम्बन्धी कार्य गर्नका लागि राष्ट्रिय तथा अन्तर्राष्ट्रिय संघसंस्थाहरू समेत कार्यरत रहेका छन् । यस उप–महानगरपालिकामा पोषण कार्यक्रम विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t7.caption}</h3>
   <DataTable caption={t7.caption} rows={t7.rows} source={t7.source} />
+  <AutoViz table={t7} title={t7.caption} />
   <h3 id="h-77-५-२-४-प्रमुख-रोग-र-उपचार-सम्" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.४ प्रमुख रोग र उपचार सम्बन्धी विवरण</h3>
   <div class="prose-ne reveal"><p>यस उप–महानगरपालिका अन्तर्गतका स्वास्थ्य संस्थाका ओपिडीमा दर्ता भएका िबरामीको संख्या अनुसार पछिल्लो समय देखा परेका १० प्रमुख स्वास्थ्य समस्याहरुको विवरण तलको तालिकामा उल्लेख गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t8.caption}</h3>
@@ -87,37 +95,46 @@ const t17Chart = chartFromRows(t17.rows);
   <h3 id="h-78-५-२-५-उप-महानगरपालिकामा-स्वा" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.५ उप–महानगरपालिकामा स्वास्थ्य बीमा सम्बन्धी विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
   <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
+  <AutoViz table={t9} title={t9.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t10.caption}</h3>
   <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
+  <AutoViz table={t10} title={t10.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
   <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
+  <AutoViz table={t11} title={t11.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h3 id="h-79-५-२-४-जटिल-प्रकृतिको-रोग-लाग" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.४ जटिल प्रकृतिको रोग लागेका िबरामीहरु मध्ये उप–महानगरबाट सहुलियत खर्च प्राप्त गर्ने हरुको विवरण</h3>
   <div class="prose-ne reveal"><p>उप–महानगरपालिका भित्र मृगौला डाईलासिस, प्रत्यारोपण गरेका, क्यान्सर पिडित र मेरुदण्डमा समस्या भएका विपन्न समुदायका िबरामीहरु मध्ये पालिकाबाट उपचार खर्च बापतको रकम प्राप्त गर्नेहरुको विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t12.caption}</h3>
   <DataTable caption={t12.caption} rows={t12.rows} source={t12.source} />
+  <AutoViz table={t12} title={t12.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h3 id="h-80-५-२-५-सुरक्षित-मातृत्व" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.५ सुरक्षित मातृत्व</h3>
   <h4 id="h-81-क-परिवार-नियोजन" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) परिवार नियोजन</h4>
   <div class="prose-ne reveal"><p>परिवार नियोजनबाट हुने फाइर्दाका बारेमा विभिन्न संघ संस्थाबाट गरिएका अध्ययन अनुसन्धानबाट आमा, बच्चा र नवजात शिशुको स्वास्थ्य सुधार गर्न उल्लेखनीय भूमिका खेल्ने कुरा प्रमाणित भएको छ । साथै यसले लैङ्गिक समानता, महिलाको शिक्षा र वृद्धि विकास गर्नको लागि सहयोग प्रुयाउँछ । त्यस कारण गुणस्तरीय परिवार नियोजन सेवा प्रदान गर्ने उद्देश्यले सन् १९९१ देखि प्रजनन स्वास्थ्य कार्यक्रम र परिवार नियोजन कार्यक्रमलाई विस्तार गरी अस्पताल, स्वास्थ्य चौकी, आधारभूत स्वास्थ्य केन्द्रहरू र नगरघर क्लिनिकहरूमा विस्तार गरी महिला स्वास्थ्य स्वयंसेवीकाद्वारा सेवा प्रुयाउँदै आएको छ । यस उप–महानगरपालिकामा परिवार नियोजन कार्यक्रमको विवरण तलको तालिकामा प्रस्तुत गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t13.caption}</h3>
   <DataTable caption={t13.caption} rows={t13.rows} source={t13.source} />
+  <AutoViz table={t13} title={t13.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <DataTable caption={t14.caption} rows={t14.rows} source={t14.source} />
+  <AutoViz table={t14} title={t14.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h4 id="h-82-ख-बच्चाको-लिङ्ग-र-आमाको-उमेर" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ख) बच्चाको लिङ्ग र आमाको उमेर समूहको आधारमा जन्मेका, जीवित र मृत्यु भएका बच्चाहरुको विवरण</h4>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t15.caption}</h3>
   <DataTable caption={t15.caption} rows={t15.rows} source={t15.source} />
+  <AutoViz table={t15} title={t15.caption} />
   <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेका १५ देखि ४९ वर्ष उमेर समूहका महिलाले पछिल्लो १२ महिनामा जिवित जन्म दिएका जम्मा ८१,२८४ बच्चाहरु मध्ये हाल सम्म जिवित रहेका बच्चाको संख्या ७९,०७४ जना रहेका छन् । यसैगरी सोही समयावधीमा मृत्यु भएका बच्चाको संख्या २,२१० जना रहेका छन् जसको लिङ्ग अनुसार विस्तृत विवरण तालिकामा प्रस्तुत गरिएको छ ।</p></div>
   <h4 id="h-83-ग-पहिलो-बच्चा-जन्मदिँदा-महिल" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ग) पहिलो बच्चा जन्मदिँदा महिलाको उमेरको विवरण</h4>
   <div class="prose-ne reveal"><p>कानूनी र प्रजनन् स्वास्थ्यको दृष्टिकोणबाट २० वा सो वर्षभन्दा कम उमेरमा आमा बन्नु गैरकानूनी र मातृ तथा शिशु दुवैको स्वास्थ्यका दृष्टिकोणबाट जोखिमपूर्ण मानिन्छ । शारिरीक, मानसिक, आर्थिक रुपमा अपरिपक्व अवस्थामा गर्भाधान र सन्तान जन्माउँदा एकातर्फ अपरिपक्व, कम तौलको, शारिरीक र बौद्धिक रुपमा विकलाङ्ग शिशु जन्मन सक्ने जोखिम उच्च रहन्छ भने अर्कोतर्फ गर्भावस्थाको हेरविचार, मातृ तथा शिशुको स्याहार, खानपान, सरसफाइर् जस्ता विषयमा पर्याप्त जानकारी नहुँदा आमा र शिशु विभिन्न प्रकारका संक्रमणको िशकार हुन सक्ने सम्भावना रहन्छ ।</p></div>
   <div class="prose-ne reveal"><p>नेपालले सहश्राब्दी विकास लक्ष्य २०००-२०१५ का बिचमा मातृ तथा शिशु स्वास्थको क्षेत्रमा उल्लेखनीय प्रगति हासिल गरेको छ । सन् १९९० लाई आधार वर्ष मान्दा नेपालमा कूल १००० जीवित जन्म भएका शिशुमध्ये १०८ जनाको मृत्यु हुने गरेकोमा यो संख्यामा सारभूत रुपमा गिरावट आई सन् २०१५ सम्म ३३ मा झरेको छ भने ५ वर्षभन्दा कम उमेरका बालबालिकाको मृत्युदर (प्रति हजार) ३८ मा झरेको छ । त्यसैगरी सन् १९९० लाई आधार वर्ष मान्दा मातृमृत्यु (प्रति एकलाख) मा ८५० रहेकोमा सन् २०१५ सम्म २५८ मा झरेको देखिन्छ भने तालिम प्राप्त स्वास्थ्यकर्मीबाट प्रसुति गराउने महिलाको अनुपात ५५.६ प्रतिशत पुगेको तथ्याङ्क देखिन्छ (Nepal and the Millennium Development Goals Final Status Report, 2000- 2015) । यसरी हेर्दा समग्र मातृ तथा शिशु स्वास्थ्यको क्षेत्रमा सकारात्मक प्रभावका संकेतहरू पालिकामा देखा परिरहेका छन् ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t16.caption}</h3>
   <DataTable caption={t16.caption} rows={t16.rows} source={t16.source} />
+  <AutoViz table={t16} title={t16.caption} />
   <div class="prose-ne reveal"><p>उप–महानगरपालिकाका कूल विवाहित महिला संख्या ४३,६०९ मध्ये १,५०५ जना अर्थात् ३.४५ प्रतिशत महिलाले १५–१९ वर्षको बिचमा पहिलो सन्तान जन्माएको देखिन्छ । त्यसैगरी ६,५३१ अर्थात् १४.९८ प्रतिशत महिला २०–२४ वर्ष उमेरमा, ८,८७७ अर्थात् २०.३६ प्रतिशत महिला २५–२९ वर्ष उमेरमा र ८,३९५ जना अर्थात् १९.२५ प्रतिशत महिला ३०–३४ वर्ष उमेरमा आमा बनेको देखिन्छ भने ३५–३९ वर्षमाथि पहिलो पटक आमा बन्नेको संख्या जम्मा ७,३५३ जना अर्थात् १६.८६ प्रतिशत रहेको छ । यसैगरी ४०–४४ वर्षको महिला ६,१८५ अर्थात १४.१८ प्रतिशत रहेका छन् भने ४५–४९ वर्षका ४,७६३ अर्थात १०.९२ प्रतिशत महिलाले पहिलो बच्चालाई जन्म दिएका छन् ।</p></div>
   <h3 id="h-84-५-२-६-विवाहित-तथा-अविवाहित-म" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.६ विवाहित तथा अविवाहित महिला तथा पुरुषको विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t17.caption}</h3>
   <DataTable caption={t17.caption} rows={t17.rows} source={t17.source} />
+  <AutoViz table={t17} title={t17.caption} />
 </section>

@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -21,4 +22,5 @@ const t1Chart = chartFromRows(t1.rows);
   <div class="prose-ne reveal"><p>यस उप–महानगरपालिकामा रहेका २५,२१६ कृषक परिवारले जम्मा ५४,९११ ओटा कित्ता जग्गामा १२५२३.४ हेक्टर जमिनमा कृषि चलन गरेको देखिन्छ । यस हिसाबले औसतमा एउटा कृषक परिवारले २.२ कित्ता जग्गामा खेती गरेको देखिन्छ । यहाँ कुल सििंचत क्षेत्रफल १०७३९.३ हेक्टर रहेको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
 </section>

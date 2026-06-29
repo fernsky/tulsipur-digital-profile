@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -78,18 +79,25 @@ const t9Chart = chartFromRows(t9.rows);
   <div class="prose-ne reveal"><p>उप–महानगरपालिकाले आ.व. २०७४/०७५ देखि हाल सम्म ७,१०७ जनालाई परिचय पत्र वितरण गरेको छ । जसको विस्तृत विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
+  <AutoViz table={t3} title={t3.caption} />
   <h3 id="h-94-५-३-८-अपाङ्गताका-आधारमा-परिच" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.३.८ अपाङ्गताका आधारमा परिचय पत्र विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t4.caption}</h3>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
+  <AutoViz table={t4} title={t4.caption} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t5.caption}</h3>
   <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
+  <AutoViz table={t5} title={t5.caption} />
   <div class="prose-ne reveal"><p>स्रोतः नगर कार्यपालिकाको कार्यालय</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t6.caption}</h3>
   <DataTable caption={t6.caption} rows={t6.rows} source={t6.source} />
+  <AutoViz table={t6} title={t6.caption} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t7.caption}</h3>
   <DataTable caption={t7.caption} rows={t7.rows} source={t7.source} />
+  <AutoViz table={t7} title={t7.caption} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t8.caption}</h3>
   <DataTable caption={t8.caption} rows={t8.rows} source={t8.source} />
+  <AutoViz table={t8} title={t8.caption} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
   <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
+  <AutoViz table={t9} title={t9.caption} />
 </section>

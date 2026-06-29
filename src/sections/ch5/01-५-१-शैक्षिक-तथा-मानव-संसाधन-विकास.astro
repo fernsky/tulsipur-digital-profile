@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -73,19 +74,25 @@ const t11Chart = chartFromRows(t11.rows);
   <div class="prose-ne reveal"><p>युनेस्कोले सन् १९५६ मा सामान्य पढ्न, लेख्न र दैनिक जीवनमा आइपर्ने गणितीय जोड घटाउ गर्न सक्ने व्यक्ति साक्षर भएको मानिने भनी परिभाषा गरेको थियो । नेपालले पनि यसै परिभाषालाई आधार मानेर साक्षरता अभियान सञ्चालन गरिरहेको छ । यस उप–महानगरपालिकामा रहेका ५ वर्ष देखि २५ वर्ष सम्मका कुल जनसंख्या मध्ये ४२,५५३ अर्थात ७६.११ प्रतिशत हाल विद्यालय तथा कलेज गइरहेका, १२,४२५ जना अर्थात २२.२२ प्रतिशत जनसंख्या पहिला विद्यालय तथा कलेज गएका र ८४१ जना अर्थात १.५० प्रतिशत कहिले पनि स्कुल तथा कलेज औपचारिक शिक्षा हाँसिल नगरेको पाउन सकिन्छ । जसको विस्तृत विवरण तलको तालिकामा प्रस्तुत गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+  <AutoViz table={t2} title={t2.caption} />
   <h3 id="h-60-५-१-२-तहगत-रुपमा-शैक्षिक-संस" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.२ तहगत रुपमा शैक्षिक संस्था/विद्यालय र विद्यार्थी विवरण</h3>
   <h4 id="h-61-क-सामुदायिक-विद्यालयहरुको-वि" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) सामुदायिक विद्यालयहरुको विवरण</h4>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
+  <AutoViz table={t3} title={t3.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका शिक्षा शाखा</p></div>
   <h4 id="h-62-ख-संस्थागत-विद्यालयहरूको-विव" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ख) संस्थागत विद्यालयहरूको विवरण</h4>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
+  <AutoViz table={t4} title={t4.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका शिक्षा शाखा</p></div>
   <h4 id="h-63-ग-सामुदायिक-विद्यालयमा-कार्य" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ग) सामुदायिक विद्यालयमा कार्यरत शैक्षिक जनशक्तिको विवरण</h4>
   <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
+  <AutoViz table={t5} title={t5.caption} />
   <h4 id="h-64-घ-शैक्षिक-तह-अनुसार-विद्यार्" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">घ) शैक्षिक तह अनुसार विद्यार्थीहरुको विवरण</h4>
   <DataTable caption={t6.caption} rows={t6.rows} source={t6.source} />
+  <AutoViz table={t6} title={t6.caption} />
   <h4 id="h-65-ङ-उप-महानगरपालिका-भित्र-रहेक" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ङ) उप–महानगरपालिका भित्र रहेका विश्वविद्यालय तथा क्याम्पसहरुको विवरण</h4>
   <DataTable caption={t7.caption} rows={t7.rows} source={t7.source} />
+  <AutoViz table={t7} title={t7.caption} />
   <h4 id="h-66-च-उप-महानगरपालिकाको-आन्तरिक-" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">च) उप–महानगरपालिकाको आन्तरिक श्रोतबाट सञ्चालित बालविकास केन्द्रको विवरण</h4>
   <div class="prose-ne reveal"><p>यस उप–महानगरपालिकामा रहेका सबै आधारभूत विद्यालयहरुमा बाल विकास केन्द्र रहेको छ । आधारभूत तहका साना कक्षाहरुमा अध्ययन गर्ने बालबालिकाहरुको लागि बालविकास केन्द्रमा मनोरञ्जन, खेलकुद, नाचगान लगायतका क्रियाकलापहरु सञ्चालन गरी विद्यार्थीहरुलाई पढाई र स्कुल प्रति ध्यान केन्द्रित गर्ने गरिएको छ । बालबालिकालाई विद्यालय तर्फ आकर्षित गर्नका लागि बालविकास केन्द्रहरुलाई व्यवस्थित गरिएको छ ।</p></div>
   <h3 id="h-67-५-१-३-विद्यालयमा-अध्ययन-गरिर" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.३ विद्यालयमा अध्ययन गरिरहेका छात्रछात्राको विवरण</h3>
@@ -98,8 +105,10 @@ const t11Chart = chartFromRows(t11.rows);
   <Donut title="शिक्षक लैङ्गिक अनुपात" segments={teacherSeg} centerValue="२,२३०" centerLabel="जम्मा शिक्षक" />
   <h3 id="h-69-५-१-५-उप-महानगरपालिकाको-प्रा" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.५ उप–महानगरपालिकाको प्राविधिक धारका कलेज तथा विद्यार्थीको संख्या सम्बन्धी विवरण</h3>
   <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
+  <AutoViz table={t10} title={t10.caption} />
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
   <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
+  <AutoViz table={t11} title={t11.caption} />
   <h3 id="h-70-५-१-६-शैक्षिक-गुणस्तर-सम्बन्" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.१.६ शैक्षिक गुणस्तर सम्बन्धी विवरण</h3>
   <ul class="prose-ne reveal my-3 ml-1 space-y-1.5">
     <li class="flex gap-2.5"><span class="mt-[0.6em] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-brand)]"></span><span class="flex-1">विद्यालय सहयोग संयन्त्र</span></li>

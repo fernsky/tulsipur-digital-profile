@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -46,6 +47,7 @@ const wardMetrics = [
   <div class="prose-ne reveal"><p>यहाँको आवास क्षेत्रहरूको व्यवस्थित तवरले विकास गर्न प्रत्येक बस्तीमा आवत जावत गर्न मोटर बाटो, खुल्ला क्षेत्रका प्रावधान, चारपाटे आकार मिलेका घडेरीहरू लगायत भौतिक तथा पूर्वाधारको निर्माण सहितको व्यवस्थित बस्तीको विकास गर्न जग्गा एकीकरण वा सेवा सुविधा जस्ता कार्यक्रमहरू संचालन गर्नुपर्दछ । यसरी जग्गा विकास कार्यक्रम संचालन गर्दा शहरी विस्तार क्षेत्र प्रस्तावना गरिएका क्षेत्रहरूलाई टेवा प्रुयाउने हिसाबले प्राथमिकता दिनु पर्दछ । हाल यहाँ रहेका मुख्य बस्तीहरुको विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <AutoViz table={t1} title={t1.caption} />
   <h3 id="h-15-३-१-२-घरपरिवारको-विवरण" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">३.१.२ घरपरिवारको विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />

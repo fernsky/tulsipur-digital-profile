@@ -1,5 +1,6 @@
 ---
 import DataTable from "../../components/DataTable.astro";
+import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
@@ -65,6 +66,7 @@ const t2Chart = chartFromRows(t2.rows);
   <div class="prose-ne reveal"><p>उप–महानगरपालिकाको वन क्षेत्रमा पाइने जडिबुटीहरूमा टिमुर, चिराइतो, पाषाण वेद, सुगन्ध कोकिला, मलायागिरी जस्ता जिडबुटीहरु यस क्षेत्रबाट निर्यात हुने गरेका छन् । पहाडी भू–भागको उच्च क्षेत्रमा गुराँस, मध्य भागमा चिउरी, उत्तिस, काफल लगायतका जडिबुटीहरू यहाँ पाउनुका साथै समथर क्षेत्रमा साल, साज, सिसौ, बढधाइरो, बकाइनो, इपिल जिंगेट, सिमल लगायतका बोटविरुवा र वनस्पतिहरु संकलन तथा बिक्री हुने प्रशस्त सम्भावना रहेको देखिन्छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+  <AutoViz table={t2} title={t2.caption} />
   <h3 id="h-110-६-१-४-उप-महानगरपालिका-क्षेत्" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">६.१.४ उप–महानगरपालिका क्षेत्रबाट निकासी हुने वन पैदावरको विवरण</h3>
   <div class="prose-ne reveal"><p>सामान्यतयाः वन पैदावारको रुपमा प्रयोग हुने वस्तुहरू भनेका काठ, दाउरा, जडिबुटी आदि हुन् । वनको वैज्ञानिक व्यवस्थापन गरी वा हरित क्षेत्रको विकास गरी यस प्रकारका वन पैदावारहरूको व्यवसायिक उत्पादन तथा निकासी गरी आर्थिक उपार्जन गर्न सकिन्छ । विशेष गरी वनले ओगटेको क्षेत्रफल बढी भएको क्षेत्रहरूमा वनलाई नै स्थानीय विकासको मेरुदण्डको रुपमा लिन सकिन्छ ।</p></div>
 </section>
