@@ -1,0 +1,63 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import ClusterBars from "../../../components/viz/ClusterBars.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-68-५-१-४-शिक्षक-तथा-शैक्षिक-जनश","title":"५.१.४ शिक्षक तथा शैक्षिक जनशक्ति विवरण"};
+
+const t9 ={"caption":"तालिका नं. ६९ – उप–महानगरपालिकाको शिक्षक तथा शैक्षिक जनशक्ति विवरण","source":"स्रोतः उप–महानगरपालिका शिक्षा शाखा","rows":[["क्र.स.","विवरण","शिक्षिका","शिक्षक","जम्मा"],["१।","सामुदायिक विद्यालय","२४०","४१९","६५९"],["२।","संस्थागत विद्यालय","६१५","७०१","१३१६"],["३।","क्याम्पस","९","१३७","१४६"],["४।","टेक्निकल स्कुल तथा कलेज","२","२२","२४"],["५।","प्राइभेट क्याम्पस","३","३४","३९"],["६।","विश्व विद्यालय","०","४६","४६"],[{"text":"जम्मा","colspan":2,"rowspan":1},"८६९","१३५९","२२३०"]]};
+const t9Jamma = t9.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const teacherSeg = [
+  { label: "शिक्षिका", value: toNum(t9Jamma[1]), color: "#db2777" },
+  { label: "शिक्षक", value: toNum(t9Jamma[2]), color: "#2563eb" },
+];
+
+// ── Live computation ───────────────────────────────────────────────
+const femTotal = toNum(t9Jamma[1]), maleTotal = toNum(t9Jamma[2]), allTotal = toNum(t9Jamma[3]);
+const femPct = (femTotal / allTotal) * 100;
+const rows = t9.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0])));
+const comm = rows.find((r) => /सामुदायिक/.test(cellStr(r[1]))) || [];
+const instit = rows.find((r) => /संस्थागत/.test(cellStr(r[1]))) || [];
+const commFemPct = toNum(comm[3]) ? (toNum(comm[1]) / toNum(comm[3])) * 100 : 0;
+const instFemPct = toNum(instit[3]) ? (toNum(instit[1]) / toNum(instit[3])) * 100 : 0;
+const higherFem = toNum((rows.find((r)=>/विश्व विद्यालय/.test(cellStr(r[1]))) || [])[1]) + toNum((rows.find((r)=>/क्याम्पस/.test(cellStr(r[1])) && !/प्राइभेट/.test(cellStr(r[1]))) || [])[1]);
+
+const genderByType = rows.map((r) => ({ label: cellStr(r[1]).replace(" विद्यालय", "").replace("तथा कलेज", ""), a: toNum(r[1]), b: toNum(r[2]) }));
+
+const kpis = [
+  { label: "जम्मा शिक्षक/शिक्षिका", value: neInt(allTotal), unit: "जना" },
+  { label: "महिला शिक्षक", value: `${neDec(femPct, 0)}%` },
+  { label: "सामुदायिकमा महिला", value: `${neDec(commFemPct, 0)}%` },
+  { label: "संस्थागतमा महिला", value: `${neDec(instFemPct, 0)}%` },
+];
+const tiles = [
+  { label: "जम्मा शैक्षिक जनशक्ति", value: neInt(allTotal), sub: `${neInt(femTotal)} शिक्षिका · ${neInt(maleTotal)} शिक्षक`, color: "#2563eb" },
+  { label: "समग्र महिला सहभागिता", value: `${neDec(femPct, 0)}%`, sub: "शिक्षण पेशामा", color: "#db2777" },
+  { label: "निजी विद्यालयमा महिला शिक्षक", value: `${neDec(instFemPct, 0)}%`, sub: `सामुदायिकमा भने ${neDec(commFemPct, 0)}%`, color: "#16a34a" },
+  { label: "उच्च शिक्षामा पुरुष प्रभुत्व", value: `${neDec(100 - (9 / 146 * 100), 0)}%`, sub: "क्याम्पस/विवि शिक्षकमा पुरुष", color: "#dc2626" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <div class="mt-2">
+    <StatTiles title="एक नजरमा — शैक्षिक जनशक्तिको लैङ्गिक चित्र" tiles={tiles} cols={4} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>शिक्षण पेशामा लैङ्गिक ढाँचा — एउटा उल्टो सिँढी:</strong> कुल {neInt(allTotal)} शैक्षिक जनशक्तिमध्ये {neDec(femPct, 0)}% महिला छन्, तर यो औसतले भित्री विरोधाभास लुकाउँछ । <em>तह र क्षेत्र जति माथि जान्छ, महिला उति घट्छन्</em>: संस्थागत (निजी, प्रायः बालविकास र प्राथमिक केन्द्रित) विद्यालयमा महिला शिक्षक <strong>{neDec(instFemPct, 0)}%</strong> छन् भने सामुदायिकमा {neDec(commFemPct, 0)}%, अनि क्याम्पस/विश्वविद्यालयमा महिला नगण्य (विश्वविद्यालयमा ० महिला, क्याम्पसमा १४६ मध्ये ९ मात्र) । यो “शैक्षिक सिँढीमा महिलाको ओरालो” (leaky pipeline of women in academia) विश्वव्यापी ढाँचा हो — प्रारम्भिक तहको हेरचाह–केन्द्रित शिक्षणलाई महिला–उपयुक्त ठान्ने सामाजिक धारणा र उच्च तहमा महिला–प्रवेशका संरचनागत बाधा दुवैको प्रतिफल ।</p>
+  </div>
+
+  <div class="mt-3 grid gap-4 md:grid-cols-2">
+    <Donut title="शिक्षक लैङ्गिक अनुपात" segments={teacherSeg} centerValue={neInt(allTotal)} centerLabel="जम्मा शिक्षक" />
+    <ClusterBars title="संस्था प्रकारअनुसार शिक्षिका vs शिक्षक" items={genderByType} aLabel="शिक्षिका" bLabel="शिक्षक" aColor="#db2777" bColor="#2563eb" unit="जना" />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण:</strong> क्लस्टर–बारमा संस्थागत विद्यालयमा शिक्षिका संख्या (६१५) शिक्षक (७०१) नजिक पुग्नु — झन्डै लैङ्गिक सन्तुलन — सकारात्मक छ; निजी क्षेत्रले महिलालाई ठूलो रोजगारी दिएको देखिन्छ । तर सामुदायिक विद्यालयमा शिक्षक (४१९) शिक्षिका (२४०) भन्दा निकै बढी छन्, र उच्च शिक्षामा त झन् असन्तुलन चर्को छ । <a href="/chapters/5/1/3">विद्यार्थीमा लैङ्गिक समता</a> राम्रो भएको ठाउँमा शिक्षक–पंक्तिमा भने माथिल्लो तहमा महिला घट्नु — विद्यार्थी (इनपुट) र शिक्षक (नेतृत्व/रोल–मोडल) बीचको यो खाडल भविष्यका छात्रालाई महिला रोल–मोडल कम भेटाउने चिन्ताजनक चक्र हो । उच्च तहमा महिला शिक्षक प्रोत्साहन गर्ने विशेष नीति आवश्यक छ ।</p>
+  </div>
+</section>

@@ -1,0 +1,73 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import StackedBar from "../../../components/viz/StackedBar.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-67-५-१-३-विद्यालयमा-अध्ययन-गरिर","title":"५.१.३ विद्यालयमा अध्ययन गरिरहेका छात्रछात्राको विवरण"};
+
+const eduPalette=["#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed"];
+const segsFromTotals=(table)=>{const names=table.rows[0].slice(1,-1).map(cellStr);const tot=(table.rows.find((r)=>/जम्मा/.test(cellStr(r[0])))||[]).slice(1,-1);return names.map((n,i)=>({label:n,value:toNum(tot[i]),color:eduPalette[i%eduPalette.length]})).filter((x)=>x.value>0);};
+
+const t8 = {"caption":"तालिका नं. ६८ – तुलसीपुर उप–महानगरपालिकाका विद्यालयहरुमा अध्ययनरत विद्यार्थीहरुको विवरण","source":"स्रोतः उप–महानगरपालिका शिक्षा शाखा","rows":[["वडा","सरकारी","निजी","क्याम्पस","जम्मा"],["१।","१०४६","४६०","१७२","१६७८"],["२।","५३०","९३१","१६७","१६२८"],["३।","१०९७","४८३","१९०","१७७०"],["४।","२५६३","२२९०","२०७","५०६०"],["५।","३६७","२९८९","५८२","३९३८"],["६।","११५३","८७२६","७४४","१०६२३"],["७।","९८४","२४०५","६३१","४०२०"],["८।","७७५","१२९१","३३८","२४०४"],["९।","६७८","२२१८","२२७","३१२३"],["१०।","४७६","१०७३","१७८","१७२७"],["११।","९७८","१०७४","२३३","२२८५"],["१२।","२०१७","१७०१","२७६","३९९४"],["१३।","११४४","१७२","१०७","१४२३"],["१४।","१३२१","३३१","१९८","१८५०"],["१५।","५४५","९७७","२२१","१७४३"],["१६।","३१७","७४४","२६७","१३२८"],["१७।","१२७५","१४५६","३७९","३११०"],["१८।","२३२२","२५७४","४५३","५३४९"],["१९।","६५९","११५७","१८९","२००५"],["जम्मा","२०२४७","३३०५२","५७५९","५९०५८"]]};
+const studentSeg = segsFromTotals(t8);
+
+// ── Live computation ───────────────────────────────────────────────
+const jamma = t8.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const govt = toNum(jamma[1]), priv = toNum(jamma[2]), camp = toNum(jamma[3]), total = toNum(jamma[4]);
+const privPct = (priv / total) * 100, govtPct = (govt / total) * 100, campPct = (camp / total) * 100;
+const wards = t8.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0])))
+  .map((r) => ({ ward: cellStr(r[0]).replace(/[।.]/g, ""), govt: toNum(r[1]), priv: toNum(r[2]), camp: toNum(r[3]), total: toNum(r[4]) }))
+  .map((w) => ({ ...w, privShare: w.total ? (w.priv / w.total) * 100 : 0 }));
+const byTotal = [...wards].sort((a, b) => b.total - a.total);
+const topWard = byTotal[0];
+const mostPrivate = [...wards].sort((a, b) => b.privShare - a.privShare)[0];
+const mostPublic = [...wards].sort((a, b) => a.privShare - b.privShare)[0];
+
+const wardItems = byTotal.map((w) => ({
+  label: `वडा ${w.ward}`,
+  value: w.total,
+  valueText: neInt(w.total),
+  color: w.privShare >= 50 ? "#2563eb" : "#16a34a",
+  sub: `निजी ${neDec(w.privShare, 0)}% · सरकारी ${neDec(100 - w.privShare - (w.camp / w.total * 100), 0)}%`,
+}));
+
+const kpis = [
+  { label: "जम्मा विद्यार्थी", value: neInt(total), unit: "जना" },
+  { label: "निजीमा अध्ययनरत", value: `${neDec(privPct, 0)}%` },
+  { label: "सरकारीमा अध्ययनरत", value: `${neDec(govtPct, 0)}%` },
+  { label: "उच्च–शिक्षा (क्याम्पस)", value: neInt(camp), unit: "जना" },
+];
+const tiles = [
+  { label: "जम्मा विद्यार्थी (वडागत)", value: neInt(total), sub: "१९ वडामा", color: "#2563eb" },
+  { label: "निजी विद्यालयको प्रभुत्व", value: `${neDec(privPct, 0)}%`, sub: `${neInt(priv)} निजी vs ${neInt(govt)} सरकारी`, color: "#dc2626" },
+  { label: "सर्वाधिक सघन वडा", value: `वडा ${topWard.ward}`, sub: `${neInt(topWard.total)} विद्यार्थी (शहरी कोर)`, color: "#7c3aed" },
+  { label: "सबैभन्दा निजी–प्रधान वडा", value: `वडा ${mostPrivate.ward}`, sub: `${neDec(mostPrivate.privShare, 0)}% निजीमा`, color: "#f59e0b" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <div class="mt-2">
+    <StatTiles title="एक नजरमा — विद्यार्थी वितरण" tiles={tiles} cols={4} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>सार्वजनिक–निजी विभाजनको भूगोल:</strong> कुल {neInt(total)} विद्यार्थीमध्ये <strong>{neDec(privPct, 0)}% निजी</strong>, {neDec(govtPct, 0)}% सरकारी र {neDec(campPct, 0)}% क्याम्पसमा छन् — निजी विद्यालयको यो बहुमत सहरीकरणको प्रत्यक्ष लक्षण हो । तर सबैभन्दा रोचक कुरा यो विभाजन <em>वडाअनुसार उल्टिन्छ</em>: सहरी कोर वडा (विशेष गरी वडा {topWard.ward}, जहाँ एक्लै {neInt(topWard.total)} विद्यार्थी छन्) मा निजी विद्यालय हावी छन् ({neDec(mostPrivate.privShare, 0)}% सम्म निजीमा), जबकि ग्रामीण वडा {mostPublic.ward} मा सरकारी विद्यालय नै मुख्य आधार ({neDec(100 - mostPublic.privShare, 0)}% सरकारी/क्याम्पस) हो । यो <strong>स्थानिक शैक्षिक असमानता</strong> — सहरमा निजी विकल्प, गाउँमा सार्वजनिकमै निर्भरता — ले अभिभावकको क्रयशक्ति र पहुँचको खाडल झल्काउँछ ।</p>
+  </div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t8.caption}</h3>
+  <DataTable caption={t8.caption} rows={t8.rows} source={t8.source} />
+  <StackedBar title="विद्यालय प्रकार अनुसार विद्यार्थी संरचना" subtitle="सरकारी, निजी र क्याम्पसमा अध्ययनरत विद्यार्थीको हिस्सा" segments={studentSeg} unit="विद्यार्थी" />
+
+  <div class="mt-3">
+    <BarList title="वडागत विद्यार्थी संख्या (निजी–प्रधान नीलो, सरकारी–प्रधान हरियो)" subtitle={`सर्वाधिक: वडा ${topWard.ward} · ${neInt(topWard.total)} विद्यार्थी`} items={wardItems} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण:</strong> वडागत बारको रङले नै कथा भन्छ — नीला (निजी–प्रधान) वडा सहरी कोर र राजमार्ग वरिपरि गुजुल्टिएका छन्, हरिया (सरकारी–प्रधान) वडा बाहिरी ग्रामीण पेटीमा । वडा {topWard.ward} मा {neInt(topWard.total)} विद्यार्थीको असाधारण सघनताले यसलाई नगरको शैक्षिक नाभी देखाउँछ । यो ढाँचा <a href="/chapters/4/8/4">बजार–केन्द्रको नगर–प्रधानता</a> सँग ठ्याक्क मेल खान्छ — व्यापार जहाँ केन्द्रित छ, शिक्षा पनि त्यहीँ थुप्रिएको छ । नीतिगत रूपमा, ग्रामीण वडाका सरकारी विद्यालयको गुणस्तर सुदृढ नगरे शैक्षिक अवसरको यो भौगोलिक खाडल झन् बढ्न सक्छ ।</p>
+  </div>
+</section>

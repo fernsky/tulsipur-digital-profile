@@ -30,3 +30,4 @@ scripts/clean-tables.json
 
 # generated search index copied for dev
 public/pagefind/
+image-originals/

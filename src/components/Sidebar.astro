@@ -1,48 +1,239 @@
 ---
 import { chapters } from "../sections/nav";
 import { ne } from "../lib/table";
+import { sectionsForChapter } from "../lib/views";
 const { current } = Astro.props as { current?: number };
+
+// The full nav tree is rendered ONCE and persisted across navigations
+// (transition:persist on the <aside>), so the sidebar is never rebuilt or
+// swapped on page change — a small script just re-marks the active item and
+// expands the active chapter. Initial active state is server-rendered to avoid
+// any first-paint flash.
+const path = Astro.url.pathname.replace(/\/+$/, "") || "/";
+const m = path.match(/^\/chapters\/(\d+)/);
+const activeChapter = m ? Number(m[1]) : current;
+const norm = (u: string) => u.replace(/\/+$/, "");
+const secActive = (base: string) => path === base || path.startsWith(base + "/");
 ---
 
-<nav aria-label="विषयसूची" class="flex h-full flex-col">
+<nav aria-label="विषयसूची" class="sb flex h-full flex-col">
   <a href="/" class="flex items-center gap-3 border-b border-[#33415580] px-4 py-4">
-    <img src="/tulsipur-logo.jpg" alt="तुलसीपुर उपमहानगरपालिका" width="44" height="44"
+    <img src="/tulsipur-logo.webp" alt="तुलसीपुर उपमहानगरपालिका" width="44" height="44"
       class="h-11 w-11 shrink-0 rounded-full bg-white object-contain ring-1 ring-white/20" />
     <span class="min-w-0">
       <span class="block text-[0.98rem] font-bold leading-tight text-white">तुलसीपुर उपमहानगरपालिका</span>
       <span class="block text-[0.78rem] text-[#cbd5e1]">वस्तुगत विवरण – डिजिटल प्रोफाइल</span>
     </span>
   </a>
-  <div class="flex-1 overflow-y-auto py-3">
+  <div id="sb-scroll" class="flex-1 overflow-y-auto py-3">
     <ol class="space-y-0.5 px-2">
       {chapters.map((c) => (
-        <li>
+        <li class:list={["sb-ch", activeChapter === c.number && "sb-open"]} data-ch={c.number}>
           <a
             href={`/chapters/${c.number}`}
-            class:list={[
-              "flex items-start gap-2 rounded-md px-3 py-2 text-[0.9rem] font-semibold leading-snug",
-              current === c.number ? "bg-white text-[#0a0a0a]" : "text-white hover:bg-[#33415580]",
-            ]}
+            data-url={`/chapters/${c.number}`}
+            class:list={["sb-ch-link", activeChapter === c.number && "sb-ch-cur"]}
           >
-            <span class="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-[0.72rem] font-semibold"
-              class:list={[current === c.number ? "bg-[#0a0a0a] text-white" : "bg-[#5a5a5a] text-white"]}>
-              {ne(c.number)}
-            </span>
+            <span class="sb-badge">{ne(c.number)}</span>
             <span>{c.title}</span>
           </a>
-          {current === c.number && c.sections.length > 1 && (
-            <ol class="mb-1 ml-9 mt-0.5 space-y-0.5 border-l border-[#404040] pl-3">
-              {c.sections.map((s) => (
+          <ol class="sb-sub">
+            {sectionsForChapter(c.number).map((g) => {
+              const base = `/chapters/${c.number}/${g.secOrder}`;
+              return (
                 <li>
-                  <a href={`/chapters/${c.number}#${s.id}`} class="block py-1 text-[0.82rem] font-medium text-[#d8d8d8] hover:text-white">
-                    {s.title}
+                  <a
+                    href={g.url}
+                    data-url={g.url}
+                    data-secbase={base}
+                    class:list={["sb-sec", secActive(base) && "sb-cur"]}
+                  >
+                    {g.secTitle}
                   </a>
+                  {g.views.length > 1 && (
+                    <ol class="sb-view-list">
+                      {g.views.map((v) => (
+                        <li>
+                          <a
+                            href={v.url}
+                            data-url={v.url}
+                            class:list={["sb-view", norm(v.url) === path && "sb-cur"]}
+                          >
+                            {v.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                 </li>
-              ))}
-            </ol>
-          )}
+              );
+            })}
+          </ol>
         </li>
       ))}
     </ol>
   </div>
+  <a href="/map" class="geo-nav" data-pagefind-ignore>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path>
+      <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path>
+      <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path>
+    </svg>
+    <span>भू-नक्सा पोर्टल</span>
+    <span class="geo-nav-tag">GIS</span>
+  </a>
 </nav>
+
+<style>
+  .geo-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.5rem 0.75rem 0.85rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 9px;
+    background: #ffffff14;
+    border: 1px solid #ffffff26;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 140ms ease;
+  }
+  .geo-nav:hover { background: #ffffff24; }
+  .geo-nav .geo-nav-tag {
+    margin-left: auto;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #0f172a;
+    background: #fbbf24;
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+  }
+  .sb-ch-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #fff;
+    transition: background-color 140ms ease, color 140ms ease;
+  }
+  .sb-ch-link:hover { background: #33415580; }
+  .sb-ch-cur, .sb-ch-cur:hover { background: #fff; color: #0a0a0a; }
+  .sb-badge {
+    margin-top: 0.1rem;
+    display: inline-flex;
+    height: 1.25rem;
+    width: 1.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #5a5a5a;
+    color: #fff;
+  }
+  .sb-ch-cur .sb-badge { background: #0a0a0a; color: #fff; }
+
+  /* collapse non-active chapters — pure CSS, no JS needed for layout */
+  .sb-sub {
+    margin: 0.15rem 0 0.25rem 2.25rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid #404040;
+    overflow: hidden;
+  }
+  .sb-ch:not(.sb-open) .sb-sub { display: none; }
+
+  .sb-sec {
+    display: block;
+    margin-left: -1px;
+    border-left: 2px solid transparent;
+    padding: 0.25rem 0 0.25rem 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #d8d8d8;
+    transition: color 140ms ease, border-color 140ms ease;
+  }
+  .sb-sec:hover { color: #fff; }
+  .sb-sec.sb-cur { border-color: #fff; color: #fff; }
+
+  .sb-view-list {
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid #404040;
+  }
+  .sb-view {
+    display: block;
+    margin-left: -1px;
+    border-left: 2px solid transparent;
+    padding: 0.125rem 0 0.125rem 0.5rem;
+    font-size: 0.78rem;
+    color: #bcbcbc;
+    transition: color 140ms ease, border-color 140ms ease;
+  }
+  .sb-view:hover { color: #fff; }
+  .sb-view.sb-cur { border-color: #fff; font-weight: 600; color: #fff; }
+</style>
+
+<script is:inline>
+  (function () {
+    var KEY = "sb-scroll-top";
+    function update() {
+      var box = document.getElementById("sb-scroll");
+      if (!box) return;
+      var path = (location.pathname || "/").replace(/\/+$/, "") || "/";
+      var chMatch = path.match(/^\/chapters\/(\d+)/);
+      var ch = chMatch ? chMatch[1] : null;
+
+      // expand active chapter, collapse the rest
+      box.querySelectorAll(".sb-ch").forEach(function (li) {
+        var on = li.getAttribute("data-ch") === ch;
+        li.classList.toggle("sb-open", on);
+        var link = li.querySelector(".sb-ch-link");
+        if (link) link.classList.toggle("sb-ch-cur", on);
+      });
+
+      // clear + set active section / subsection
+      box.querySelectorAll(".sb-cur").forEach(function (el) { el.classList.remove("sb-cur"); });
+      box.querySelectorAll("[aria-current]").forEach(function (el) { el.removeAttribute("aria-current"); });
+      var active = null;
+      box.querySelectorAll(".sb-sec").forEach(function (a) {
+        var base = a.getAttribute("data-secbase");
+        if (base && (path === base || path.indexOf(base + "/") === 0)) { a.classList.add("sb-cur"); }
+      });
+      box.querySelectorAll(".sb-view").forEach(function (a) {
+        if (a.getAttribute("data-url").replace(/\/+$/, "") === path) {
+          a.classList.add("sb-cur"); a.setAttribute("aria-current", "page"); active = a;
+        }
+      });
+      if (!active) {
+        box.querySelectorAll(".sb-sec").forEach(function (a) {
+          if (a.getAttribute("data-url").replace(/\/+$/, "") === path) {
+            a.setAttribute("aria-current", "page"); active = a;
+          }
+        });
+      }
+
+      // keep active item in view; otherwise restore saved scroll
+      if (active) {
+        var br = box.getBoundingClientRect(), ar = active.getBoundingClientRect();
+        if (ar.top < br.top || ar.bottom > br.bottom) active.scrollIntoView({ block: "center" });
+      } else {
+        var saved = sessionStorage.getItem(KEY);
+        if (saved != null) box.scrollTop = parseInt(saved, 10) || 0;
+      }
+    }
+    function save() {
+      var box = document.getElementById("sb-scroll");
+      if (box) sessionStorage.setItem(KEY, String(box.scrollTop));
+    }
+    document.addEventListener("astro:before-swap", save);
+    document.addEventListener("astro:page-load", update);
+    window.addEventListener("DOMContentLoaded", update);
+  })();
+</script>

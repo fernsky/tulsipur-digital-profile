@@ -1,0 +1,59 @@
+---
+import { site } from "../site";
+---
+
+<!doctype html>
+<html lang="ne">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>अफलाइन — {site.title}</title>
+    <meta name="theme-color" content="#1e293b" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@100..900&display=swap" />
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        font-family: "Noto Serif Devanagari", system-ui, serif;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 2rem;
+        text-align: center;
+        background: #fafafa;
+        color: #0a0a0a;
+        line-height: 1.7;
+      }
+      img { width: 84px; height: 84px; border-radius: 18px; object-fit: contain; background: #fff; padding: 8px; box-shadow: 0 8px 24px rgba(10, 10, 10, 0.08); }
+      h1 { font-size: 1.4rem; }
+      p { color: #404040; max-width: 30rem; }
+      button {
+        margin-top: 0.5rem;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #fff;
+        background: #1e293b;
+        border: 0;
+        border-radius: 9999px;
+        padding: 0.6rem 1.5rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="/icons/icon-192.png" alt="तुलसीपुर उपमहानगरपालिका" />
+    <h1>अहिले अफलाइन हुनुहुन्छ</h1>
+    <p>
+      तपाईंले हेर्नुभएका पृष्ठहरू अफलाइनमा पनि उपलब्ध छन् । इन्टरनेट जडान भएपछि नयाँ
+      सामग्री स्वतः अद्यावधिक हुनेछ ।
+    </p>
+    <button onclick="location.reload()">पुनः प्रयास गर्नुहोस्</button>
+  </body>
+</html>

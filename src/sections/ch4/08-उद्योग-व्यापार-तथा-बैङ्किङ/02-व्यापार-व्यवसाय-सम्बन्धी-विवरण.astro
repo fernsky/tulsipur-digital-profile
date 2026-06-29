@@ -1,0 +1,148 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import { cellStr, toNum, toNe, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-53-४-५-२-व्यापार-व्यवसाय-सम्बन्","title":"४.५.२ व्यापार/व्यवसाय सम्बन्धी विवरण"};
+
+const t1 = {"caption":"तालिका नं. ६२ – उप–महानगरपालिकामा रहेका व्यापार/व्यावसाय सम्बन्धी विवरण","source":"स्रोतः नगर कार्यपालिकाको कार्यालय","rows":[["क्र.स.","व्यवसायको समूह","संख्या"],["१।","किराना वा खाद्य वस्तु","१२३७"],["२।","मासु बिक्री केन्द्र","२६८"],["३।","तरकारी तथा फलफूल","३२५"],["४।","दुध डेरी तथा बिक्री केन्द्र","८७"],["५।","औषधि पसल वा क्लिनिक","३२१"],["६।","कपडा, फेन्सी","७६५"],["७।","रेष्टुरेन्ट तथा खाजा नास्ता पसल","५३१"],["८।","सुनचाँदी तथा गहना पसल","१२३"],["९।","बुक्स एण्ड स्टेसनरी","१५२"],["१०।","कृषि उद्योग तथा एग्रोभेट","९८"],["११।","इन्टरप्राइजेज एण्ड थोक बिक्री पसल","१५३"],["१२।","प्रेस, मिडिया, सञ्चार, फोटो, फोटोकपी","१८२"],["१३।","भाडा पसल, होम डेकोर, फर्निचरर्स","२३८"],["१४।","निर्माण सामग्री, हार्डवेयर","१८७"],["१५।","मर्मत सेवा केन्द्र अटो सोरुम","३२२"],["१६।","मोबाईल तथा कम्प्युटर","४३१"],["१७।","इलेक्ट्रोनिक इलेक्टिकल पसल","८३"],["१८।","कस्मेटिक एण्ड ब्युटी पार्लर","१६७"],["१९।","निर्माण सेवा सम्बन्धी ढुवानी सेवा","८४"],["२०।","कम्प्युटर तथा साइबर, कम्प्युटर ट्रेनिङ्ग सेन्टर","५३"],["२१।","छाला जुता पसल","१५२"],["२२।","टेलरिङ सेन्टर तथा बुटीक पसल","१८४"],["२३।","होटेल रेष्टुरेन्ट व्यवसाय","५१"],["२४।","मोटरसाईकल तथा साईकल मर्मत","३१"],[{"text":"जम्मा","colspan":2,"rowspan":1},"६२२५"]]};
+const bizPalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#65a30d", "#e11d48", "#a3a3a3"];
+
+// Raw category list (exclude जम्मा total row)
+const cats = t1.rows
+  .slice(1)
+  .filter((r) => !/जम्मा/.test(cellStr(r[0])) && r.length >= 3)
+  .map((r) => ({ label: cellStr(r[1]), value: toNum(r[2]) }));
+const totalBiz = cats.reduce((s, c) => s + c.value, 0);
+
+const bizItems = [...cats]
+  .sort((a, b) => b.value - a.value)
+  .map((b, i) => ({ label: b.label, value: b.value, color: bizPalette[i % bizPalette.length], valueText: toNe(b.value) }));
+
+// ── Functional re-aggregation (the signature move) ─────────────────
+// Map each of the 24 categories (table order) to a consumer-economy sector.
+const SECTOR = [
+  "ess","ess","ess","ess",        // 1-4 किराना/मासु/तरकारी/दुध
+  "health",                        // 5 औषधि
+  "apparel",                       // 6 कपडा
+  "food",                          // 7 रेष्टुरेन्ट
+  "apparel",                       // 8 सुनचाँदी
+  "know",                          // 9 बुक्स
+  "trade",                         // 10 एग्रोभेट
+  "trade",                         // 11 थोक/इन्टरप्राइजेज
+  "know",                          // 12 प्रेस/मिडिया
+  "home",                          // 13 भाडा/फर्निचर
+  "home",                          // 14 निर्माण सामग्री
+  "auto",                          // 15 मर्मत/अटो
+  "tech",                          // 16 मोबाइल/कम्प्युटर
+  "tech",                          // 17 इलेक्ट्रोनिक
+  "apparel",                       // 18 कस्मेटिक/ब्युटी
+  "auto",                          // 19 ढुवानी
+  "tech",                          // 20 कम्प्युटर/साइबर
+  "apparel",                       // 21 छाला जुता
+  "apparel",                       // 22 टेलरिङ
+  "food",                          // 23 होटेल
+  "auto",                          // 24 मोटरसाइकल मर्मत
+];
+const SECTOR_META = {
+  ess:     { label: "दैनिक खाद्य–उपभोग्य", color: "#16a34a" },
+  health:  { label: "स्वास्थ्य (औषधि/क्लिनिक)", color: "#e11d48" },
+  apparel: { label: "पहिरन, गहना तथा सौन्दर्य", color: "#db2777" },
+  food:    { label: "खाद्य सेवा तथा आतिथ्य", color: "#f59e0b" },
+  tech:    { label: "प्रविधि तथा इलेक्ट्रोनिक्स", color: "#2563eb" },
+  auto:    { label: "यातायात तथा मर्मत", color: "#dc2626" },
+  home:    { label: "निर्माण तथा गृह–सामग्री", color: "#ca8a04" },
+  know:    { label: "ज्ञान, सञ्चार", color: "#7c3aed" },
+  trade:   { label: "थोक तथा कृषि–व्यापार", color: "#0891b2" },
+};
+const sectorTotals = {};
+cats.forEach((c, i) => { const s = SECTOR[i]; sectorTotals[s] = (sectorTotals[s] || 0) + c.value; });
+const sectorSegs = Object.entries(sectorTotals)
+  .sort((a, b) => b[1] - a[1])
+  .map(([k, v]) => ({ label: SECTOR_META[k].label, value: v, color: SECTOR_META[k].color }));
+const essTotal = sectorTotals.ess;
+const essPct = (essTotal / totalBiz) * 100;
+const discretionary = (sectorTotals.apparel || 0) + (sectorTotals.tech || 0) + (sectorTotals.food || 0);
+const discPct = (discretionary / totalBiz) * 100;
+
+// ── Concentration indices ──────────────────────────────────────────
+const shares = cats.map((c) => c.value / totalBiz);
+const hhi = shares.reduce((s, p) => s + p * p, 0);
+const effectiveN = 1 / hhi;
+const sortedDesc = [...cats].sort((a, b) => b.value - a.value);
+const topCat = sortedDesc[0];
+const topShare = (topCat.value / totalBiz) * 100;
+const cr3 = (sortedDesc.slice(0, 3).reduce((s, c) => s + c.value, 0) / totalBiz) * 100;
+const cr5 = (sortedDesc.slice(0, 5).reduce((s, c) => s + c.value, 0) / totalBiz) * 100;
+
+// ── Business density (per population) ──────────────────────────────
+const POP_2078 = 179755;   // ch.2/3 — कुल जनसंख्या २०७८
+const bizPer1000 = (totalBiz / POP_2078) * 1000;
+const peoplePerBiz = POP_2078 / totalBiz;
+
+const kpis = [
+  { label: "दर्ता व्यवसाय (जम्मा)", value: neInt(totalBiz), unit: "वटा" },
+  { label: "व्यवसाय वर्ग", value: neInt(cats.length), unit: "वटा" },
+  { label: "प्रति १००० जनसंख्या", value: neDec(bizPer1000, 1), unit: "व्यवसाय" },
+  { label: "ठूलो वर्गको हिस्सा", value: `${neDec(topShare, 1)}%` },
+];
+
+const tiles = [
+  { label: "जम्मा दर्ता व्यवसाय", value: neInt(totalBiz), sub: `${neInt(cats.length)} वर्गमा`, color: "#2563eb" },
+  { label: "दैनिक उपभोग्य हिस्सा", value: `${neDec(essPct, 0)}%`, sub: `किराना/मासु/तरकारी/दुध — ${neInt(essTotal)} पसल`, color: "#16a34a" },
+  { label: "व्यवसाय घनत्व", value: neDec(bizPer1000, 1), sub: `प्रति १००० जना · १ पसल/${neInt(peoplePerBiz)} जना`, color: "#f59e0b" },
+  { label: "प्रभावी वर्ग संख्या (1/HHI)", value: neDec(effectiveN, 1), sub: `विविधता सूचक · CR3 ${neDec(cr3, 0)}%`, color: "#7c3aed" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <div class="prose-ne reveal"><p>व्यापार कृषि र उद्योग क्षेत्रको विकाससँग अनोन्याश्रीत सम्बन्ध भएको क्षेत्र हो । कृषि र उद्योग मार्फत उत्पादित सामाग्रीहरूलाई राष्ट्रिय र अन्तराष्ट्रिय बजारमा प्रुयाउने माध्यम व्यापार भएकाले व्यापार र बाणिज्यको विकास अत्यन्त महत्वपूर्ण हुन्छ । स्थानीय तहहरू आर्थिक रुपले सवल हुन स्थानीय उत्पादनमा सबल भई निर्यात गर्न सक्ने अवस्थामा पुग्नु पर्दछ । आफ्नो क्षेत्रभन्दा बाहिर उत्पादित सामाग्रीहरूको व्यापार गरेर अर्थतन्त्र माथि उठ्न सक्दैन् । यसका लागि कुनै न कुनै प्रकारले स्थानीय उत्पादनमा केन्द्रीत भई यस्ता उत्पादनहरूलाई निर्यात गर्न सक्नुपर्दछ । यस उप–महानगरपालिकामा रहेका व्यापार/व्यावसायहरुको विवरण तालिकामा उल्लेख गरिएको छ ।</p></div>
+
+  <div class="mt-4">
+    <StatTiles title="एक नजरमा — व्यापारिक अर्थतन्त्रको चरित्र" tiles={tiles} cols={4} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>यी सबै तृतीयक क्षेत्र (tertiary sector) का व्यवसाय हुन्:</strong> अर्थशास्त्रको क्लार्क–फिशर मोडेलअनुसार अर्थतन्त्र तीन क्षेत्रमा बाँडिन्छ — प्राथमिक (कृषि/खानी), द्वितीयक (उद्योग/उत्पादन) र तृतीयक (सेवा/व्यापार) । तालिकाका {neInt(cats.length)} वटै वर्ग — किराना, रेष्टुरेन्ट, मोबाइल पसल, ब्युटी पार्लर — सबै <em>तृतीयक सेवा क्षेत्र</em> मा पर्छन् । एउटै नगरमा {neInt(totalBiz)} दर्ता व्यवसायको यो बाक्लो उपस्थितिले तुलसीपुरको <strong>सहरीकरण र बजार–केन्द्र (market town)</strong> को चरित्र पुष्टि गर्छ — यो वरिपरिको कृषि–क्षेत्रका लागि किनबेचको केन्द्रीय स्थान (central place) हो ।</p>
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>व्यवसायलाई कार्यगत क्षेत्रमा पुनः वर्गीकरण:</strong> छरिएका {neInt(cats.length)} वर्गलाई उपभोक्ता–अर्थतन्त्रका अर्थपूर्ण समूहमा पुनर्संगठित गर्दा बजारको साँचो संरचना देखिन्छ । <strong>दैनिक खाद्य–उपभोग्य</strong> (किराना, मासु, तरकारी, दुध) ले {neInt(essTotal)} पसल अर्थात् <strong>{neDec(essPct, 0)}%</strong> ओगट्छ — यो “निर्वाह–स्तर” बजारको आधार हो । अर्कोतिर पहिरन–गहना–सौन्दर्य, प्रविधि र खाद्य–सेवा मिलेर <strong>{neDec(discPct, 0)}%</strong> ऐच्छिक/विवेकाधीन (discretionary) उपभोग बन्छ — यो हिस्सा बढ्नुले बढ्दो क्रयशक्ति र मध्यमवर्गीय उपभोग–संस्कृतिको सङ्केत दिन्छ ।</p>
+  </div>
+
+  <div class="mt-3 grid gap-4 md:grid-cols-2">
+    <Donut title="व्यापारको कार्यगत संरचना" subtitle={`${neInt(totalBiz)} व्यवसाय — ८ कार्यक्षेत्रमा`} segments={sectorSegs} centerValue={neInt(totalBiz)} centerLabel="व्यवसाय" />
+    <div class="prose-ne reveal self-center">
+      <p><strong>बजार केन्द्रीयता (concentration):</strong> कुनै एक वर्गले बजार कति ओगटेको छ भन्ने मापन गर्न <em>हर्फिन्डाल सूचकाङ्क</em> (HHI — सबै वर्गको हिस्साको वर्गको योग) प्रयोग गरिन्छ । यहाँ HHI बाट निस्कने <strong>प्रभावी वर्ग संख्या {neDec(effectiveN, 1)}</strong> ले देखाउँछ — {neInt(cats.length)} वर्ग भए पनि बजार वास्तवमा केही प्रमुख वर्गमा केन्द्रित छ । सबैभन्दा ठूलो वर्ग <strong>{topCat.label}</strong> ले एक्लै {neDec(topShare, 1)}% ओगट्छ; शीर्ष ३ वर्गले {neDec(cr3, 0)}% र शीर्ष ५ ले {neDec(cr5, 0)}% — यो “लामो पुच्छर” (long tail) सहितको खुद्रा बजार हो ।</p>
+    </div>
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>केन्द्रीय–स्थान सिद्धान्त (central place theory):</strong> भूगोलविद् क्रिस्टलरको सिद्धान्तअनुसार वस्तुहरू “न्यून–श्रेणी” (low-order — दैनिक चाहिने, कम दूरीसम्म मात्र किन्न जाने: किराना, तरकारी) र “उच्च–श्रेणी” (high-order — कहिलेकाहीँ चाहिने, टाढासम्म पनि किन्न जाने: सुनचाँदी, इलेक्ट्रोनिक्स, फर्निचर) मा बाँडिन्छन् । किराना ({neInt(topCat.value)}) र तरकारी जस्ता न्यून–श्रेणी पसल जताततै हुनु स्वाभाविक हो, तर सुनचाँदी, मोबाइल–कम्प्युटर र फर्निचरजस्ता उच्च–श्रेणी पसलको उल्लेख्य उपस्थितिले तुलसीपुरले वरिपरिका गाउँबाट पनि ग्राहक तान्ने <em>क्षेत्रीय बजार–केन्द्र</em> को भूमिका निर्वाह गरेको देखाउँछ ।</p>
+  </div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <BarList title="व्यवसायको समूह अनुसार संख्या" subtitle="दर्ता भएका व्यवसायहरूको समूहगत संख्या (ठूलोदेखि सानो)" items={bizItems} />
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण:</strong> क्रमबद्ध सूचीले स्पष्ट सोपान देखाउँछ — <strong>किराना/खाद्य वस्तु ({neInt(topCat.value)})</strong> ले शीर्ष स्थान लिन्छ, जुन हरेक टोलमा चाहिने आधारभूत पसल हो । त्यसपछि कपडा–फेन्सी (७६५), रेष्टुरेन्ट/खाजा (५३१) र मोबाइल–कम्प्युटर (४३१) आउँछन् — यी क्रमशः पहिरन, बाहिर–खाने संस्कृति र डिजिटल उपभोगको बढोत्तरी झल्काउँछन् । औषधि पसल/क्लिनिक (३२१) को उल्लेख्य संख्याले स्वास्थ्य–सेवाको निजी विस्तार देखाउँछ (हे. <a href="/chapters/5/2">स्वास्थ्य खण्ड</a>) । तुलनात्मक रूपमा कृषि–उद्योग/एग्रोभेट (९८) र दुध डेरी (८७) जस्ता उत्पादनसँग जोडिएका व्यवसाय थोरै हुनुले अर्थतन्त्र <em>उत्पादनभन्दा उपभोग–व्यापारतर्फ</em> ढल्किएको सङ्केत दिन्छ — आधिकारिक प्रस्तावनाले औँल्याएको “स्थानीय उत्पादनमा केन्द्रित भई निर्यात” गर्ने चुनौती यहीँनिर देखिन्छ ।</p>
+  </div>
+
+  <!-- ── निष्कर्ष र सिफारिसहरू ───────────────────────────────────── -->
+  <div class="prose-ne reveal mt-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-brand)]">निष्कर्ष र सिफारिसहरू</h3>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>उपभोग → उत्पादन सन्तुलन:</strong> {neDec(essPct, 0)}% दैनिक–उपभोग्य र थोरै उत्पादनमूलक व्यवसायले देखाउँछ अर्थतन्त्र आयातित वस्तुको खुद्रा बिक्रीमा निर्भर छ; स्थानीय कृषि–उपजको प्रशोधन र मूल्य–अभिवृद्धि उद्योगलाई प्रोत्साहन गरी “निर्यातयोग्य उत्पादन” तर्फ डोर्‍याउनुपर्छ ।</li>
+      <li><strong>बजार–केन्द्रको पूर्वाधार:</strong> {neDec(bizPer1000, 1)} व्यवसाय/१००० जनाको घनत्व उच्च छ; यो क्षेत्रीय बजार–केन्द्र भूमिकालाई व्यवस्थित हाटबजार, पार्किङ, फोहोर–व्यवस्थापन र संकलन केन्द्रसँग जोडेर सुदृढ गर्नुपर्छ ।</li>
+      <li><strong>औपचारिकीकरण र तथ्याङ्क:</strong> दर्ता व्यवसायको कारोबार–आकार, रोजगारी र कर–योगदानको विस्तृत अभिलेख राखे नीति–निर्माण सहज हुन्छ; अनौपचारिक व्यवसायलाई दर्ता–दायरामा ल्याउनुपर्छ ।</li>
+      <li><strong>विवेकाधीन क्षेत्रको सम्भावना:</strong> {neDec(discPct, 0)}% विवेकाधीन उपभोग बढ्दो क्रयशक्ति देखाउँछ — पर्यटन, आतिथ्य र सेवा–उद्योगसँग जोडेर रोजगारी–सिर्जना गर्न सकिन्छ (हे. <a href="/chapters/4/7">पर्यटन विकास</a>) ।</li>
+      <li><strong>साना व्यवसायलाई वित्तीय पहुँच:</strong> खुद्रा बजारको “लामो पुच्छर” मा रहेका हजारौं साना पसललाई सहकारी/बैंक ऋण र डिजिटल भुक्तानीसँग जोडेर औपचारिक अर्थतन्त्रमा समाहित गर्नुपर्छ ।</li>
+    </ul>
+  </div>
+</section>

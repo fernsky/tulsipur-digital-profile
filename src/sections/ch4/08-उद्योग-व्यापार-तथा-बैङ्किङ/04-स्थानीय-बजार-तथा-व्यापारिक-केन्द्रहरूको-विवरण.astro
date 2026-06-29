@@ -1,0 +1,108 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import Figure from "../../../components/Figure.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import { cellStr, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-55-४-५-४-स्थानीय-बजार-तथा-व्याप","title":"४.५.४ स्थानीय बजार तथा व्यापारिक केन्द्रहरूको विवरण"};
+
+const t3 = {"caption":"तालिका नं. ६४ – प्रमुख बजार सम्बन्धी विवरण","source":"स्रोतः नगर कार्यपालिकाको कार्यालय","rows":[["क्र.स.","नाम","वडा नं."],["१","तुलसीपुर बजार","वडा नं ५, ६ ,७, ८,९ र १२"],["२","दोघरे दुधेना बजार","वडा नं ८ र ९"],["३","बिजौरी बजार","वडा नं १८ र १९"],["४","मानपुर बजार","वडा नं १७"],["५","दुधरास बजार","वडा नं १७"],["६","पर्सेनी बजार","वडा नं ७"],["७","कोठरी बजार","वडा नं १५"],["८","उरहरी बजार","वडा नं ११ र १२"],["९","बालापुर बजार","वडा नं २"],["१०","भ्युडर सुनपुर बजार","वडा नं १"],["११","रक्षाचौर गोटीखोला बजार","वडा नं ३ र ४"],["१२","दमारगाउँ बजार","वडा नं ३"]]};
+
+// ── Live parsing ───────────────────────────────────────────────────
+const NEDIG = "०१२३४५६७८९";
+const neToInt = (s) => parseInt([...s].map((c) => NEDIG.indexOf(c)).join(""), 10);
+const TOTAL_WARDS = 19;
+const markets = t3.rows.slice(1).map((r) => {
+  const name = cellStr(r[1]);
+  const wards = (cellStr(r[2]).match(/[०-९]+/g) || []).map(neToInt);
+  return { name, wards, span: wards.length };
+});
+const totalMarkets = markets.length;
+const coveredWards = new Set(markets.flatMap((m) => m.wards));
+const coveragePct = (coveredWards.size / TOTAL_WARDS) * 100;
+
+const ranked = [...markets].sort((a, b) => b.span - a.span);
+const primate = ranked[0];
+const second = ranked[1];
+const primacyIndex = primate.span / second.span;
+
+const TIER = (s) => (s >= 3 ? "hub" : s === 2 ? "sub" : "local");
+const tierMeta = {
+  hub:   { label: "प्रथम श्रेणी केन्द्र (≥३ वडा)", color: "#dc2626" },
+  sub:   { label: "द्वितीय श्रेणी (२ वडा)", color: "#f59e0b" },
+  local: { label: "स्थानीय बजार (१ वडा)", color: "#16a34a" },
+};
+const tierTotals = {};
+markets.forEach((m) => { const t = TIER(m.span); tierTotals[t] = (tierTotals[t] || 0) + 1; });
+const tierSegs = Object.entries(tierTotals)
+  .sort((a, b) => b[1] - a[1])
+  .map(([k, v]) => ({ label: tierMeta[k].label, value: v, color: tierMeta[k].color }));
+
+const spanItems = ranked.map((m, i) => ({
+  label: m.name,
+  value: m.span,
+  valueText: `${neInt(m.span)} वडा`,
+  color: [tierMeta[TIER(m.span)].color][0],
+  sub: `वडा ${m.wards.map((w) => neInt(w)).join(", ")}`,
+}));
+
+const kpis = [
+  { label: "प्रमुख बजार केन्द्र", value: neInt(totalMarkets), unit: "वटा" },
+  { label: "बजारले छोएका वडा", value: `${neInt(coveredWards.size)}/${neInt(TOTAL_WARDS)}` },
+  { label: "प्रमुख केन्द्रको फैलावट", value: neInt(primate.span), unit: "वडा" },
+  { label: "नगर–प्रधानता सूचक", value: `${neDec(primacyIndex, 1)}×` },
+];
+
+const tiles = [
+  { label: "प्रमुख बजार केन्द्र", value: neInt(totalMarkets), sub: `${neInt(coveredWards.size)} वडामा फैलिएको`, color: "#2563eb" },
+  { label: "प्रधान बजार (primate)", value: primate.name.replace(" बजार", ""), sub: `${neInt(primate.span)} वडाको हिन्टरल्यान्ड`, color: "#dc2626" },
+  { label: "नगर–प्रधानता सूचक", value: `${neDec(primacyIndex, 1)}×`, sub: "दोस्रो ठूलोभन्दा यति गुणा ठूलो", color: "#7c3aed" },
+  { label: "स्थानीय (एक–वडा) बजार", value: neInt(tierTotals.local || 0), sub: "उदीयमान साना केन्द्र", color: "#16a34a" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <Figure src="/images/image19.jpeg" caption={"" || undefined} />
+  <div class="prose-ne reveal"><p>देशका ठुला शहरहरू बाहेक ग्रामिण इलाकाहरूमा सघन बस्तीहरू भएका क्षेत्रमा मानवीय गतिविधिहरू जस्तैः शिक्षा, स्वास्थ्य, अन्य सेवा, व्यापार तथा बाणिज्य केन्द्रीत भएको पाइन्छ । यस्ता केन्द्रहरूलाई नै बजार केन्द्रहरू भनिन्छ । शहरी विकास र सुविधाका दृष्टिकोणले पूर्ण रुपमा विकास हुन नसकेता पनि भविष्यमा विकसित हुन सक्ने क्षेत्रका रुपमा यस्ता केन्द्रहरूमा मानवीय गतिविधिहरू केन्द्रीत र विकसित भईरहेको पाईन्छ । उपयुक्तता हेरी नयाँ क्षेत्रमा बजारको विकास गर्न नसकिने होइन । तथापि केही मात्रामा विकसित भइसकेका यस्ता क्षेत्रहरूमा थप विकास गर्न सहज भने हुन्छ । यस उप–महानगरपालिकाका मुख्य व्यापारिक केन्द्रहरू निम्न अनुसार रहेका छन् ।</p></div>
+
+  <div class="mt-4">
+    <StatTiles title="एक नजरमा — बजार सञ्जालको संरचना" tiles={tiles} cols={4} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>बजार केन्द्र किन यहाँ बन्छन् — केन्द्रीय–स्थान सिद्धान्त (central place theory):</strong> जर्मन भूगोलविद् वाल्टर क्रिस्टलरको सिद्धान्तअनुसार बस्तीहरू एउटा <em>सोपानात्मक संरचना</em> (hierarchy) मा सङ्गठित हुन्छन् — माथिल्लो श्रेणीका केन्द्रले ठूलो भूभाग (हिन्टरल्यान्ड) लाई उच्च–श्रेणीका वस्तु–सेवा (अस्पताल, थोक व्यापार, गहना) पुर्‍याउँछन्, जबकि तल्लो श्रेणीका साना बजारले नजिकको थोरै क्षेत्रलाई दैनिक वस्तु मात्र दिन्छन् । यस उप–महानगरपालिकाका {neInt(totalMarkets)} बजार केन्द्र यही सोपानमा अटाउँछन्: कति वडाको जनसंख्यालाई एउटा बजारले सेवा दिन्छ भन्ने <em>फैलावट</em> ले त्यसको श्रेणी निर्धारण गर्छ ।</p>
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>नगर–प्रधानता (urban primacy):</strong> <strong>तुलसीपुर बजार</strong> एक्लै {neInt(primate.span)} वडा (५,६,७,८,९,१२) को हिन्टरल्यान्ड समेट्ने <em>प्रधान बजार</em> (primate centre) हो — यो दोस्रो ठूलो बजारभन्दा <strong>{neDec(primacyIndex, 1)} गुणा</strong> ठूलो छ । यति उच्च प्रधानता–सूचकले देखाउँछ कि नगरको व्यापारिक गतिविधि एउटै कोर–बजारमा अत्यधिक केन्द्रित छ — <a href="/chapters/4/8/2">६,२२५ दर्ता व्यवसाय</a> को ठूलो हिस्सा यहीँ थुप्रिएको अनुमान गर्न सकिन्छ । यो एकातिर सघन सहरी कोरको शक्ति हो भने अर्कोतिर बाँकी क्षेत्रमा सेवा–पहुँचको असन्तुलन पनि सङ्केत गर्छ ।</p>
+  </div>
+
+  <div class="mt-3 grid gap-4 md:grid-cols-2">
+    <BarList title="बजार केन्द्रको फैलावट (वडा संख्या)" subtitle={`${neInt(totalMarkets)} बजार · सेवा–क्षेत्रको आकारअनुसार`} items={spanItems} />
+    <Donut title="बजारको श्रेणी–संरचना" subtitle="केन्द्रीय–स्थान सोपान" segments={tierSegs} centerValue={neInt(totalMarkets)} centerLabel="बजार" />
+  </div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
+  <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण:</strong> {neInt(totalMarkets)} बजार केन्द्र मिलेर नगरका {neInt(TOTAL_WARDS)} मध्ये {neInt(coveredWards.size)} वडा ({neDec(coveragePct, 0)}%) लाई छोएका छन् — अर्थात् व्यापारिक सेवाको स्थानिक पहुँच बाक्लो छ । श्रेणी–संरचनामा तुलसीपुर बजार ({neInt(primate.span)} वडा) शीर्षमा, दोघरे–दुधेना, बिजौरी, उरहरी र रक्षाचौर–गोटीखोला (२–२ वडा) मध्य–श्रेणीमा, र मानपुर, दुधरास, पर्सेनी, कोठरी, बालापुर, भ्युडर–सुनपुर, दमारगाउँ (१–१ वडा) उदीयमान स्थानीय केन्द्रका रूपमा देखिन्छन् । यो “एक प्रधान + केही मध्यम + थुप्रै साना” ढाँचा क्रिस्टलरको सोपानसँग ठ्याक्क मेल खान्छ ।</p>
+    <p>नीतिगत दृष्टिले, प्रधान बजारको अत्यधिक केन्द्रीकरण घटाउन मध्य–श्रेणीका बजार (बिजौरी, उरहरी, मानपुर) लाई पूर्वाधार (हाटबजार, सडक, भण्डारण) ले बलियो बनाएर <em>बहु–केन्द्रित (polycentric)</em> सहरी विकास गर्न सकिन्छ — जसले दक्षिणी र उत्तरी वडाका बासिन्दालाई नजिकै सेवा दिन्छ र कोर–बजारको चाप घटाउँछ ।</p>
+  </div>
+
+  <!-- ── निष्कर्ष र सिफारिसहरू ───────────────────────────────────── -->
+  <div class="prose-ne reveal mt-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-brand)]">निष्कर्ष र सिफारिसहरू</h3>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>बहु–केन्द्रित विकास:</strong> {neDec(primacyIndex, 1)}× प्रधानता घटाउन मध्य–श्रेणीका बजारलाई संकलन केन्द्र, हाटबजार पूर्वाधार र पहुँच–सडकले सुदृढ गरी सेवा–पहुँचलाई फैलाउनुपर्छ ।</li>
+      <li><strong>योजनाबद्ध बजार–पूर्वाधार:</strong> प्रधान तुलसीपुर बजारमा पार्किङ, फोहोर–व्यवस्थापन, अग्नि–सुरक्षा र भीडभाड व्यवस्थापन प्राथमिकतामा राख्नुपर्छ ।</li>
+      <li><strong>कृषि–बजार कडी:</strong> बजार केन्द्रलाई <a href="/chapters/4/5">स्थानीय कृषि उपज</a> को संकलन–बिक्री सञ्जालसँग जोडेर किसानलाई सिधा बजार पहुँच दिनुपर्छ ।</li>
+      <li><strong>सेवाविहीन वडामा बजार प्रवर्द्धन:</strong> बजार नछोएका वडामा उपयुक्तता हेरी नयाँ स्थानीय केन्द्र विकास गरी स्थानिक सन्तुलन कायम गर्नुपर्छ ।</li>
+    </ul>
+  </div>
+</section>

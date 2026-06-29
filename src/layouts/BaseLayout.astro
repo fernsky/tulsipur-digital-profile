@@ -20,15 +20,26 @@ const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
     <meta name="description" content={description ?? meta.subtitle} />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1e293b" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="तुलसीपुर प्रोफाइल" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      rel="preload"
-      href="/fonts/Kalimati.ttf"
-      as="font"
-      type="font/ttf"
-      crossorigin
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@100..900&display=swap"
     />
-    <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
-    <script src="/pagefind/pagefind-ui.js" is:inline></script>
+    <script is:inline>
+      (function () {
+        try {
+          var d = document.documentElement;
+          if (localStorage.getItem("tocHidden") === "1") d.classList.add("toc-hidden");
+          if (localStorage.getItem("contentFull") === "1") d.classList.add("content-full");
+        } catch (e) {}
+      })();
+    </script>
     <ClientRouter />
   </head>
   <body>
@@ -41,6 +52,7 @@ const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
       <aside
         id="sidebar"
         data-pagefind-ignore
+        transition:persist="sidebar"
         class="fixed inset-y-0 left-0 z-50 w-[var(--sidebar-width)] -translate-x-full bg-[var(--color-primary)] transition-transform duration-300 ease-out lg:z-30 lg:translate-x-0"
       >
         <Sidebar current={current} />
@@ -63,10 +75,35 @@ const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
             </svg>
           </button>
           <a href="/home" class="text-[1rem] font-bold lg:hidden">तुलसीपुर</a>
+          <div class="ml-auto flex items-center gap-2">
+            <button
+              id="toc-toggle"
+              type="button"
+              aria-pressed="false"
+              aria-label="यस परिच्छेदमा विषयसूची देखाउने/लुकाउने"
+              title="विषयसूची देखाउने/लुकाउने"
+              class="view-toggle hidden h-10 w-10 items-center justify-center rounded-lg text-[var(--color-text)] transition-colors hover:bg-[var(--color-background)] lg:inline-flex"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M15 4v16"></path>
+              </svg>
+            </button>
+            <button
+              id="width-toggle"
+              type="button"
+              aria-pressed="false"
+              aria-label="पूर्ण चौडाइ दृश्य टगल गर्ने"
+              title="पूर्ण चौडाइ / केन्द्रित दृश्य"
+              class="view-toggle hidden h-10 w-10 items-center justify-center rounded-lg text-[var(--color-text)] transition-colors hover:bg-[var(--color-background)] lg:inline-flex"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 3h-6M21 3v6M21 3l-7 7M3 21h6M3 21v-6M3 21l7-7"></path>
+              </svg>
+            </button>
           <button
             id="search-trigger"
             type="button"
-            class="ml-auto flex items-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 py-2 text-[0.9rem] text-[var(--color-text-secondary)] transition-colors hover:border-[#c4c4c4] hover:bg-white"
+            class="flex items-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3.5 py-2 text-[0.9rem] text-[var(--color-text-secondary)] transition-colors hover:border-[#c4c4c4] hover:bg-white"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
               <circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path>
@@ -74,6 +111,7 @@ const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
             <span>प्रोफाइलमा खोज्नुहोस्</span>
             <kbd class="ml-2 hidden rounded border border-[var(--color-border)] bg-white px-1.5 py-0.5 text-[0.7rem] sm:inline">⌘K</kbd>
           </button>
+          </div>
         </header>
 
         <!-- Search modal -->
@@ -251,9 +289,56 @@ const fullTitle = title === meta.title ? title : `${title} — ${meta.title}`;
         document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
       }
 
-      function boot() { initSearch(); setupSearchModal(); setupDrawer(); armReveals(); animateCounts(); }
+      function setupViewToggles() {
+        var d = document.documentElement;
+        // re-apply saved prefs on every navigation (keeps state consistent)
+        try {
+          d.classList.toggle("toc-hidden", localStorage.getItem("tocHidden") === "1");
+          d.classList.toggle("content-full", localStorage.getItem("contentFull") === "1");
+        } catch (e) {}
+        var tocBtn = document.getElementById("toc-toggle");
+        var widthBtn = document.getElementById("width-toggle");
+        function sync() {
+          if (tocBtn) {
+            var h = d.classList.contains("toc-hidden");
+            tocBtn.setAttribute("aria-pressed", h ? "true" : "false");
+            tocBtn.classList.toggle("is-active", h);
+          }
+          if (widthBtn) {
+            var f = d.classList.contains("content-full");
+            widthBtn.setAttribute("aria-pressed", f ? "true" : "false");
+            widthBtn.classList.toggle("is-active", f);
+          }
+        }
+        if (tocBtn && !tocBtn.dataset.wired) {
+          tocBtn.dataset.wired = "1";
+          tocBtn.addEventListener("click", function () {
+            var h = d.classList.toggle("toc-hidden");
+            try { localStorage.setItem("tocHidden", h ? "1" : "0"); } catch (e) {}
+            sync();
+          });
+        }
+        if (widthBtn && !widthBtn.dataset.wired) {
+          widthBtn.dataset.wired = "1";
+          widthBtn.addEventListener("click", function () {
+            var f = d.classList.toggle("content-full");
+            try { localStorage.setItem("contentFull", f ? "1" : "0"); } catch (e) {}
+            sync();
+          });
+        }
+        sync();
+      }
+
+      function boot() { initSearch(); setupSearchModal(); setupDrawer(); setupViewToggles(); armReveals(); animateCounts(); }
       document.addEventListener("astro:page-load", boot);
       window.addEventListener("DOMContentLoaded", boot);
+
+      // Register the content-cache service worker (non-blocking, after load).
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {});
+        });
+      }
     </script>
   </body>
 </html>

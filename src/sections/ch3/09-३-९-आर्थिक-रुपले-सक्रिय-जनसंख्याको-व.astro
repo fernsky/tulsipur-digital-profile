@@ -1,11 +1,13 @@
 ---
 import DataTable from "../../components/DataTable.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import StackedBar from "../../components/viz/StackedBar.astro";
 import Donut from "../../components/viz/Donut.astro";
-import { cellStr, toNum } from "../../lib/ne";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import ClusterBars from "../../components/viz/ClusterBars.astro";
+import Gauge from "../../components/viz/Gauge.astro";
+import VizCard from "../../components/viz/VizCard.astro";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":9,"id":"s-3-9-३-९-आर्थिक-रुपले-सक्रिय-जनसंख्या","title":"३.९ आर्थिक रुपले सक्रिय जनसंख्याको विवरण","subsections":[]};
 
@@ -14,37 +16,210 @@ const kpis = [{"label":"३ महिना भन्दा कम","value":"१
 
 const t1 = {"caption":"तालिका नं. १३ – १२ महिनासम्म आर्थिक काम गरेको अवधि (महिना) अनुसार जनसंख्याको विवरण","source":"स्रोतः राष्ट्रिय जनगणना,२०७८","rows":[["लिङ्ग","३ महिना भन्दा कम","३ महिना वा सो भन्दा बढी","६ महिना वा सो भन्दा बढी","कुनै पनि आर्थिक काम नगरेको","जम्मा"],["पुरुष","४,९४३","६,९५४","३१,४२९","२५१६७","६८,४९३"],["महिला","८,६३१","११,१६१","२२,२७५","३८,६९६","८०,७६३"],["जम्मा","१३,५७४","१८,११५","५३,७०४","६३,८६३","१४९,२५६"],["प्रतिशत","९.०९","१२.१४","३५.९८","४२.७९","१००"]]};
 const t2 = {"caption":"तालिका नं. १४ – आर्थिक रुपले सक्रिय/निस्क्रिय जनसंख्याको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["लिङ्ग","आर्थिक रुपले सक्रिय रहेका","आर्थिक रुपले सक्रिय नरहेका","जम्मा"],["पुरुष","३४,८६२","१०,३४४","४५,२०६"],["महिला","२५,८६८","१८,६१९","४४,४८७"],["जम्मा","६०,७३०","२८,९६३","८९,६९३"],["प्रतिशत","६७.७१","३२.२९","१००"]]};
-const durPalette = ["#dc2626", "#f59e0b", "#16a34a", "#a3a3a3"];
-const durHeader = t1.rows[0].slice(1, 5).map(cellStr);
-const durTotals = (t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || []).slice(1, 5);
-const durSegments = durHeader.map((name, i) => ({ label: name, value: toNum(durTotals[i]), color: durPalette[i % durPalette.length] }));
 
-const actTotals = t2.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+// --- Parse table 1 (work duration × sex) ------------------------------------
+const durCols = t1.rows[0].slice(1, 5).map(cellStr);
+const durRow = (re) => (t1.rows.find((r) => re.test(cellStr(r[0]))) || []).slice(1, 5).map(toNum);
+const dM = durRow(/पुरुष/), dF = durRow(/महिला/), dT = durRow(/जम्मा/);
+const POP10 = dT.reduce((s, x) => s + x, 0);           // १० वर्षमाथि (१,४९,२५६)
+const noWork = dT[3];
+const worked = POP10 - noWork;
+const underEmp = dT[0] + dT[1];                         // worked < 6 months
+const underEmpRate = (underEmp / worked) * 100;        // time-related underemployment
+const fullWork = dT[2];
+const fullWorkShare = (fullWork / worked) * 100;
+const femShareNoWork = (dF[3] / dT[3]) * 100;
+const femShareFull = (dF[2] / dT[2]) * 100;
+
+// --- Parse table 2 (active / inactive × sex) --------------------------------
+const actRow = (re) => (t2.rows.find((r) => re.test(cellStr(r[0]))) || []).slice(1, 3).map(toNum);
+const aM = actRow(/पुरुष/), aF = actRow(/महिला/), aT = actRow(/जम्मा/);
+const baseM = aM[0] + aM[1], baseF = aF[0] + aF[1], baseAll = aT[0] + aT[1];
+const lfpr = (aT[0] / baseAll) * 100;                  // Labour Force Participation Rate
+const lfprM = (aM[0] / baseM) * 100;
+const lfprF = (aF[0] / baseF) * 100;
+const genderGap = lfprM - lfprF;
+const inactivityRate = (aT[1] / baseAll) * 100;
+const femShareInactive = (aF[1] / aT[1]) * 100;
+const activitySexRatio = (aM[0] / aF[0]) * 100;
+
+// --- Visualization datasets -------------------------------------------------
+const durPalette = ["#dc2626", "#f59e0b", "#16a34a", "#a3a3a3"];
+const durSegments = durCols.map((name, i) => ({ label: name, value: dT[i], color: durPalette[i % durPalette.length] }));
 const actSegs = [
-  { label: "आर्थिक रुपले सक्रिय", value: toNum(actTotals[1]), color: "#16a34a" },
-  { label: "आर्थिक रुपले सक्रिय नरहेका", value: toNum(actTotals[2]), color: "#dc2626" },
+  { label: "आर्थिक रुपले सक्रिय", value: aT[0], color: "#16a34a" },
+  { label: "आर्थिक रुपले सक्रिय नरहेका", value: aT[1], color: "#dc2626" },
+];
+
+const lfprTiles = [
+  { label: "श्रमशक्ति सहभागिता दर (LFPR)", value: `${neDec(lfpr)}%`, sub: `Labour Force Participation · ${neInt(aT[0])} सक्रिय`, color: "#16a34a" },
+  { label: "पुरुष सहभागिता दर", value: `${neDec(lfprM)}%`, sub: `${neInt(aM[0])} पुरुष आर्थिक रूपले सक्रिय`, color: "#2563eb" },
+  { label: "महिला सहभागिता दर", value: `${neDec(lfprF)}%`, sub: `${neInt(aF[0])} महिला आर्थिक रूपले सक्रिय`, color: "#db2777" },
+  { label: "लैङ्गिक सहभागिता खाडल", value: `${neDec(genderGap)} अंक`, sub: `Gender Participation Gap (पुरुष − महिला)`, color: "#dc2626" },
+];
+
+const durByGender = durCols.map((name, i) => ({ label: name, a: dM[i], b: dF[i] }));
+const actByGender = [
+  { label: "आर्थिक रूपले सक्रिय", a: aM[0], b: aF[0] },
+  { label: "आर्थिक रूपले निष्क्रिय", a: aM[1], b: aF[1] },
+];
+
+const qualityTiles = [
+  { label: "आर्थिक रूपमा संलग्न दर", value: `${neDec((worked / POP10) * 100)}%`, sub: `१२ महिनामा कुनै न कुनै आर्थिक काम गरेका · ${neInt(worked)} जना`, color: "#16a34a" },
+  { label: "पूर्णकालिक श्रम (६+ महिना)", value: `${neDec(fullWorkShare)}%`, sub: `कामदारमध्ये ६ महिना वा बढी काम गर्ने`, color: "#2563eb" },
+  { label: "समय-सम्बद्ध अल्परोजगारी", value: `${neDec(underEmpRate)}%`, sub: `Time-related Underemployment · कामदारमध्ये ६ महिनाभन्दा कम काम`, color: "#f59e0b" },
+  { label: "आर्थिक निष्क्रियता दर", value: `${neDec(inactivityRate)}%`, sub: `${neInt(aT[1])} जना · मध्ये ${neDec(femShareInactive)}% महिला`, color: "#7c3aed" },
 ];
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
+
+  <!-- Official intro — retained -->
   <div class="prose-ne reveal"><p>१० वर्ष वा सो भन्दा माथिका व्यक्तिले गणनाको समयदेखि अघिको १२ महिनासम्म आर्थिक काम गरेको अवधि (महिना) अनुसारको जनसंख्याको विस्तृत विवरण तलको तालिकामा प्रस्तुत गरिएको छ ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+
+  <!-- ======================= एक नजरमा (labour force participation) ======================= -->
+  <StatTiles
+    title="एक नजरमा — श्रमशक्ति सहभागिता"
+    subtitle={`१० वर्षमाथिका ${neInt(baseAll)} जनसंख्यामध्ये आर्थिक सक्रियता`}
+    tiles={lfprTiles}
+    cols={4}
+  />
+
+  <VizCard title="समग्र श्रमशक्ति सहभागिता दर" subtitle="आर्थिक रूपले सक्रिय जनसंख्याको हिस्सा (Labour Force Participation Rate)">
+    <Gauge
+      value={lfpr}
+      max={100}
+      display={`${neDec(lfpr)}%`}
+      label="आर्थिक रूपले सक्रिय"
+      minLabel="०%"
+      maxLabel="१००%"
+      color="#16a34a"
+    />
+  </VizCard>
+
+  <!-- ======================= table 1 + work-intensity ======================= -->
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+
   <StackedBar
     title="आर्थिक कामको अवधि अनुसार वितरण"
     subtitle="१२ महिनामा आर्थिक काम गरेको अवधि"
     segments={durSegments}
     unit="जना"
   />
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
+
+  <ClusterBars
+    title="कामको अवधि — पुरुष र महिला तुलना"
+    subtitle="प्रत्येक अवधि वर्गमा लिङ्गगत वितरण"
+    items={durByGender}
+    aLabel="पुरूष"
+    bLabel="महिला"
+    aColor="#2563eb"
+    bColor="#db2777"
+    unit="जना"
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">कामको अवधिले के देखाउँछ ?</h3>
+    <p>
+      “काम गरे/गरेनन्” भन्ने मात्र होइन, <strong>कति लामो अवधि काम गरे</strong> भन्ने कुराले रोजगारीको <em>गुणस्तर</em> झल्काउँछ ।
+      तुलसीपुरमा १० वर्षमाथिका {neInt(POP10)} जनामध्ये <strong>{neDec((noWork / POP10) * 100)}%</strong> ({neInt(noWork)}) ले १२ महिनामा
+      कुनै आर्थिक काम गरेनन् (विद्यार्थी, गृहिणी, वृद्ध आदि समेत), र काम गर्नेमध्ये पनि <strong>{neDec(underEmpRate)}%</strong> ले
+      वर्षको ६ महिनाभन्दा कम मात्र काम पाए । यसलाई <strong>समय-सम्बद्ध अल्परोजगारी (time-related underemployment)</strong> भनिन्छ —
+      यो प्रायः <em>मौसमी कृषि श्रम</em> को परिणाम हो, जहाँ रोपाइँ–कटनीको समयमा मात्र काम हुन्छ ।
+    </p>
+    <p>
+      लिङ्गगत तुलनामा एउटा गहिरो असमानता देखिन्छ : “कुनै आर्थिक काम नगरेका” मध्ये <strong>{neDec(femShareNoWork)}%</strong> महिला छन्,
+      जबकि पूर्णकालिक (६+ महिना) काम गर्नेमध्ये महिला मात्र <strong>{neDec(femShareFull)}%</strong> । अर्थात् महिलाहरू छोटो अवधिको र
+      अवैतनिक/घरायसी कामतर्फ धकेलिएका छन्, जुन महिलाको आर्थिक हाशियाकरण (economic marginalization) को स्पष्ट संकेत हो ।
+    </p>
+  </div>
+
+  <!-- ======================= table 2 + active/inactive ======================= -->
+  <h3 class="mb-1 mt-8 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+
   <Donut
     title="आर्थिक सक्रियता"
+    subtitle="आर्थिक रूपले सक्रिय र निष्क्रिय जनसंख्या"
     segments={actSegs}
-    centerValue="८९,६९३"
+    centerValue={neInt(baseAll)}
     centerLabel="१० वर्षमाथि जनसंख्या"
   />
-  <div class="prose-ne reveal"><p>्</p></div>
+
+  <ClusterBars
+    title="आर्थिक सक्रियता — पुरुष र महिला तुलना"
+    subtitle="सक्रिय र निष्क्रिय जनसंख्यामा लिङ्गगत वितरण"
+    items={actByGender}
+    aLabel="पुरूष"
+    bLabel="महिला"
+    aColor="#2563eb"
+    bColor="#db2777"
+    unit="जना"
+  />
+
+  <!-- ======================= labour-quality battery ======================= -->
+  <StatTiles
+    title="रोजगारीको गुणस्तर सूचकहरू"
+    subtitle="सहभागिता मात्र होइन — कामको स्थायित्व र समावेशिता"
+    tiles={qualityTiles}
+    cols={4}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. श्रमशक्ति सहभागिता दर — LFPR ({neDec(lfpr)}%):</strong> काम गर्न योग्य उमेरका मानिसमध्ये कति जना वास्तवमै
+      आर्थिक गतिविधिमा (काम गर्ने वा काम खोज्ने) संलग्न छन् भन्ने मापन । यो अर्थतन्त्रको “इन्जिनमा” कति हात छन् भन्ने देखाउँछ ।
+      तुलसीपुरको {neDec(lfpr)}% दर सन्तोषजनक भए पनि, यसभित्रको लैङ्गिक असमानता मुख्य चुनौती हो ।
+    </p>
+    <p>
+      <strong>२. लैङ्गिक सहभागिता खाडल ({neDec(genderGap)} अंक):</strong> पुरुष सहभागिता ({neDec(lfprM)}%) र महिला सहभागिता
+      ({neDec(lfprF)}%) बीचको अन्तर । {neDec(genderGap)} प्रतिशत–अंकको यो ठूलो खाडलले देखाउँछ — धेरै महिला घरायसी र अवैतनिक
+      स्याहार कार्यमा संलग्न छन्, जुन राष्ट्रिय लेखामा “आर्थिक काम” गनिँदैन । यो महिला सशक्तिकरणको सबैभन्दा ठूलो अवसर पनि हो ।
+    </p>
+    <p>
+      <strong>३. आर्थिक निष्क्रियता दर ({neDec(inactivityRate)}%) र यसको स्त्रीकरण:</strong> आर्थिक रूपले निष्क्रिय
+      {neInt(aT[1])} जनामध्ये <strong>{neDec(femShareInactive)}%</strong> महिला छन् — यसलाई निष्क्रियताको “स्त्रीकरण”
+      (feminization of inactivity) भनिन्छ । यसमा विद्यार्थी, वृद्ध र अशक्त मात्र होइन, श्रमबजारबाट बाहिर रहन बाध्य महिला पनि पर्छन् ।
+    </p>
+    <p>
+      <strong>४. समय-सम्बद्ध अल्परोजगारी ({neDec(underEmpRate)}%):</strong> काम गरेका मानिसमध्ये पनि वर्षको आधाभन्दा कम मात्र काम
+      पाउनेको हिस्सा । यो “लुकेको बेरोजगारी” (disguised unemployment) हो — व्यक्ति काममा देखिए पनि पूर्ण क्षमतामा संलग्न हुँदैनन् ।
+      कृषिप्रधान अर्थतन्त्रको यो विशिष्ट समस्या हो, जसको समाधान वर्षभरि आम्दानी दिने वैकल्पिक रोजगारी हो ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको आर्थिक सक्रियता तथ्याङ्कको विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>महिला आर्थिक सशक्तिकरण:</strong> {neDec(genderGap)} अंकको लैङ्गिक सहभागिता खाडल पुर्न महिला उद्यमशीलता, सहकारी,
+        बाल हेरचाह सेवा र लचिलो रोजगारीमार्फत महिलाको श्रमबजार प्रवेश सहज बनाउनुपर्ने ।
+      </li>
+      <li>
+        <strong>अल्परोजगारी न्यूनीकरण:</strong> {neDec(underEmpRate)}% कामदार अल्परोजगारीमा रहेकाले मौसमी कृषिबाहेक वर्षभरि आम्दानी
+        दिने कृषि–प्रशोधन, साना उद्योग र सेवा क्षेत्रका रोजगारी सिर्जना गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>अवैतनिक श्रमको मान्यता:</strong> महिलाको घरायसी तथा स्याहार श्रमलाई पहिचान, सहयोग र आंशिक मौद्रिकीकरण गर्ने
+        नीति अपनाउनुपर्ने ।
+      </li>
+      <li>
+        <strong>सीप–रोजगार जोडाइ:</strong> निष्क्रिय युवालाई सीप तालिम र रोजगारी सूचनासँग जोडी श्रमशक्तिमा फर्काउनुपर्ने ।
+      </li>
+      <li>
+        <strong>नियमित श्रम तथ्याङ्क:</strong> रोजगारीको अवधि, गुणस्तर र लैङ्गिक स्थिति नियमित अनुगमन गरी लक्षित कार्यक्रम
+        तर्जुमा गर्नुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुरको श्रमबजार सहभागिताको हिसाबले सक्रिय भए पनि <em>गुणस्तर र समावेशिता</em> को दृष्टिले कमजोर छ — उच्च
+      अल्परोजगारी र गहिरो लैङ्गिक खाडल यसका मुख्य चुनौती हुन् । महिला सहभागिता वृद्धि र वर्षभरिको स्थायी रोजगारी सिर्जना नै
+      समावेशी आर्थिक विकासको कुञ्जी हो ।
+    </p>
+  </div>
 </section>

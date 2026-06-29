@@ -1,0 +1,34 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import AutoViz from "../../../components/viz/AutoViz.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import ClusterBars from "../../../components/viz/ClusterBars.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import { cellStr, toNum, toNe, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-78-५-२-५-उप-महानगरपालिकामा-स्वा","title":"५.२.५ उप–महानगरपालिकामा स्वास्थ्य बीमा सम्बन्धी विवरण"};
+
+const t9 = {"caption":"तालिका नं. ७७ – वडागत रुपमा स्वास्थ्य बीमा सम्बन्धी विवरण","source":"","rows":[["क्र.सं.","विमित संख्या","वडा नं."],["१.","६१६","वडा नं. १"],["२.","५२१","वडा नं. २"],["३.","५४५","वडा नं. ३"],["४.","७१९","वडा नं. ४"],["५.","१२०९","वडा नं. ५"],["६.","१८४०","वडा नं. ६"],["७.","१५१३","वडा नं. ७"],["८.","७६३","वडा नं. ८"],["९.","१०५२","वडा नं. ९"],["१०.","४३९","वडा नं. १०"],["११.","४७९","वडा नं. ११"],["१२.","९७७","वडा नं. १२"],["१३.","३५८","वडा नं. १३"],["१४.","१०८७","वडा नं. १४"],["१५.","१००७","वडा नं. १५"],["१६.","५७९","वडा नं. १६"],["१७.","१२३२","वडा नं. १७"],["१८.","१२६४","वडा नं. १८"],["१९.","१२३६","वडा नं. १९"]]};
+const t10 = {"caption":"तालिका नं. ७८ – विगत ३ आर्थिक वर्षमा स्वास्थ्य बीमा गर्नेहरुको िववरण","source":"","rows":[["जममा बिमित संख्या","महिला","पुरुष","ज्येष्ठ नागरिक","आ.व."],["११,४७९","६,१११","५३६८","१५५६","२०८१/०८२"],["१२,५९१","६,६७६","५९१५","४०४२","२०८०/०८१"],["६,४४२","३,४०८","३०३४","२१४१","२०७९/०८०"]]};
+const t11 = {"caption":"तालिका नं. ७९ – ८० वर्ष माथिका ज्येष्ठ नागरिकहरुको उपचार कार्यक्रम सम्बन्धी विवरण","source":"","rows":[["आ.व.","महिला","पुरुष","जम्मा","मुख्य रोगहरुको विवरण"],["२०८०/०८१","३१०","३१५","६२५","मुटु, दम, उच्च रक्तचाप, हाडजोर्नी, निद्रा नपर्ने, कमजोरी, मधुमेह, ग्याष्ट्रिक (APD) दृष्टि कमजोर"],["२०७९/०८०","६५६२","५८८६","१२५४८","मुटु, दम, उच्च रक्तचाप, हाडजोर्नी, निद्रा नपर्ने, कमजोरी, मधुमेह, ग्याष्ट्रिक (APD) दृष्टि कमजोर (७० वर्ष भन्दा माथि)"],["२०७८/०७९","८९४","९३९","१८३३","मुटु, दम, उच्च रक्तचाप, हाडजोर्नी, निद्रा नपर्ने, कमजोरी, मधुमेह, ग्याष्ट्रिक (APD) दृष्टि कमजोर"]]};
+const insWardItems = t9.rows.slice(1).filter((r) => r.length >= 3 && !/जम्मा/.test(cellStr(r[0]))).map((r) => ({ ward: toNum(r[2]), value: toNum(r[1]) })).filter((x) => x.ward > 0).sort((a, b) => a.ward - b.ward).map((x) => ({ label: "वडा " + toNe(String(x.ward)), value: x.value, valueText: toNe(x.value) }));
+const insYearItems = t10.rows.slice(1).filter((r) => r.length >= 5 && !/जम्मा|जममा/.test(cellStr(r[4]))).map((r) => ({ label: cellStr(r[4]), a: toNum(r[1]), b: toNum(r[2]) }));
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
+  <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
+  <BarList title="वडागत स्वास्थ्य बीमा" subtitle="वडा अनुसार विमित संख्या" items={insWardItems} />
+  <AutoViz table={t9} title={t9.caption} />
+  <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t10.caption}</h3>
+  <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
+  <ClusterBars title="स्वास्थ्य बीमा — लिङ्ग अनुसार वार्षिक" subtitle="आर्थिक वर्ष अनुसार महिला र पुरुष विमित" items={insYearItems} aLabel="महिला" bLabel="पुरुष" />
+  <AutoViz table={t10} title={t10.caption} />
+  <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
+  <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
+  <AutoViz table={t11} title={t11.caption} />
+  <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
+</section>

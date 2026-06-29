@@ -27,9 +27,14 @@ const ctas = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{site.title}</title>
     <meta name="description" content={site.subtitle} />
-    <link rel="preload" href="/fonts/Kalimati.ttf" as="font" type="font/ttf" crossorigin />
-    <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
-    <script src="/pagefind/pagefind-ui.js" is:inline></script>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1e293b" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="तुलसीपुर प्रोफाइल" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@100..900&display=swap" />
     <ClientRouter />
   </head>
   <body>
@@ -39,12 +44,13 @@ const ctas = [
       <!-- Top header -->
       <header class="landing-header">
         <a href="/" class="flex min-w-0 items-center gap-3">
-          <img src="/tulsipur-logo.jpg" alt="तुलसीपुर उपमहानगरपालिका" width="60" height="60"
+          <img src="/tulsipur-logo.webp" alt="तुलसीपुर उपमहानगरपालिका" width="60" height="60"
             class="h-12 w-12 shrink-0 rounded-full bg-white object-contain p-1 ring-1 ring-white/30 sm:h-[60px] sm:w-[60px]" />
           <span class="truncate text-[0.95rem] font-semibold text-white sm:text-[1.05rem]">तुलसीपुर उपमहानगरपालिका</span>
         </a>
         <nav class="hidden items-center gap-2 sm:flex">
           <a href="/home" class="rounded-lg px-3 py-2 text-[0.9rem] font-medium text-white/90 transition-colors hover:bg-white/15">पोर्टल</a>
+          <a href="/map" class="rounded-lg px-3 py-2 text-[0.9rem] font-medium text-white/90 transition-colors hover:bg-white/15">भू-नक्सा</a>
           <a href="/chapters/1" class="rounded-lg px-3 py-2 text-[0.9rem] font-medium text-white/90 transition-colors hover:bg-white/15">प्रतिवेदन</a>
           <a href="/home" class="rounded-lg border border-white/25 bg-white/10 px-3.5 py-2 text-[0.9rem] font-semibold text-white backdrop-blur transition-colors hover:bg-white/20">पूरा हेर्नुहोस्</a>
         </nav>
@@ -53,7 +59,7 @@ const ctas = [
       <!-- Center: logo + title + search -->
       <main class="landing-main">
         <div class="animate-fade-up flex flex-col items-center text-center">
-          <img src="/tulsipur-logo.jpg" alt="तुलसीपुर उपमहानगरपालिका" width="92" height="92"
+          <img src="/tulsipur-logo.webp" alt="तुलसीपुर उपमहानगरपालिका" width="92" height="92"
             class="h-20 w-20 rounded-2xl bg-white object-contain p-2 shadow-2xl ring-1 ring-white/20 sm:h-[92px] sm:w-[92px]" />
           <h1 class="mt-6 text-[2rem] font-bold leading-tight text-white drop-shadow sm:text-[2.7rem]">{site.title}</h1>
           <p class="mt-3 max-w-xl text-[1.05rem] text-white/85">{site.subtitle}</p>
@@ -67,6 +73,21 @@ const ctas = [
             </div>
             <div id="ls-results" class="landing-results" hidden></div>
           </div>
+
+          <!-- featured geospatial portal -->
+          <a href="/map" class="group mt-6 flex w-full max-w-xl items-center gap-4 rounded-2xl border border-white/25 bg-white/10 px-5 py-4 text-left backdrop-blur transition-colors hover:bg-white/20">
+            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#fbbf24] text-[#0f172a]">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path>
+                <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path>
+                <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path>
+              </svg>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[1.05rem] font-semibold text-white">भू-नक्सा पोर्टल · GIS</span>
+            </span>
+            <svg class="shrink-0 text-white transition-transform group-hover:translate-x-1" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </a>
 
           <!-- square section CTAs -->
           <div class="landing-cta-head">
@@ -153,6 +174,11 @@ const ctas = [
         document.addEventListener("astro:page-load", wire);
         window.addEventListener("DOMContentLoaded", wire);
       })();
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {});
+        });
+      }
     </script>
   </body>
 </html>

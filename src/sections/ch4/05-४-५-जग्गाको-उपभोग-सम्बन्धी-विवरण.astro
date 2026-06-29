@@ -1,15 +1,18 @@
 ---
 import DataTable from "../../components/DataTable.astro";
 import AutoViz from "../../components/viz/AutoViz.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import Donut from "../../components/viz/Donut.astro";
+import BarList from "../../components/viz/BarList.astro";
+import ClusterBars from "../../components/viz/ClusterBars.astro";
 import { chartFromRows } from "../../lib/chart";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
+
+const PAL = ["#16a34a", "#2563eb", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea"];
 
 const meta = {"chapter":4,"order":5,"id":"s-4-5-४-५-जग्गाको-उपभोग-सम्बन्धी-विवरण","title":"४.५ जग्गाको उपभोग सम्बन्धी विवरण","subsections":[]};
 
-// Section KPIs — auto-seeded from the main table. Edit freely.
-const kpis = [];
 
 const t1 = {"caption":"तालिका नं. ३१ – जग्गाको स्वामित्व अनुसार जग्गा कमाउने परिवार संख्या तथा कमाएको जग्गाको क्षेत्रफलको विवरण","source":"स्रोतः राष्ट्रिय कृषिगणना २०७८","rows":[[{"text":"प्रदेश/जिल्ला/ स्थानिय तह","colspan":1,"rowspan":3},{"text":"जम्मा कृषक परिवार संख्या","colspan":1,"rowspan":3},{"text":"कषक परिवारले चलन गरेको जग्गाको जम्मा क्षेत्रफल (हेक्टर)","colspan":1,"rowspan":3},{"text":"एक प्रकारको स्वामित्व","colspan":6,"rowspan":1},{"text":"एकभन्दा बढी प्रकारको स्वामित्व","colspan":2,"rowspan":2}],[{"text":"परिवारको हकको जग्गामात्र कमाउने","colspan":2,"rowspan":1},{"text":"अरुको हकको जग्गामात्र कमाउने","colspan":2,"rowspan":1},{"text":"अन्य प्रकारको उपभोग अन्तरगत","colspan":2,"rowspan":1}],["परिवार संख्या","क्षेत्रफल (हेक्टर)","परिवार संख्या","क्षेत्रफल (हेक्टर)","परिवार संख्या","क्षेत्रफल (हेक्टर)","परिवार संख्या","क्षेत्रफल (हेक्टर)"],["लुम्बिनी प्रदेश","७६५०९२","४२६६१४.४","६३३५०४","३३०३५२.५","६७२२","३२९९.५","२५७३","६६३.५","१२२२९३","९२२९९.०"],["दाङ जिल्ला","१०१८८०","४९२७८.०","७५९३२","३०८८३.९","१११७","८७४.३","१६०९","४२०.७","२३२२१","१७०९९.०"],["तुलसीपुर उप–महानगरपालिका","२५२१६","१२५२३.४","१८६२३","६९०१.७","३४३","३२८.७","१४४","२०.०","६१०७","५२७३.१"]]};
 const t1Chart = chartFromRows(t1.rows);
@@ -49,82 +52,368 @@ const t18 = {"caption":"तालिका नं. ४६ – कृषि च�
 const t18Chart = chartFromRows(t18.rows);
 const t19 = {"caption":"तालिका नं. ४७ – कृषक परिवारको आम्दानीको मुख्य स्रोत, आफ्नै कृषि उत्पादनबाट भएको आम्दानीले मात्र वर्षभरी परिवारलाई खान नपुग्ने अवधिअनुसार कृषक परिवार संख्या","source":"स्रोतः राष्ट्रिय कृषिगणना २०७८","rows":[[{"text":"प्रदेश/ जिल्ला/ स्थानीय तह","colspan":1,"rowspan":2},{"text":"जम्मा कृषक परिवार संख्या","colspan":1,"rowspan":2},{"text":"कृषक परिवारको आम्दानीको मुख्य स्रोत","colspan":2,"rowspan":1},{"text":"कृषि उत्पादनबाट भएको आम्दानीले मात्र वर्षभरी परिवारलाई खान नपुग्ने कृषक परिवार संख्या","colspan":1,"rowspan":2},{"text":"परिवारलाई खान नपुग्ने अवधिअनुसार कृषक परिवार संख्या","colspan":4,"rowspan":1}],["कृषि","गैर कृषि","१ देखि ३ महिना","४ देखि ६ महिना","७ देखि ९ महिना","१० देखि १२ महिना"],["लुम्बिनी प्रदेश","७६५०९२","५०७४८८","२५७६०४","३९०४७४","९७३४२","१७५३५४","८५५२४","३२२५३"],["दाङ जिल्ला","१०१८८०","६१८२८","४००५२","५०११४","९७८५","२०९४७","१३०४४","६३३८"],["तुलसीपुर उप–महानगरपालिका","२५२१६","१६१५४","९०६३","१०१२४","३१६७","५२१०","१२८६","४६१"]]};
 const t19Chart = chartFromRows(t19.rows);
+
+// --- Agrarian synthesis (Tulsipur row across the 19 census tables) ----------
+const FAM = 25216;
+const tul = (t) => t.rows.find((r) => /तुलसीपुर/.test(cellStr(r[0]))) || [];
+const r11 = tul(t11), r12 = tul(t12), r13 = tul(t13), r14 = tul(t14), r15 = tul(t15), r17 = tul(t17), r18 = tul(t18), r19 = tul(t19);
+
+const creditPct = (toNum(r11[2]) / FAM) * 100;
+const needMorePct = (toNum(r11[3]) / FAM) * 100;
+const insurancePct = (toNum(r11[4]) / FAM) * 100;
+const subsidyPct = (toNum(r11[5]) / FAM) * 100;
+
+const subsistencePct = (toNum(r18[2]) / FAM) * 100;        // all home-consumption
+const commercialPct = ((toNum(r18[4]) + toNum(r18[5])) / FAM) * 100;
+const cerealActPct = (toNum(r17[2]) / FAM) * 100;
+
+const deficitFam = toNum(r19[4]);
+const deficitPct = (deficitFam / FAM) * 100;
+const incomeAgriPct = (toNum(r19[2]) / FAM) * 100;
+const def46 = toNum(r19[6]);
+
+const maleFarmer = toNum(r14[2]), femFarmer = toNum(r14[3]);
+const femFarmerPct = (femFarmer / (maleFarmer + femFarmer)) * 100;
+const farmPopFemPct = (toNum(r14[5]) / (toNum(r14[4]) + toNum(r14[5]))) * 100;
+const decM = toNum(r15[3]), decF = toNum(r15[4]);
+const femDecPct = (decF / (decM + decF)) * 100;
+
+const climateAwarePct = (toNum(r12[2]) / FAM) * 100;
+const burnPct = (toNum(r13[3]) / FAM) * 100;
+const compostPct = (toNum(r13[5]) / FAM) * 100;
+
+const kpis = [
+  { label: "कृषक परिवार", value: neInt(FAM) },
+  { label: "निर्वाहमुखी कृषि", value: neDec(subsistencePct), unit: "%" },
+  { label: "खाद्य अपर्याप्त परिवार", value: neDec(deficitPct), unit: "%" },
+  { label: "कृषि ऋण पहुँच", value: neDec(creditPct), unit: "%" },
+];
+
+const orientTiles = [
+  { label: "निर्वाहमुखी कृषि", value: `${neDec(subsistencePct)}%`, sub: `सबै उत्पादन घरायसी उपभोग · बजारमुखी मात्र ${neDec(commercialPct)}%`, color: "#dc2626" },
+  { label: "खाद्य अपर्याप्तता", value: `${neDec(deficitPct)}%`, sub: `${neInt(deficitFam)} परिवार वर्षभरि खान नपुग्ने`, color: "#f59e0b" },
+  { label: "अन्नबाली केन्द्रितता", value: `${neDec(cerealActPct)}%`, sub: `मुख्य उत्पादन खाद्यान्न बाली`, color: "#16a34a" },
+  { label: "कृषि आय निर्भरता", value: `${neDec(incomeAgriPct)}%`, sub: `मुख्य आय स्रोत कृषि`, color: "#2563eb" },
+];
+
+const accessTiles = [
+  { label: "कृषि ऋण पहुँच", value: `${neDec(creditPct)}%`, sub: `थप ऋण आवश्यकता उल्लेख गर्ने ${neDec(needMorePct)}%`, color: "#dc2626" },
+  { label: "कृषि बिमा", value: `${neDec(insurancePct)}%`, sub: `बिमा गरेका कृषक परिवार`, color: "#f59e0b" },
+  { label: "सरकारी अनुदान", value: `${neDec(subsidyPct)}%`, sub: `अनुदान प्राप्त कृषक परिवार`, color: "#7c3aed" },
+  { label: "जलवायु सचेतना", value: `${neDec(climateAwarePct)}%`, sub: `जलवायु परिवर्तनबारे जानकार`, color: "#0891b2" },
+];
+
+const useSegs = [
+  { label: "सबै घरायसी उपभोग", value: toNum(r18[2]), color: "#dc2626" },
+  { label: "घरायसी + केही बिक्री", value: toNum(r18[3]), color: "#f59e0b" },
+  { label: "मुख्य बिक्री + केही घरायसी", value: toNum(r18[4]), color: "#16a34a" },
+  { label: "सबै बिक्री", value: toNum(r18[5]), color: "#2563eb" },
+];
+
+const defSegs = [
+  { label: "१–३ महिना", value: toNum(r19[5]), color: "#fbbf24" },
+  { label: "४–६ महिना", value: toNum(r19[6]), color: "#f59e0b" },
+  { label: "७–९ महिना", value: toNum(r19[7]), color: "#ea580c" },
+  { label: "१०–१२ महिना", value: toNum(r19[8]), color: "#dc2626" },
+];
+
+// --- Per-table datasets (each census table gets its own analysis) -----------
+const r1 = tul(t1), r2 = tul(t2), r3 = tul(t3), r4 = tul(t4), r5 = tul(t5), r6 = tul(t6), r7 = tul(t7), r8 = tul(t8), r9 = tul(t9), r16 = tul(t16);
+const r4orchardFam = toNum(r4[3]);
+const r4orchardArea = toNum(r4[4]);
+
+// t1 — land tenure (by families)
+const tenureSegs = [
+  { label: "आफ्नै हकको जग्गा मात्र", value: toNum(r1[3]), color: "#16a34a" },
+  { label: "अरुको हकको जग्गा (मोही)", value: toNum(r1[5]), color: "#f59e0b" },
+  { label: "अन्य प्रकारको उपभोग", value: toNum(r1[7]), color: "#a3a3a3" },
+  { label: "एकभन्दा बढी प्रकार", value: toNum(r1[9]), color: "#2563eb" },
+];
+const ownOnlyPct = (toNum(r1[3]) / FAM) * 100;
+const multiTenurePct = (toNum(r1[9]) / FAM) * 100;
+const multiTenureFarmSize = toNum(r1[10]) / toNum(r1[9]);
+const ownFarmSize = toNum(r1[4]) / toNum(r1[3]);
+
+// t2 — temporary crops (area + families + intensity)
+const crops2 = ["खाद्यान्न", "कोसे/दाल", "कन्दमूल", "तेल", "तरकारी", "अन्य अस्थायी"]
+  .map((n, i) => ({ name: n, fam: toNum(r2[1 + i * 2]), area: toNum(r2[2 + i * 2]) }));
+const crop2Area = crops2.reduce((s, c) => s + c.area, 0);
+const crop2Items = [...crops2].sort((a, b) => b.area - a.area).map((c, i) => ({
+  label: c.name + " बाली", value: c.area, color: PAL[i],
+  valueText: neDec(c.area, 1) + " हे. (" + neDec((c.area / crop2Area) * 100) + "%)",
+  badge: neInt(c.fam) + " परिवार", sub: "प्रति परिवार " + neDec(c.area / c.fam, 2) + " हे.",
+}));
+const cereals2 = crops2[0];
+const veg2 = crops2.find((c) => /तरकारी/.test(c.name));
+
+// t3 — main cereals (by area)
+const cer3 = [["धान", 1, 2], ["गहुँ", 3, 4], ["मकै", 5, 6], ["कोदो", 7, 8], ["जौ", 9, 10], ["फापर", 11, 12]]
+  .map(([n, fi, ai]) => ({ name: n, fam: toNum(r3[fi]), area: toNum(r3[ai]) }));
+const cer3Items = [...cer3].filter((c) => c.area > 0).sort((a, b) => b.area - a.area).map((c, i) => ({
+  label: c.name + " बाली", value: c.area, color: PAL[i],
+  valueText: neDec(c.area, 1) + " हे.", badge: neInt(c.fam) + " परिवार",
+}));
+const paddy = cer3[0], maize = cer3[2];
+
+// t5 — main fruits (orchard area)
+const fruit5 = [["सुन्तला", 1, 2], ["कागती", 5, 6], ["आँप", 9, 10], ["केरा", 13, 14]]
+  .map(([n, fi, ai]) => ({ name: n, fam: toNum(r5[fi]), area: toNum(r5[ai]) }));
+const fruit5Items = [...fruit5].sort((a, b) => b.area - a.area).map((c, i) => ({
+  label: c.name, value: c.area, color: PAL[i],
+  valueText: neDec(c.area, 1) + " हे.", badge: neInt(c.fam) + " परिवार",
+}));
+const mango = fruit5.find((c) => /आँप/.test(c.name));
+
+// t9 — livestock (households keeping each type)
+const live9 = [["गाई/गोरु", 3, 4], ["राँगा/भैंसी", 5, 6], ["बाख्रा/च्याङ्ग्रा", 7, 8], ["भेँडा/भेँडी", 9, 10], ["सुँगुर/बंगुर", 11, 12], ["कुखुरा", 15, 16]]
+  .map(([n, fi, ci]) => ({ name: n, fam: toNum(r9[fi]), cnt: toNum(r9[ci]) }));
+const live9Items = [...live9].sort((a, b) => b.fam - a.fam).map((c, i) => ({
+  label: c.name, value: c.fam, color: PAL[i],
+  valueText: neInt(c.fam) + " परिवार", badge: neInt(c.cnt) + " संख्या",
+}));
+const goat = live9.find((c) => /बाख्रा/.test(c.name));
+const poultry = live9.find((c) => /कुखुरा/.test(c.name));
+
+// t12 — climate-change impacts
+const climNames = ["उत्पादनमा कमी", "उत्पादनमा बृद्धि", "फल/फसलको आकार", "स्वादमा परिवर्तन", "बाली लगाउने समय", "धेरै/कम वर्षा", "रोग/किराको प्रकोप", "ब्रिडिङ समय", "प्रजातिको लोप", "अन्य"];
+const clim12Items = climNames.map((n, i) => ({ name: n, v: toNum(tul(t12)[4 + i]) }))
+  .filter((c) => c.v > 0).sort((a, b) => b.v - a.v).map((c, i) => ({ label: c.name, value: c.v, color: PAL[i], valueText: neInt(c.v) }));
+
+// t6/t7/t8 — hybrid-seed adoption by crop
+const hybridPaddy = (toNum(r6[4]) / toNum(r6[1])) * 100;   // hybrid / families growing paddy
+const hybridMaize = (toNum(r7[4]) / toNum(r7[1])) * 100;
+const hybridWheat = (toNum(r8[4]) / toNum(r8[1])) * 100;
+const seedItems = [
+  { label: "धान", value: +hybridPaddy.toFixed(1), color: "#16a34a", valueText: neDec(hybridPaddy) + "%", sub: "वर्णशंकर बीउ प्रयोग" },
+  { label: "गहुँ", value: +hybridWheat.toFixed(1), color: "#f59e0b", valueText: neDec(hybridWheat) + "%", sub: "वर्णशंकर बीउ प्रयोग" },
+  { label: "मकै", value: +hybridMaize.toFixed(1), color: "#2563eb", valueText: neDec(hybridMaize) + "%", sub: "वर्णशंकर बीउ प्रयोग" },
+];
+
+// t16 — owner-operated single holdings
+const headIsFarmerPct = (toNum(r16[2]) / FAM) * 100;
+const singleHoldingPct = (toNum(r16[4]) / FAM) * 100;
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
   <div class="prose-ne reveal"><p>राष्ट्रिय कृषिगणना, २०७८ को नतिजा अनुसार यस उप–महानगरपालिकामा जग्गाको उपभोग सम्बन्धी विवरण हेर्दा कृषक परिवारले परिवारको स्वामित्वको जग्गामा मात्र कृषि चलन गर्ने परिवार सङ्ख्या २५,२१६ रहेको देखिन्छ जसले १२५२३.४ हेक्टर जग्गामा कृषि चलन गरेको पाइन्छ । त्यस्तै अरूको स्वामित्वको जग्गामा मात्रै कुनै सर्तनामा लिई खेतीपाती गर्ने कृषक परिवार परिवार सङ्ख्या १८,६२३ रहेको देखिन्छ जसले ६९०१.३ हेक्टर जग्गामा कृषि चलन गरेको पाइन्छ र अन्य प्रकारको उपभोग अन्तर्गत खेतिपाती गर्ने कृषक यस उप–महानगरपालिकामा छैनन् । त्यस्तै एकभन्दा बढी प्रकारको स्वामित्व भएको जग्गा कमाउने कृषक परिवार सङख्या ६,१०७ रहेको र यस्तो जग्गाको क्षेत्रफल ५२७३.१ हेक्टर रहेको छ ।</p></div>
+
+  <!-- ======================= कृषि सारांश (agrarian dashboard) ======================= -->
+  <StatTiles
+    title="एक नजरमा — कृषिको चरित्र"
+    subtitle={`राष्ट्रिय कृषिगणना २०७८ अनुसार ${neInt(FAM)} कृषक परिवारको समग्र अवस्था`}
+    tiles={orientTiles}
+    cols={4}
+  />
+
+  <Donut
+    title="कृषि उत्पादनको प्रयोग — निर्वाह बनाम बजार"
+    subtitle="कृषक परिवारले उत्पादन कसरी प्रयोग गर्छन्"
+    segments={useSegs}
+    centerValue={neInt(FAM)}
+    centerLabel="कृषक परिवार"
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">निर्वाहमुखी कृषि र खाद्य असुरक्षा</h3>
+    <p>
+      तुलसीपुरको कृषिको सबैभन्दा निर्णायक विशेषता यसको <strong>निर्वाहमुखी (subsistence)</strong> चरित्र हो । कृषक परिवारमध्ये
+      <strong>{neDec(subsistencePct)}%</strong> ले आफ्नो सम्पूर्ण उत्पादन <em>घरायसी उपभोगमै</em> सक्छन् — बजारका लागि बेच्नेहरू
+      मात्र {neDec(commercialPct)}% छन् । उत्पादनमा पनि {neDec(cerealActPct)}% परिवारको मुख्य काम खाद्यान्न (अन्न) बाली नै हो,
+      तरकारी–फलफूल जस्ता नगदेबाली नगण्य । अर्थात् खेती <em>बेच्न होइन, खान</em> गरिन्छ ।
+    </p>
+    <p>
+      यसको गम्भीर परिणाम खाद्य असुरक्षामा देखिन्छ : <strong>{neDec(deficitPct)}% ({neInt(deficitFam)}) कृषक परिवारलाई आफ्नै
+      उत्पादनले वर्षभरि खान पुग्दैन</strong> । सबैभन्दा धेरै ({neInt(def46)} परिवार) लाई वर्षको ४–६ महिना अन्न अपुग हुन्छ —
+      यो “भोको महिना (hungry months)” को अवधि हो, जुन प्रायः रेमिट्यान्स वा गैर–कृषि आम्दानीले धानिन्छ । यसैले {neDec(incomeAgriPct)}%
+      परिवारको मुख्य आय कृषि भए पनि, बाँकीलाई गैर–कृषि स्रोत अपरिहार्य छ ।
+    </p>
+  </div>
+
+  <Donut
+    title="खाद्य अपुग अवधि — कति महिना खान नपुग्ने"
+    subtitle={`${neInt(deficitFam)} खाद्य–अपर्याप्त परिवारको अपुग अवधि`}
+    segments={defSegs}
+    centerValue={neInt(deficitFam)}
+    centerLabel="खाद्य अपुग परिवार"
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">कृषिको स्त्रीकरण — खेतमा महिला, विदेशमा पुरुष</h3>
+    <p>
+      कृषिगणनाले अघिल्ला खण्डहरूकै कथा पुष्टि गर्छ । कृषक परिवारको जनसंख्यामा <strong>{neDec(farmPopFemPct)}% महिला</strong> छन्,
+      र कृषि निर्णयमा सहभागिता जनाउनेमध्ये <strong>{neDec(femDecPct)}% महिला</strong> — अर्थात् खेतीको निर्णय र श्रम दुवैमा महिला
+      अगाडि छन् । यसलाई <strong>कृषिको स्त्रीकरण (feminization of agriculture)</strong> भनिन्छ ।
+    </p>
+    <p>
+      यसको प्रत्यक्ष कारण खण्ड ४.१.५ मा देखिएको <em>युवा पुरुषको वैदेशिक रोजगारी</em> हो — पुरुष कमाउन विदेश जाँदा खेतीको
+      जिम्मा महिलाको काँधमा आउँछ । तर विडम्बना, औपचारिक कृषि तालिम लिनेमा महिला अझै कम छन् । त्यसैले तालिम, प्रविधि र
+      स्रोतमा महिलाको पहुँच बढाउनु आजको कृषि नीतिको केन्द्रीय आवश्यकता हो ।
+    </p>
+  </div>
+
+  <StatTiles
+    title="वित्तीय पहुँच, आधुनिकीकरण र जलवायु सूचकहरू"
+    subtitle="कृषक परिवारको ऋण, बिमा, अनुदान र जलवायु सचेतना"
+    tiles={accessTiles}
+    cols={4}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">वित्तीय बहिष्करण, आधुनिकीकरण र दिगोपन</h3>
+    <p>
+      <strong>वित्तीय पहुँचको ठूलो खाडल छ ।</strong> कृषि ऋण लिएका मात्र <strong>{neDec(creditPct)}%</strong>, कृषि बिमा गरेका
+      <strong>{neDec(insurancePct)}%</strong> र सरकारी अनुदान पाएका मात्र <strong>{neDec(subsidyPct)}%</strong> कृषक परिवार छन् —
+      जबकि {neDec(needMorePct)}% ले थप ऋणको आवश्यकता उल्लेख गरेका छन् । अर्थात् किसानहरू औपचारिक वित्तीय सेवाबाट बाहिर छन्,
+      जसले लगानी, यान्त्रिकीकरण र व्यावसायीकरणलाई रोक्छ ।
+    </p>
+    <p>
+      <strong>आधुनिकीकरण मिश्रित छ:</strong> धानमा वर्णशंकर (हाइब्रिड) बीउ र रासायनिक मलको प्रयोग व्यापक छ, तर मकैमा अझै स्थानीय
+      बीउ र जैविक मल बढी प्रयोग हुन्छ । <strong>दिगोपनका दृष्टिले</strong> भने कृषि फोहोर व्यवस्थापनमा {neDec(burnPct)}% परिवारले
+      <em>जलाउने</em> गर्छन् (वायु प्रदूषण र माटोको पोषक तत्व नष्ट हुने) भने {neDec(compostPct)}% ले कम्पोष्ट बनाउँछन् ।
+      जलवायु परिवर्तनबारे सचेत मात्र {neDec(climateAwarePct)}% छन्, जसमध्ये अधिकांशले उत्पादनमा कमी र अनियमित वर्षा अनुभव गरेका छन् ।
+    </p>
+  </div>
+
+  <h3 class="mb-1 mt-8 text-[1.05rem] font-semibold text-[var(--color-text)]">विस्तृत कृषिगणना तालिकाहरू</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  <AutoViz table={t1} title={t1.caption} />
+  <Donut title="जग्गा स्वामित्वको प्रकार" subtitle="कृषक परिवार कस्तो स्वामित्वको जग्गामा खेती गर्छन्" segments={tenureSegs} centerValue={neInt(FAM)} centerLabel="कृषक परिवार" />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> तुलसीपुरका {neDec(ownOnlyPct)}% कृषक परिवार <em>आफ्नै हकको जग्गामा मात्र</em> खेती गर्छन् — अर्थात् यो मुख्यतया <strong>स्वामी–कृषक (owner-cultivator)</strong> समाज हो, मोही/बटैयामा खेती गर्ने (१.४%) नगण्य । बाँकी {neDec(multiTenurePct)}% ले एकभन्दा बढी प्रकारको जग्गा (आफ्नै + भाडा/बटैया) कमाउँछन्, र यिनको औसत जोत ({neDec(multiTenureFarmSize, 2)} हे.) आफ्नै जग्गा मात्र हुनेको ({neDec(ownFarmSize, 2)} हे.) भन्दा निकै ठूलो छ — अर्थात् <em>ठूला किसानले थप जग्गा भाडामा लिएर खेती विस्तार गर्छन्</em> । सुरक्षित जग्गा स्वामित्व लगानी र दीर्घकालीन उत्पादकत्वका लागि सकारात्मक आधार हो ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
-  <AutoViz table={t2} title={t2.caption} />
+  <BarList title="अस्थायी बालीको क्षेत्रफल अनुसार संरचना" subtitle="बाली वर्ग अनुसार क्षेत्रफल, परिवार संख्या र प्रति परिवार सघनता" items={crop2Items} />
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-3 text-[1.05rem] font-semibold text-[var(--color-text)]">विश्लेषण — कुन बाली कति ?</h3>
+    <p>
+      अस्थायी (वार्षिक) बालीको क्षेत्रफल विश्लेषण गर्दा <strong>खाद्यान्न (अन्न) बाली</strong> ले स्पष्ट प्रभुत्व जमाएको देखिन्छ —
+      एक्लै <strong>{neDec(cereals2.area, 1)} हेक्टर ({neDec((cereals2.area / crop2Area) * 100)}%)</strong> मा {neInt(cereals2.fam)} परिवारले
+      अन्न खेती गर्छन् । दोस्रोमा <strong>तेलबाली</strong> ({neDec(crops2[3].area, 1)} हे.) र <strong>कोसे/दाल बाली</strong>
+      ({neDec(crops2[1].area, 1)} हे.) छन् ।
+    </p>
+    <p>
+      तर सबैभन्दा रोचक कुरा <strong>प्रति परिवार सघनता (area per family)</strong> मा छ : खाद्यान्नमा प्रति परिवार
+      {neDec(cereals2.area / cereals2.fam, 2)} हेक्टर हुँदा <strong>तरकारी बालीमा मात्र {neDec(veg2.area / veg2.fam, 2)} हेक्टर</strong> छ ।
+      अर्थात् {neInt(veg2.fam)} परिवारले तरकारी लगाए पनि ती <em>घर–वरिपरिको करेसाबारी (kitchen garden)</em> स्तरका साना टुक्रा हुन्,
+      बिक्रीका लागि होइन । यसले फेरि पुष्टि गर्छ — तुलसीपुरको खेती <strong>पेट भर्ने अन्न केन्द्रित निर्वाहमुखी</strong> छ, नगदेबाली
+      (तरकारी/तेल) मा व्यावसायिक विस्तारको ठूलो अवसर बाँकी छ ।
+    </p>
+  </div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
-  <AutoViz table={t3} title={t3.caption} />
+  <BarList title="मुख्य अन्नबालीको क्षेत्रफल" subtitle="अन्नबाली अनुसार क्षेत्रफल र खेती गर्ने परिवार संख्या" items={cer3Items} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> अन्नबालीभित्र <strong>धान</strong> क्षेत्रफलको राजा हो — {neDec(paddy.area, 1)} हेक्टर ({neInt(paddy.fam)} परिवार), जुन कुल अन्न क्षेत्रफलको झन्डै दुई–तिहाइ हो; यो तुलसीपुरको उच्च सिँचाइ (खण्ड ४.४) सँग मेल खान्छ किनभने धानलाई प्रशस्त पानी चाहिन्छ । <strong>मकै</strong> भने सबैभन्दा धेरै परिवार ({neInt(maize.fam)}) ले लगाउँछन् तर क्षेत्रफल कम ({neDec(maize.area, 1)} हे.) — किनभने यो बारी/पाखोमा साना टुक्रामा लगाइन्छ । गहुँ हिउँदे प्रमुख बाली हो । कोदो, जौ, फापर जस्ता पहाडी बाली नगण्य छन्, जुन तुलसीपुरको तराई/भित्री मधेस भूगोल झल्काउँछ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t4.caption}</h3>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
   <AutoViz table={t4} title={t4.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> स्थायी (बहुवर्षीय) बालीतर्फ {neInt(r4orchardFam)} कृषक परिवारले बगैंचाका रूपमा जम्मा {neDec(r4orchardArea, 1)} हेक्टरमा फलफूल लगाएका छन् — यो कुल खेतीयोग्य जमिनको निकै सानो अंश हो । महत्त्वपूर्ण कुरा, बगैंचाभन्दा <strong>छरिएर रहेका (घर–वरिपरिका) बोट</strong> धेरै छन् — अर्थात् फलफूल अझै <em>व्यावसायिक बगैंचा होइन, घरेलु छरिएको खेती</em> को स्तरमा छ । व्यावसायिक फलफूल बगैंचा विस्तारको ठूलो सम्भावना बाँकी छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t5.caption}</h3>
   <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
-  <AutoViz table={t5} title={t5.caption} />
+  <BarList title="मुख्य फलफूलको बगैंचा क्षेत्रफल" subtitle="फलफूल अनुसार बगैंचाको क्षेत्रफल र खेती गर्ने परिवार" items={fruit5Items} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> फलफूलमध्ये <strong>आँप</strong> सबैभन्दा अगाडि छ — {neInt(mango.fam)} परिवारले {neDec(mango.area, 1)} हेक्टरमा आँप लगाएका छन्, जुन तराईको तातो हावापानीसुहाउँदो प्रमुख व्यावसायिक फल हो । दोस्रोमा <strong>केरा</strong> ({neDec(fruit5[3].area, 1)} हे.) र <strong>कागती</strong> छन् — कागती धेरै परिवारले लगाए पनि क्षेत्रफल सानो (घर–वरिपरि) छ । सुन्तला नगण्य छ किनभने यो जाडो/पहाडी फल हो । आँप र केरालाई बगैंचा विस्तार, प्रशोधन र बजारसँग जोडेर व्यावसायिक फलफूल उत्पादनको सम्भावना उज्यालो छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t6.caption}</h3>
   <DataTable caption={t6.caption} rows={t6.rows} source={t6.source} />
   <AutoViz table={t6} title={t6.caption} />
+  <div class="prose-ne reveal"><p><strong>धान — विश्लेषण:</strong> धान खेतीमा आधुनिकीकरण सबैभन्दा अगाडि छ — {neInt(toNum(r6[1]))} धान उत्पादक परिवारमध्ये <strong>{neDec(hybridPaddy)}% ले वर्णशंकर (हाइब्रिड) बीउ</strong> र अधिकांशले रासायनिक मल प्रयोग गर्छन् । उच्च सिँचाइ + हाइब्रिड बीउ + रासायनिक मलको संयोजनले धानमा उत्पादकत्व बढाएको छ, तर रासायनिक निर्भरता दिगोपनको चिन्ता पनि हो ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना, २०७८</p></div>
   <DataTable caption={t7.caption} rows={t7.rows} source={t7.source} />
   <AutoViz table={t7} title={t7.caption} />
+  <div class="prose-ne reveal"><p><strong>मकै — विश्लेषण:</strong> धानको ठीक विपरीत, मकैमा अझै <em>परम्परागत अभ्यास</em> हावी छ — हाइब्रिड बीउ मात्र {neDec(hybridMaize)}% ले प्रयोग गर्छन्, बहुसंख्यकले स्थानीय बीउ र जैविक मल चलाउँछन् । यो मकै बारी/पाखोको कम लगानीको बाली भएकाले हो । उन्नत/हाइब्रिड बीउ र सन्तुलित मल प्रवर्द्धनले मकैको उत्पादकत्व उल्लेख्य बढाउन सकिन्छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <DataTable caption={t8.caption} rows={t8.rows} source={t8.source} />
   <AutoViz table={t8} title={t8.caption} />
+  <BarList title="वर्णशंकर (हाइब्रिड) बीउ प्रयोग — बाली अनुसार तुलना" subtitle="प्रत्येक प्रमुख अन्नबाली उत्पादक परिवारमध्ये हाइब्रिड बीउ प्रयोग गर्ने प्रतिशत" items={seedItems} max={100} />
+  <div class="prose-ne reveal"><p><strong>गहुँ र समग्र बीउ विश्लेषण:</strong> गहुँमा पनि हाइब्रिड बीउ प्रयोग {neDec(hybridWheat)}% मात्र छ; रासायनिक मल भने व्यापक छ । माथिको तुलनाले स्पष्ट देखाउँछ — <strong>आधुनिक बीउ प्रविधि धानमा मात्र फस्टाएको छ ({neDec(hybridPaddy)}%), मकै र गहुँमा पछाडि छ</strong> । अन्न आत्मनिर्भरता र खाद्य सुरक्षाका लागि मकै–गहुँमा समेत उन्नत बीउ, सन्तुलित मल र एकीकृत बाली व्यवस्थापन पुर्‍याउनु आवश्यक छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
   <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
-  <AutoViz table={t9} title={t9.caption} />
+  <BarList title="पशुपन्छी पालन — परिवार संख्या अनुसार" subtitle="कुन पशुपन्छी कति परिवारले पाल्छन् (संख्या ब्याजमा)" items={live9Items} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> पशुपालनमा <strong>बाख्रा सबैभन्दा लोकप्रिय</strong> छ — {neInt(goat.fam)} परिवारले जम्मा {neInt(goat.cnt)} बाख्रा पाल्छन् । यो कारण स्पष्ट छ : बाख्रा <em>कम लगानी, छिटो प्रजनन र सजिलो बिक्री</em> हुने हुँदा साना किसान र महिलाका लागि उपयुक्त “जीवित बैङ्क” हो । <strong>कुखुरा</strong> {neInt(poultry.fam)} परिवारले पाल्छन् ({neInt(poultry.cnt)} संख्या — व्यावसायिक फार्मसहित), जबकि गाई/भैंसी दूधका लागि पालिन्छन् । यो <em>मिश्रित कृषि–पशुपालन (integrated farming)</em> प्रणाली हो, जसले अन्न खेतीसँगै पूरक आम्दानी र पोषण दिन्छ । बाख्रा र कुखुरालाई व्यावसायिक रूपमा विस्तार गर्ने ठूलो सम्भावना छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t10.caption}</h3>
   <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
   <AutoViz table={t10} title={t10.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> कृषि श्रममा तुलसीपुरको खेती मूलतः <em>पारिवारिक श्रम (family labour)</em> मा आधारित छ — स्थायी (वर्षभरि) कामदार राख्ने परिवार थोरै छन् । बाली रोपाइँ–कटनीको चरम सिजनमा भने <strong>अस्थायी ज्यालादारी</strong> र परम्परागत <strong>पर्मा/अदलीबदली (labour exchange)</strong> श्रमको प्रयोग हुन्छ, जुन ग्रामीण सहकार्यको विशेषता हो । ठेक्का श्रम न्यून छ । यसले देखाउँछ — कृषि अझै बजार–श्रमभन्दा घर–श्रममा निर्भर निर्वाहमुखी प्रणाली हो ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
   <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
   <AutoViz table={t11} title={t11.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> यो तालिका माथिको “वित्तीय बहिष्करण” सूचकको स्रोत हो — कृषि ऋण लिएका मात्र <strong>{neDec(creditPct)}%</strong>, बिमा {neDec(insurancePct)}% र अनुदान {neDec(subsidyPct)}% । तर <strong>{neDec(needMorePct)}% परिवारले थप ऋणको आवश्यकता</strong> उल्लेख गरेका छन् — अर्थात् माग छ तर औपचारिक कर्जा पहुँच छैन । यो खाडलले किसानलाई साहु–महाजनको उच्च ब्याजमा धकेल्छ र व्यावसायीकरण रोक्छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t12.caption}</h3>
   <DataTable caption={t12.caption} rows={t12.rows} source={t12.source} />
-  <AutoViz table={t12} title={t12.caption} />
+  <BarList title="जलवायु परिवर्तनको प्रभाव — कृषक अनुभव अनुसार" subtitle="जलवायु परिवर्तनको असर महसुस गर्ने कृषक परिवार संख्या (प्रभावको किसिम अनुसार)" items={clim12Items} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> जलवायु परिवर्तनबारे सचेत {neDec(climateAwarePct)}% किसानले महसुस गरेका प्रभावमध्ये सबैभन्दा ठूलो <strong>उत्पादनमा कमी</strong> हो, त्यसपछि <strong>रोग/किराको प्रकोप बृद्धि</strong> र <strong>धेरै वा कम वर्षा (अनियमित वर्षा)</strong> । यी तीनै लक्षण जलवायु संकटका उत्कृष्ट सूचक हुन् — तापक्रम बढ्दा किरा बढ्छन्, मनसुन अनिश्चित हुँदा बाली बिग्रन्छ । जलवायु–उत्थानशील (climate-resilient) बीउ, सिँचाइ सुरक्षा र एकीकृत शत्रुजीव व्यवस्थापन (IPM) यसको जवाफ हो ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t13.caption}</h3>
   <DataTable caption={t13.caption} rows={t13.rows} source={t13.source} />
   <AutoViz table={t13} title={t13.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> कृषि फोहोर (पराल, डाँठ, मलमूत्र) व्यवस्थापनमा <strong>{neDec(burnPct)}% परिवारले जलाउने</strong> गर्छन् — यो सबैभन्दा बढी प्रयोग हुने तर सबैभन्दा हानिकारक तरिका हो (वायु प्रदूषण, माटोको सूक्ष्मजीव र पोषक तत्व नष्ट) । सकारात्मक पक्ष — {neDec(compostPct)}% ले <strong>कम्पोष्ट मल</strong> बनाउँछन्, जसले माटोको उर्वरता फर्काउँछ । जैविक खेती र माटो स्वास्थ्यका लागि जलाउने प्रवृत्ति घटाई कम्पोष्ट र बायोग्यासलाई प्रोत्साहन गर्नु आवश्यक छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t14.caption}</h3>
   <DataTable caption={t14.caption} rows={t14.rows} source={t14.source} />
   <AutoViz table={t14} title={t14.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> मुख्य कृषक (निर्णयकर्ता) मा पुरुष ({neInt(maleFarmer)}) बढी देखिए पनि — महिला {neDec(femFarmerPct)}% — <strong>कृषक परिवारको कुल जनसंख्यामा भने महिला बहुमत ({neDec(farmPopFemPct)}%)</strong> छन् । यो भिन्नता नै कृषिको स्त्रीकरणको जड हो : श्रम महिलाले गर्छन् तर “मुख्य कृषक” को औपचारिक मान्यता अझै पुरुषमा छ । अर्थात् महिलाको योगदान अदृश्य श्रमका रूपमा रहन्छ — जग्गा, ऋण र तालिममा महिलाको नाम/पहुँच बढाउनु आवश्यक छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t15.caption}</h3>
   <DataTable caption={t15.caption} rows={t15.rows} source={t15.source} />
   <AutoViz table={t15} title={t15.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> यो तालिकाले स्त्रीकरणलाई थप पुष्टि गर्छ — कृषि निर्णयमा सहभागिता जनाउनेमध्ये <strong>{neDec(femDecPct)}% महिला</strong> छन् (पुरुषभन्दा बढी) । तर <strong>औपचारिक कृषि तालिम लिनेमा महिला कम</strong> छन् । यो विरोधाभास नै नीतिको लक्ष्य हुनुपर्छ : जसले सबैभन्दा बढी खेती गर्छन् (महिला), उनैलाई सबैभन्दा कम तालिम/प्रविधि पुगेको छ । महिला–केन्द्रित कृषि विस्तार सेवा, तालिम र नेतृत्व विकास अपरिहार्य छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t16.caption}</h3>
   <DataTable caption={t16.caption} rows={t16.rows} source={t16.source} />
   <AutoViz table={t16} title={t16.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> कृषि चलन अत्यन्त <em>पारिवारिक र एकीकृत</em> छ — <strong>{neDec(headIsFarmerPct)}% परिवारमा मुख्य कृषक नै परिवारमूली</strong> हुन्, र <strong>{neDec(singleHoldingPct)}% एक–चलन (single-holding) परिवार</strong> छन् (बहु–चलन वा साझा खेती नगण्य) । अर्थात् हरेक परिवार एउटै एकाइका रूपमा आफ्नै जग्गा आफै जोत्छ — यो साना, स्वतन्त्र पारिवारिक खेतीको प्रणाली हो, जसमा सामूहिक/सहकारी खेतीको अभ्यास अझै विकसित भएको छैन ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t17.caption}</h3>
   <DataTable caption={t17.caption} rows={t17.rows} source={t17.source} />
   <AutoViz table={t17} title={t17.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> कृषि चलनको प्रमुख क्रियाकलापमा <strong>{neDec(cerealActPct)}% परिवारको मुख्य उत्पादन खाद्यान्न (अन्न) बाली</strong> नै हो — तरकारी, फलफूल, नगदेबाली र पशुपालन प्रमुख क्रियाकलाप भएका परिवार थोरै । यो एकल–बाली (अन्न) निर्भरताले आय जोखिम र खाद्य असुरक्षा दुवै बढाउँछ; बाली विविधीकरण (तरकारी, फलफूल, पशुपालन) नै दिगो समाधान हो ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t18.caption}</h3>
   <DataTable caption={t18.caption} rows={t18.rows} source={t18.source} />
   <AutoViz table={t18} title={t18.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> यो तालिका माथिको “निर्वाह बनाम बजार” रिङ–चार्टको स्रोत हो — <strong>{neDec(subsistencePct)}% परिवारले सम्पूर्ण उत्पादन घरमै उपभोग</strong> गर्छन्, बजारका लागि उल्लेख्य बिक्री गर्ने मात्र {neDec(commercialPct)}% । यसले प्रमाणित गर्छ — कृषि आम्दानीको स्रोत होइन, जीविकाको साधन मात्र भएको छ । बजार पहुँच, मूल्य अभिवृद्धि र नगदेबालीले मात्र यसलाई आय–मुखी बनाउन सक्छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः राष्ट्रिय कृषिगणना २०७८</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t19.caption}</h3>
   <DataTable caption={t19.caption} rows={t19.rows} source={t19.source} />
   <AutoViz table={t19} title={t19.caption} />
+  <div class="prose-ne reveal"><p><strong>विश्लेषण:</strong> यो सबैभन्दा निर्णायक तालिका हो — {neDec(incomeAgriPct)}% परिवारको मुख्य आय कृषि भए पनि, <strong>{neDec(deficitPct)}% ({neInt(deficitFam)}) लाई आफ्नै उत्पादनले वर्षभरि खान पुग्दैन</strong>, र अपुग हुनेमध्ये अधिकांशलाई <strong>४–६ महिना</strong> को खाँचो पर्छ (माथिको रिङ–चार्ट हेर्नुहोस्) । यही “भोको महिना” कै कारण युवा पुरुष वैदेशिक रोजगारी (खण्ड ४.१.५) र गैर–कृषि आम्दानीतर्फ धकेलिन्छन् । अर्थात् <em>कृषि–खाद्य असुरक्षा र वैदेशिक प्रवास एउटै सिक्काका दुई पाटा हुन्</em> — यो खण्ड ३ र ४ को सम्पूर्ण कथा जोड्ने निष्कर्ष हो ।</p></div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>राष्ट्रिय कृषिगणना, २०७८ का १९ तालिकाको समग्र विश्लेषणबाट तुलसीपुरको कृषिबारे निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>निर्वाहबाट व्यावसायिक कृषितर्फ:</strong> {neDec(subsistencePct)}% परिवार पूर्ण निर्वाहमुखी भएकाले नगदेबाली, तरकारी,
+        फलफूल र पशुपालनमा विविधीकरण गरी बजारमुखी कृषि प्रवर्द्धन गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>खाद्य सुरक्षा कार्यक्रम:</strong> {neDec(deficitPct)}% परिवारलाई वर्षभरि खान नपुग्ने (मुख्यतः ४–६ महिना) भएकाले
+        बहुबाली, उत्पादकत्व वृद्धि र लक्षित खाद्य सहायता आवश्यक ।
+      </li>
+      <li>
+        <strong>महिला कृषकलाई सशक्तिकरण:</strong> कृषिको स्त्रीकरण ({neDec(femDecPct)}% निर्णयमा महिला) भएकाले महिला लक्षित कृषि
+        तालिम, प्रविधि, ऋण र विस्तार सेवा पुर्‍याउनुपर्ने ।
+      </li>
+      <li>
+        <strong>वित्तीय समावेशीकरण:</strong> कृषि ऋण ({neDec(creditPct)}%), बिमा ({neDec(insurancePct)}%) र अनुदान ({neDec(subsidyPct)}%)
+        पहुँच अत्यन्त न्यून भएकाले सहज कृषि कर्जा, बाली बिमा र अनुदान कार्यक्रम विस्तार गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>जलवायु अनुकूलन र दिगो कृषि:</strong> जलवायु सचेतना ({neDec(climateAwarePct)}%) बढाउँदै जलवायु–उत्थानशील बीउ,
+        कृषि फोहोर जलाउने प्रवृत्ति घटाई कम्पोष्ट प्रवर्द्धन र जैविक मल प्रयोगमा जोड दिनुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुरको कृषि उच्च सिँचाइ पहुँच (खण्ड ४.४) जस्तो सम्भावना बोके पनि निर्वाहमुखी चरित्र, खाद्य असुरक्षा र वित्तीय
+      बहिष्करणका कारण आफ्नो क्षमतामुनि छ । व्यावसायीकरण, महिला सशक्तिकरण, वित्तीय समावेशीकरण र जलवायु अनुकूलनमार्फत यसलाई
+      आय–मुखी, खाद्य–सुरक्षित र दिगो कृषि क्षेत्रमा रूपान्तरण गर्नु नै प्रमुख दायित्व हो ।
+    </p>
+  </div>
 </section>

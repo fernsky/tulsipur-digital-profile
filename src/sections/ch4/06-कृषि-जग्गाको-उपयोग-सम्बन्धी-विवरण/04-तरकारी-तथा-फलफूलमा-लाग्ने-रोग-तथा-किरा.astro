@@ -1,0 +1,14 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import AutoViz from "../../../components/viz/AutoViz.astro";
+
+const meta = {"id":"h-42-४-६-४-तरकारी-तथा-फलफूलमा-लाग","title":"४.६.४ तरकारी तथा फलफूलमा लाग्ने रोग तथा किरा"};
+
+const t5 = {"caption":"तालिका नं. ५२ – तरकारी तथा फलफूलमा लाग्ने रोग तथा किरा","source":"स्रोतः नगर कायर्पालिकाको कार्यालय","rows":[["क्र.सं.","बाली","प्रमुख रोग","प्रमुख शत्रु जीव"],["१.","गोलभेडा","टुटायप्सूलूटा, सेतो झिंगा, लाही, फलको गवारो, पतेरो आदि ।","उडुवा—अगौटे, पछौटे आईलाउने, ममाजाईक आदि ।"],["२.","काउली, बन्दा","डाईमण्ड ब्याक मोथ, टोवाको क्याटरपिलर, लाही, उफ्रने फडके आदि ।","सफ्टरट, ब्लाक रट, अल्टरवेरिया, क्लव रुट डेम्पीङ अफ आदि ।"],["३.","आलू","डढुवा, मोजाइफ खैरो पिप, फेदकटुवा, लाही, चक्के आदि ।","आलुको पुतली, रातो कमिला, पात खाने लाभ्रे आदि ।"],["४.","रायो","डाईमण्ड ब्याक मोथ, टोवाको क्याटरपिलर, लाही, उफ्रने फडके आदि ।","सफ्टरट , ब्लाक रट, अल्टरवेरिया, क्लव रुट डेम्पीङ अफ आदि ।"],["५।","कागती","पतेरो, लाही, फ्रूट फ्लाई, स्केल लिफ, जरा कुहिने रोग, फेद कुहिने, खराने/धुले, भाईनर, pink disease, anthracnose, दादे रोग (citrus scab), गुद निस्किने रोग (Gummosis), कालो ध्वाँसे (sooty mould), Canker, Citrus greening, (Citrus tristeza virus CTV) लेमन डग आदि ।","क्याकर, फूट रट, रुटरघ, हरियो पतेरा, फल कुहाउने झिंगा (fruit fly), स्वीटीमोल्ड, citrus psylla, Leaf miner, Red spider mite, blue bettle, stem & trunk borer, लाही, थ्रिप्स, निमाटोड, Lemon butterfly किरा आदि ।"]]};
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t5.caption}</h3>
+  <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
+  <AutoViz table={t5} title={t5.caption} />
+</section>

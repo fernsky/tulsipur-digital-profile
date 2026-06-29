@@ -1,0 +1,132 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import AutoViz from "../../../components/viz/AutoViz.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import { cellStr, neInt } from "../../../lib/ne";
+
+const meta = {"id":"h-54-४-५-३-खनिज-तथा-खानी-सम्बन्धी","title":"४.५.३ खनिज तथा खानी सम्बन्धी विवरण"};
+
+const t2 = {"caption":"तालिका नं. ६३ – उप–महानगरपालिकामा रहेका खानी तथा खनिज सम्बन्धी विवरण","source":"","rows":[["क्र.स.","खानी तथा खनिज","स्थान"],[{"text":"१.","colspan":1,"rowspan":4},"कोइला खानी","तुलसीपुर, १ अविधारा"],["चुन खानी","तुलसीपुर, १ चुरेघाँटी"],["तामा खानी","तुलसीपुर, १ चुरेघाँटी"],["सिसा खानी","तुलसीपुर, १ चुरेघाँटी"],[{"text":"२।","colspan":1,"rowspan":2},"कोइला खानी","तुलसीपुर, ३ काटेखोली"],["कोइला खानी","तुलसीपुर, ३ ऋठेकोट"],["३।","चुन ढुङ्गा","तुलसीपुर, ४ खुमखानी"],["४।","ढुङ्गा, बालुवा र गिट्टी","तुलसीपुर, १४"],["५।","ढुङ्गा, बालुवा र गिट्टी","तुलसीपुर, १६ ग्वारखोला"],["६।","ढुङ्गा, बालुवा र गिट्टी","तुलसीपुर, १९ ग्वारखोला"]]};
+
+// ── Live parsing & classification ──────────────────────────────────
+const NEDIG = "०१२३४५६७८९";
+const wardOf = (s) => {
+  const m = cellStr(s).match(/[०-९]+/);   // first digit-group after तुलसीपुर
+  if (!m) return null;
+  return parseInt([...m[0]].map((c) => NEDIG.indexOf(c)).join(""), 10) || null;
+};
+// Each data row: 3 cols [serial, mineral, loc] OR 2 cols [mineral, loc] (rowspan continuation)
+const occ = t2.rows.slice(1).map((r) => {
+  const mineral = r.length === 3 ? cellStr(r[1]) : cellStr(r[0]);
+  const loc = r.length === 3 ? cellStr(r[2]) : cellStr(r[1]);
+  return { mineral, loc, ward: wardOf(loc) };
+});
+
+const TYPE = (m) => {
+  if (/कोइला/.test(m)) return "energy";
+  if (/तामा|सिसा|फलाम|जस्ता/.test(m)) return "metallic";
+  if (/चुन/.test(m)) return "industrial";
+  return "aggregate"; // ढुङ्गा/बालुवा/गिट्टी/रोडा
+};
+const TYPE_META = {
+  energy:     { label: "ऊर्जा खनिज (कोइला)", color: "#1f2937" },
+  metallic:   { label: "धात्विक खनिज (तामा/सिसा)", color: "#b45309" },
+  industrial: { label: "औद्योगिक खनिज (चुनढुङ्गा)", color: "#0891b2" },
+  aggregate:  { label: "निर्माण समुच्चय (ढुङ्गा/बालुवा/गिट्टी)", color: "#16a34a" },
+};
+const typeTotals = {};
+occ.forEach((o) => { const t = TYPE(o.mineral); typeTotals[t] = (typeTotals[t] || 0) + 1; });
+const typeSegs = Object.entries(typeTotals)
+  .sort((a, b) => b[1] - a[1])
+  .map(([k, v]) => ({ label: TYPE_META[k].label, value: v, color: TYPE_META[k].color }));
+
+const totalOcc = occ.length;
+const wardCount = {};
+occ.forEach((o) => { if (o.ward) wardCount[o.ward] = (wardCount[o.ward] || 0) + 1; });
+const hotspot = Object.entries(wardCount).sort((a, b) => b[1] - a[1])[0];
+const distinctMinerals = new Set(occ.map((o) => o.mineral.replace(/\s*(खानी|ढुङ्गा)\s*/g, "").trim())).size;
+
+const wardItems = Object.entries(wardCount)
+  .sort((a, b) => b[1] - a[1])
+  .map(([w, n], i) => ({
+    label: `वडा नं. ${w}`,
+    value: n,
+    valueText: `${neInt(n)} स्थल`,
+    color: ["#1f2937", "#b45309", "#0891b2", "#16a34a", "#7c3aed", "#dc2626"][i % 6],
+    sub: occ.filter((o) => String(o.ward) === w).map((o) => o.mineral).join(", "),
+  }));
+
+const energyN = typeTotals.energy || 0;
+const aggN = typeTotals.aggregate || 0;
+const metalN = typeTotals.metallic || 0;
+const indN = typeTotals.industrial || 0;
+
+const kpis = [
+  { label: "खनिज सम्भाव्यता स्थल", value: neInt(totalOcc), unit: "वटा" },
+  { label: "खनिज प्रकार", value: neInt(distinctMinerals), unit: "किसिम" },
+  { label: "कोइला (ऊर्जा) स्थल", value: neInt(energyN), unit: "वटा" },
+  { label: "निर्माण–समुच्चय स्थल", value: neInt(aggN), unit: "वटा" },
+];
+
+const tiles = [
+  { label: "अभिलिखित सम्भाव्यता स्थल", value: neInt(totalOcc), sub: `${neInt(distinctMinerals)} किसिमका खनिज`, color: "#2563eb" },
+  { label: "खनिज हटस्पट", value: `वडा ${hotspot[0]}`, sub: `${neInt(hotspot[1])} खनिज एकै स्थानमा`, color: "#b45309" },
+  { label: "ऊर्जा + धात्विक", value: neInt(energyN + metalN), sub: "कोइला, तामा, सिसा — गहिरो अध्ययन माग", color: "#1f2937" },
+  { label: "तत्काल दोहनयोग्य", value: neInt(aggN), sub: "नदीजन्य ढुङ्गा/बालुवा/गिट्टी", color: "#16a34a" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <div class="prose-ne reveal"><p>खनिज तथा खानीको अध्ययन र उत्खननका साथै प्रशोधनका क्षेत्रमा नेपाल अत्यन्त पछाडि परेको छ । प्रविधि, जनशक्ति र ठोस योजनाको अभावका कारण नेपालको खानी तथा खनिज क्षेत्र झण्डै कुमारी अवस्थामा नै छ । यस क्षेत्रबाट लाभ लिन स्थानीय तहहरूले आफ्नो क्षेत्रमा यस सम्बन्धी अध्ययन तथा अनुसन्धान गराउनु आवश्यक छ ।</p></div>
+  <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेकाे प्रमुख बबई नदी, हापुर खोला, गुहार खोला, ग्वांग खोला, पातु खोला, कालाखोला, पत्रे खोला, संक्राम खोला, गहते खोला, भमके खोला, चौवा खोला लगायतका खोला तथा नदीबाट उपलब्ध हुने कच्चा पदार्थमा रोडा, ढुंगा, बालुवा आदि प्रशस्त मात्रामा पाइन्छ । यसका साथै उप–महानगरपालिकाको उत्तरतर्फ रहेकाे महाभारत लेकमा चुनढुंगा र कोइलाको कच्चा पदार्थ रहेको अनुमान छ त्यसैले उप–महानगरपालिकामा रहेका सम्भावनाका क्षेत्रहरुलाई पहिल्याएर विभिन्न प्राकृतिक साधनको प्रशोधन गर्न सकेको खण्डमा उद्योगको विकास तथा अर्थतन्त्रको बलियो सम्भावना देखिन्छ । हाल सञ्चालित आयोजनाहरूले पनि यसलाई थप पुष्टि गर्दछन् । तर, यिनीहरूको वैज्ञानिक व्यवस्थापन हुन भने जरुरी देखिन्छ । यस उप–महानगरपालिकामा खानी तथा खनिज सम्भाव्यता अध्ययन स्थलहरु रहेका छन जुन उत्खन्न र व्यवस्थापन गर्न आवश्यक देखिन्छ ।</p></div>
+
+  <div class="mt-4">
+    <StatTiles title="एक नजरमा — खनिज सम्पदाको चित्र" tiles={tiles} cols={4} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>“सम्भाव्यता स्थल” र “प्रमाणित भण्डार” फरक हुन् — यो भेद किन निर्णायक छ?</strong> खनिज अर्थशास्त्रमा <em>स्रोत</em> (resource) र <em>भण्डार</em> (reserve) फरक अवधारणा हुन् (अमेरिकी भूगर्भविद् म्याककेल्भीको वर्गीकरण) । “स्रोत” भनेको भूगर्भमा रहेको अनुमानित खनिज हो — जसको परिमाण, गुणस्तर र आर्थिक दोहनयोग्यता अझै पुष्टि भएको हुँदैन; “भण्डार” भनेको ड्रिलिङ, नमुना–परीक्षण र आर्थिक विश्लेषणपछि <em>प्रमाणित र नाफामूलक रूपमा निकाल्न सकिने</em> अंश हो । तालिकाको शीर्षकमै “सम्भाव्यता अध्ययन स्थल” र प्रस्तावनामा “रहेको <strong>अनुमान</strong> छ” भनिएको छ — अर्थात् यी {neInt(totalOcc)} स्थल अहिले <strong>स्रोत–सङ्केत</strong> मात्र हुन्, प्रमाणित भण्डार होइनन् । त्यसैले पहिलो काम भौगर्भिक सर्वेक्षण र परीक्षण नै हो; बिना अध्ययन उत्खनन गर्दा पुँजी डुब्ने र वातावरण बिग्रने दोहोरो जोखिम रहन्छ ।</p>
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>खनिजका चार वर्ग (mineral typology):</strong> आर्थिक उपयोगका आधारमा यहाँका खनिजलाई चार समूहमा बाँड्न सकिन्छ —</p>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>ऊर्जा खनिज — कोइला ({neInt(energyN)} स्थल):</strong> महाभारत लेकमा अनुमानित कोइला जीवाश्म इन्धन हो; गुणस्तर (lignite/sub-bituminous) र परिमाण पुष्टि भए मात्र ऊर्जा/उद्योगका लागि उपयोगी ।</li>
+      <li><strong>धात्विक खनिज — तामा, सिसा ({neInt(metalN)} स्थल):</strong> उच्च–मूल्यका धातु, तर निकाल्न जटिल प्रशोधन र ठूलो लगानी चाहिने; गहिरो अन्वेषण अनिवार्य ।</li>
+      <li><strong>औद्योगिक/अधात्विक — चुनढुङ्गा ({neInt(indN)} स्थल):</strong> सिमेन्ट उद्योगको मुख्य कच्चा पदार्थ — स्थानीय औद्योगिकीकरणको सबैभन्दा व्यावहारिक सम्भावना यहीँ छ ।</li>
+      <li><strong>निर्माण समुच्चय — ढुङ्गा, बालुवा, गिट्टी ({neInt(aggN)} स्थल):</strong> नदीजन्य कच्चा पदार्थ, तत्काल दोहनयोग्य र निर्माण–उद्योगसँग प्रत्यक्ष जोडिएको — तर अति–दोहनले नदी–पारिस्थितिकी बिगार्ने जोखिम ।</li>
+    </ul>
+  </div>
+
+  <div class="mt-3 grid gap-4 md:grid-cols-2">
+    <Donut title="खनिजको वर्गअनुसार वितरण" subtitle={`${neInt(totalOcc)} सम्भाव्यता स्थल`} segments={typeSegs} centerValue={neInt(totalOcc)} centerLabel="स्थल" />
+    <BarList title="वडागत खनिज स्थल" subtitle={`हटस्पट: वडा ${hotspot[0]} (${neInt(hotspot[1])} खनिज)`} items={wardItems} />
+  </div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
+  <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण:</strong> {neInt(totalOcc)} सम्भाव्यता स्थलको भौगोलिक ढाँचा भूगर्भिक तर्क झल्काउँछ । <strong>वडा नं. {hotspot[0]} (अविधारा/चुरेघाँटी)</strong> एक्लै {neInt(hotspot[1])} खनिज (कोइला, चुन, तामा, सिसा) बोकेको <em>खनिज हटस्पट</em> हो — यो उत्तरी महाभारत/चुरे शृङ्खलाको भूगर्भिक संरचनासँग मेल खान्छ, जहाँ अवसादी र धात्विक खनिज सँगै भेटिन्छन् । वडा ३ मा कोइला र वडा ४ मा चुनढुङ्गाको थप उपस्थितिले उत्तरी पहाडी पट्टीलाई <em>खनिज पेटी</em> का रूपमा देखाउँछ, जबकि दक्षिणी समथर वडा (१४, १६, १९) मा नदीजन्य ढुङ्गा–बालुवा–गिट्टी केन्द्रित छन् ।</p>
+    <p><strong>मूल्य–अभिवृद्धि शृङ्खला (value addition):</strong> कच्चा खनिज बेच्नु सबैभन्दा कम लाभदायी हो; असली अर्थतन्त्र <em>प्रशोधन</em> मा छ । चुनढुङ्गा → सिमेन्ट/चुना, कोइला → ऊर्जा, ढुङ्गा → गिट्टी/क्रसर उद्योग — यी डाउनस्ट्रिम कडीले स्थानीय रोजगारी र <a href="/chapters/4/8/1">औद्योगिक विकास</a> को आधार बन्न सक्छन् । <a href="/chapters/4/8/2">व्यापार खण्ड</a> मा देखिएको निर्माण–सामग्री/हार्डवेयर व्यवसायको माग पनि यिनै स्थानीय समुच्चयले पूरा गर्छन् — पछाडि र अगाडिको आर्थिक कडी (backward–forward linkage) यहीँ बन्छ ।</p>
+  </div>
+
+  <div class="prose-ne reveal mt-1"><p>स्रोतः नगर कार्यपालिकाको कार्यालय</p></div>
+
+  <!-- ── निष्कर्ष र सिफारिसहरू ───────────────────────────────────── -->
+  <div class="prose-ne reveal mt-5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-brand)]">निष्कर्ष र सिफारिसहरू</h3>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>पहिले अध्ययन, पछि उत्खनन:</strong> यी {neInt(totalOcc)} स्थल अहिले अनुमानित स्रोत मात्र हुन् — भूगर्भ विभागसँग समन्वय गरी ड्रिलिङ/नमुना–परीक्षणबाट परिमाण र गुणस्तर पुष्टि गरेर मात्र दोहन योजना बनाउनुपर्छ ।</li>
+      <li><strong>चुनढुङ्गामा प्राथमिकता:</strong> सिमेन्ट कच्चा पदार्थ भएकाले चुनढुङ्गा स्थानीय औद्योगिकीकरणको सर्वाधिक व्यावहारिक प्रवेशबिन्दु हो; निजी–सार्वजनिक साझेदारीमा सम्भाव्यता अध्ययन गर्न सकिन्छ ।</li>
+      <li><strong>नदीजन्य समुच्चयको दिगो दोहन:</strong> ढुङ्गा–बालुवा–गिट्टी तत्काल आय दिने भए पनि अनियन्त्रित उत्खननले चुरे–सिवालिक भङ्गुर भूगोल, नदी–मार्ग र भूमिगत जल बिगार्छ; पर्यावरणीय प्रभाव मूल्याङ्कन (EIA/IEE) र वडागत कोटा अनिवार्य गर्नुपर्छ ।</li>
+      <li><strong>मूल्य–अभिवृद्धिमा जोड:</strong> कच्चा निर्यातभन्दा क्रसर, चुना/सिमेन्ट र प्रशोधन उद्योग स्थापना गरी रोजगारी र राजस्व दुवै बढाउनुपर्छ (हे. <a href="/chapters/4/8/1">औद्योगिक विकास</a>) ।</li>
+      <li><strong>राजस्व र पारदर्शिता:</strong> खानीजन्य प्राकृतिक स्रोतको ठेक्का–बन्दोबस्त पारदर्शी डिजिटल प्रणालीमा ल्याई स्थानीय राजस्व सुदृढ गर्दै “स्रोत–अभिशाप” (resource curse) बाट जोगिनुपर्छ ।</li>
+    </ul>
+  </div>
+</section>

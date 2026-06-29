@@ -10,6 +10,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   integrations: [sitemap()],
+  prefetch: { prefetchAll: true, defaultStrategy: "hover" },
   build: {
     inlineStylesheets: "auto",
   },

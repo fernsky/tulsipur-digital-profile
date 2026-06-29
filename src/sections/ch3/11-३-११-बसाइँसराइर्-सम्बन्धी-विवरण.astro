@@ -1,11 +1,11 @@
 ---
 import DataTable from "../../components/DataTable.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import StackedBar from "../../components/viz/StackedBar.astro";
 import Donut from "../../components/viz/Donut.astro";
-import { cellStr, toNum } from "../../lib/ne";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import ClusterBars from "../../components/viz/ClusterBars.astro";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":11,"id":"s-3-11-३-११-बसाइँसराइर्-सम्बन्धी-विवरण","title":"३.११ बसाइँसराइर् सम्बन्धी विवरण","subsections":[]};
 
@@ -14,22 +14,71 @@ const kpis = [{"label":"नेपाल भित्र जन्मेको �
 
 const t1 = {"caption":"तालिका नं. १६ – जन्म स्थानको आधारमा जनसंख्या विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[[{"text":"उमेर समूह","colspan":1,"rowspan":2},{"text":"नेपाल भित्र जन्मेको संख्या","colspan":1,"rowspan":2},{"text":"यही जिल्लामा जन्मेको संख्या","colspan":2,"rowspan":1},{"text":"अर्को जिल्लामा जन्मेको","colspan":4,"rowspan":1},{"text":"विदेशमा जन्मेको","colspan":1,"rowspan":2},{"text":"जन्म स्थान नखुलेको","colspan":1,"rowspan":2},{"text":"जम्मा जनसंख्या","colspan":1,"rowspan":2}],["यही उ.म.न.पा.मा","अर्को पालिकामा","पहाड","हिमाल","तराई","उल्लेख नभएको"],["०–४ वर्ष","१३८१४","१३०७४","१५४","४","५१७","६४","१","९६","२","१३९१२"],["५–९ वर्ष","१६३५३","१३८८३","५०९","१६","१७८७","१५८","०","२३१","३","१६५८७"],["१०–१४ वर्ष","१७३५६","१३६८०","७७५","१९","२७२२","१६०","०","३७०","५","१७७३१"],["१५–१९ वर्ष","१९४९५","१३७८९","१४०७","४९","४०२२","२२७","१","४११","११","१९९१७"],["२०–२४ वर्ष","१७३६०","१०९४२","१८१२","७३","४१४४","३८६","३","२३७","६","१७६०३"],["२५–२९ वर्ष","१५९५९","९४८६","२०१२","५१","३९९३","४१३","४","२१८","६","१६१८३"],["३०–३४ वर्ष","१४५०२","८२५५","१९५३","४७","३९१४","३३१","२","१९२","१","१४६९५"],["३५–३९ वर्ष","१२८७२","७२७७","१८५९","३८","३४३९","२५८","१","१७०","४","१३०४६"],["४०–४४ वर्ष","११२६२","६६१७","१५३४","१७","२८७७","२१७","०","११६","४","११३८२"],["४५–४९ वर्ष","९०३४","५३८०","१२०३","१८","२३१४","११९","०","७८","२","९११४"],["५०–५४ वर्ष","८३९४","४९४७","१०६३","११","२२८९","८३","१","५१","८","८४५३"],["५५–५९ वर्ष","५८४७","३३८५","६१२","१६","१७७५","५८","१","३७","३","५८८७"],["६०–६४ वर्ष","५४६७","३०३१","५३८","१९","१८३९","३९","१","२२","१","५४९०"],["६५–६९ वर्ष","४०५४","२१६०","३७७","९","१४८६","२२","०","२२","१","४०७७"],["७०–७४ वर्ष","२९८६","१५०९","२९६","८","११६०","१३","०","१३","२","३००१"],["७५– वर्ष माथि","२६६४","१३०१","२२७","७","१११३","१६","०","१३","०","२६७७"],["जम्मा","१७७४१९","११८७१६","१६३३१","४०२","३९३९१","२५६४","१५","२२७७","५९","१७९७५५"]]};
 const t2 = {"caption":"तालिका नं. १७ – बसाइँसराई गरेका व्यिक्तको यस अघि बसोबास गरेको स्थान अनुसारको जनसंख्या विवरण","source":"स्रोतम: राष्ट्रिय जनगणना, २०७८","rows":[["बसाइँसराईको किसिम","पुरुष","महिला","कुल","प्रतिशत"],["यही उपमहानगर.पा.मा","५९६९४","५७६९९","११७३९३","६५.३१"],["यही जिल्लाको अर्को गा.पा/नगरपालिका.","६००५","१३५६३","१९५६८","१०.८९"],["अर्को जिल्ला","१७६७३","२२४५९","४०१३२","२२.३३"],["विदेश","१३९२","१२७०","२६६२","१.४८"],["जम्मा","८४७६४","९४९९१","१७९७५५","१००"]]};
+
+// --- Parse table 2 (lifetime migration by previous residence × sex) ----------
+const migRows = t2.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0])))
+  .map((r) => ({ name: cellStr(r[0]), m: toNum(r[1]), f: toNum(r[2]), t: toNum(r[3]), pct: toNum(r[4]) }));
+const TOT = migRows.reduce((s, x) => s + x.t, 0);
+const native = migRows.find((r) => /उपमहानगर/.test(r.name));
+const intra = migRows.find((r) => /जिल्लाको अर्को/.test(r.name));
+const inter = migRows.find((r) => /^अर्को जिल्ला/.test(r.name));
+const foreign = migRows.find((r) => /विदेश/.test(r.name));
+const migrants = [intra, inter, foreign];
+
+const totalMig = migrants.reduce((s, x) => s + x.t, 0);
+const migRate = (totalMig / TOT) * 100;                 // lifetime in-migration rate
+const nativeShare = (native.t / TOT) * 100;
+const migF = migrants.reduce((s, x) => s + x.f, 0);
+const migM = migrants.reduce((s, x) => s + x.m, 0);
+const femMigShare = (migF / totalMig) * 100;
+const interShareOfMig = (inter.t / totalMig) * 100;
+const intraFemShare = (intra.f / intra.t) * 100;        // marriage-migration signal
+const sexRatio = (g) => (g.m / g.f) * 100;
+const migSexRatio = (migM / migF) * 100;
+const nativeSexRatio = sexRatio(native);
+
+// --- Birthplace (table 1) ---------------------------------------------------
+const bornHere = toNum((t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [])[2]); // यही उ.म.न.पा.मा
+const bornHereShare = (bornHere / TOT) * 100;
+
 const bpLabels = ["यही उ.म.न.पा.", "यही जिल्ला अर्को पालिका", "अर्को जिल्ला (पहाड)", "अर्को जिल्ला (हिमाल)", "अर्को जिल्ला (तराई)", "अर्को जिल्ला (नखुलेको)", "विदेश", "जन्म स्थान नखुलेको"];
 const bpPalette = ["#2563eb", "#16a34a", "#f59e0b", "#0891b2", "#7c3aed", "#a3a3a3", "#dc2626", "#737373"];
 const bpJamma = t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
 const birthSegments = bpLabels.map((l, i) => ({ label: l, value: toNum(bpJamma[i + 2]), color: bpPalette[i % bpPalette.length] }));
 
 const migPalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626"];
-const migSegments = t2.rows
-  .slice(1)
-  .filter((r) => !/जम्मा/.test(cellStr(r[0])))
-  .map((r, i) => ({ label: cellStr(r[0]), value: toNum(r[3]), color: migPalette[i % migPalette.length] }));
+const migSegments = migRows.map((r, i) => ({ label: r.name, value: r.t, color: migPalette[i % migPalette.length] }));
+
+// --- Visualization datasets -------------------------------------------------
+const summaryTiles = [
+  { label: "बसाइँसराइ दर (जीवनकालीन)", value: `${neDec(migRate)}%`, sub: `In-migration Rate · ${neInt(totalMig)} जना अन्यत्रबाट आएका`, color: "#dc2626" },
+  { label: "मूलवासी / गैर–प्रवासी", value: `${neDec(nativeShare)}%`, sub: `यहीँ जन्मे–हुर्केका · ${neInt(native.t)} जना`, color: "#2563eb" },
+  { label: "अन्तर–जिल्ला प्रवासी", value: `${neDec(inter.pct)}%`, sub: `अन्य जिल्लाबाट · ${neInt(inter.t)} जना`, color: "#f59e0b" },
+  { label: "महिला प्रवासी हिस्सा", value: `${neDec(femMigShare)}%`, sub: `प्रवासीमध्ये महिला — विवाह प्रवासको संकेत`, color: "#db2777" },
+];
+
+const migByGender = migRows.map((r) => ({ label: r.name, a: r.m, b: r.f }));
+
+const indicatorTiles = [
+  { label: "प्रवासीमध्ये अन्तर–जिल्ला हिस्सा", value: `${neDec(interShareOfMig)}%`, sub: `प्रवासीहरूको मुख्य स्रोत — क्षेत्रीय केन्द्रको आकर्षण`, color: "#f59e0b" },
+  { label: "अन्तर–पालिका प्रवासमा महिला", value: `${neDec(intraFemShare)}%`, sub: `छोटो दूरीको प्रवासमा महिला बाहुल्यता — विवाह प्रवास`, color: "#db2777" },
+  { label: "प्रवासी लिङ्ग अनुपात", value: neDec(migSexRatio), sub: `प्रति १०० प्रवासी महिलामा ${neDec(migSexRatio)} पुरुष (मूलवासी ${neDec(nativeSexRatio)})`, color: "#7c3aed" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
-  <h4 id="h-19-क-जन्म-स्थानको-आधारमा-जनसंख्" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) जन्म स्थानको आधारमा जनसंख्या विवरण</h4>
+
+  <!-- ======================= एक नजरमा (migration overview) ======================= -->
+  <StatTiles
+    title="एक नजरमा — बसाइँसराइको अवस्था"
+    subtitle={`कुल जनसंख्या ${neInt(TOT)} · हालको बसोबासको आधारमा`}
+    tiles={summaryTiles}
+    cols={4}
+  />
+
+  <!-- (क) Birthplace — retained structure -->
+  <h4 id="h-19-क-जन्म-स्थानको-आधारमा-जनसंख्" class="reveal scroll-mt-24 mt-7 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) जन्म स्थानको आधारमा जनसंख्या विवरण</h4>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
   <StackedBar
@@ -39,14 +88,105 @@ const migSegments = t2.rows
     unit="जना"
   />
   <div class="prose-ne reveal"><p>तुलसीपुर उप–महानगरपालिकाको कुल जनसंख्या १,७९,७५५ मध्ये १,७७,४१९ जना अर्थात ९८.७० प्रतिशत जनसंख्याको नेपालमा नै जन्म भएको पाइयो । यही उप–महानगरपालिका जन्म लिनेको संख्या १,१८,७१६ जना, दाङ् जिल्लाकै अर्को पालिकामा जन्म लिनेको संख्या १६,३३१ रहेका छन् भने अर्को जिल्लामा जन्म लिनेको संख्या ४२,३७२ र विदेशमा जन्मेकाहरूको हाल बसोबास यसै पालिकामा रहेको संख्या २,२७७ जना र जन्म स्थान नखुलेको ५९ जना रहेको छ । उप–महानगरपालिकाको आर्थिक, भौतिक, सामाजिक क्षेत्रहरूको विकास हुँदा अन्य स्थानबाट बसाइँ सरेर आउने जनसंख्यामा वृद्धि हुने देखिन्छ । जसको विस्तृत विवरण तालिकामा उल्लेख गरिएको छ ।</p></div>
-  <h4 id="h-20-ख-बसाइँसराइर्-गरेका-व्यक्तिक" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ख) बसाइँसराइर् गरेका व्यक्तिको यस अघि बसोबास गरेको स्थान अनुसारको जनसंख्या विवरण</h4>
+
+  <!-- (ख) Previous residence — retained structure -->
+  <h4 id="h-20-ख-बसाइँसराइर्-गरेका-व्यक्तिक" class="reveal scroll-mt-24 mt-7 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ख) बसाइँसराइर् गरेका व्यक्तिको यस अघि बसोबास गरेको स्थान अनुसारको जनसंख्या विवरण</h4>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
   <Donut
     title="बसाइँसराईको पूर्व स्थान"
+    subtitle="हालका बासिन्दा यसअघि कहाँ बस्थे"
     segments={migSegments}
-    centerValue="१,७९,७५५"
+    centerValue={neInt(TOT)}
     centerLabel="कुल जनसंख्या"
   />
   <div class="prose-ne reveal"><p>उप–महानगरपालिकाको कुल जनसंख्या १,७९,७५५ मध्ये सबैभन्दा धेरै १,१७,३९३ अर्थात ६५.३१ प्रतिशत जनसंख्या यही पालिकामा १९,५६८ अर्थात १०.८९ प्रतिशत यही जिल्ला अन्तर्गतका अन्य स्थानीय तहहरुबाट आएर बसोबास गरिरहेका छन् । यसैगरी यहाँ अन्यत्र जिल्लाबाट बसाइँसराइर् गरी आउनेको संख्या ४०,१३२ अर्थात २२.३ प्रतिशत रहेको छ भने सबैभन्दा कम विदेशबाट आउनेको संख्या २,६६२ तथा १.५ प्रतिशत रहेको छ ।</p></div>
+
+  <!-- ======================= the gender × migration signal ======================= -->
+  <ClusterBars
+    title="बसाइँसराइको किसिम — पुरुष र महिला तुलना"
+    subtitle="प्रत्येक किसिममा लिङ्गगत वितरण"
+    items={migByGender}
+    aLabel="पुरूष"
+    bLabel="महिला"
+    aColor="#2563eb"
+    bColor="#db2777"
+    unit="जना"
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">एउटा निर्णायक संकेत — विवाह प्रवास</h3>
+    <p>
+      माथिको चित्रले एउटा निकै बलियो ढाँचा देखाउँछ : <strong>मूलवासी</strong> (यहीँ बस्दै आएका) मा पुरुष अलिकति बढी छन्
+      (लिङ्ग अनुपात {neDec(nativeSexRatio)}), तर <strong>प्रवासी</strong>हरूमा महिलाको स्पष्ट बाहुल्यता छ — प्रवासीमध्ये
+      <strong>{neDec(femMigShare)}%</strong> महिला, र लिङ्ग अनुपात मात्र {neDec(migSexRatio)} । सबैभन्दा तीव्र असमानता
+      <em>यही जिल्लाको अर्को पालिकाबाट</em> आउने (छोटो दूरीको) प्रवासमा छ, जहाँ <strong>{neDec(intraFemShare)}%</strong> महिला छन् ।
+    </p>
+    <p>
+      यो संयोग होइन — यो <strong>विवाह प्रवास (marriage migration)</strong> को प्रत्यक्ष संकेत हो । नेपाली सामाजिक परम्परामा
+      विवाहपछि महिला पतिगृह (पतिको घर) मा बसाइँ सर्ने हुँदा, विशेषतः छोटो दूरीमा, प्रवासी जनसंख्या महिला–बहुल बन्छ ।
+      रोचक कुरा — यसैले अघिल्ला खण्डहरूमा देखिएको <em>महिला–बहुल कुल जनसंख्या</em> (लिङ्ग अनुपात ८९) को आंशिक कारण पनि यही
+      विवाह–प्रेरित महिला प्रवास हो । यसरी बसाइँसराइको तथ्याङ्कले जनसंख्याको लिङ्ग संरचनाको रहस्य समेत खोल्छ ।
+    </p>
+  </div>
+
+  <!-- ======================= migration indicators ======================= -->
+  <StatTiles
+    title="बसाइँसराइ संरचना सूचकहरू"
+    subtitle="प्रवासको स्रोत, दिशा र लिङ्गगत प्रकृति"
+    tiles={indicatorTiles}
+    cols={3}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. बसाइँसराइ दर — In-migration Rate ({neDec(migRate)}%):</strong> हालका बासिन्दामध्ये कति जना अन्यत्रबाट सरेर
+      आएका हुन् भन्ने मापन । तुलसीपुरमा प्रत्येक तीनमध्ये करिब एक जना ({neDec(migRate)}%) जीवनकालीन प्रवासी हुन् — यो उच्च दरले
+      तुलसीपुर एउटा <em>आकर्षक क्षेत्रीय केन्द्र (regional hub)</em> रहेको देखाउँछ, जहाँ रोजगारी, शिक्षा र सेवाका कारण मानिस आउँछन् ।
+    </p>
+    <p>
+      <strong>२. आन्तरिक बनाम वैदेशिक प्रवास:</strong> प्रवासको ठूलो हिस्सा <em>आन्तरिक</em> (देशभित्रकै) हो — अन्तर–जिल्ला
+      ({neDec(inter.pct)}%) र अन्तर–पालिका ({neDec(intra.pct)}%) — जबकि वैदेशिक जन्म/प्रवास मात्र {neDec(foreign.pct)}% । प्रवासीमध्ये
+      <strong>{neDec(interShareOfMig)}%</strong> अन्य जिल्लाबाट आएकाले तुलसीपुरको प्रभाव जिल्लाभन्दा पर पुगेको देखिन्छ ।
+    </p>
+    <p>
+      <strong>३. विवाह प्रवास र लिङ्ग संरचना:</strong> प्रवासको लिङ्ग अनुपात ({neDec(migSexRatio)}) मूलवासी ({neDec(nativeSexRatio)})
+      भन्दा निकै महिला–झुकाव छ । यो फरकले देखाउँछ — पुरुष प्रायः वैदेशिक श्रममा बाहिर जान्छन् भने महिला विवाहपछि भित्र आउँछन्,
+      जसले स्थानीय जनसंख्यालाई महिला–बहुल बनाउँछ । यो ढाँचा सामाजिक सेवा, महिला अधिकार र परिवार योजनासँग प्रत्यक्ष जोडिन्छ ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको बसाइँसराइ तथ्याङ्कको विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>बढ्दो जनसंख्याको पूर्वाधार:</strong> {neDec(migRate)}% जीवनकालीन प्रवासी भएको र थप बसाइँसराइ बढ्ने हुनाले
+        आवास, खानेपानी, सडक र सेवा पूर्वाधार प्रवासी चापअनुसार विस्तार गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>प्रवासी एकीकरण:</strong> अन्य जिल्लाबाट आएका {neInt(inter.t)} जना प्रवासीलाई स्थानीय सेवा, परिचय र सामाजिक
+        समावेशीकरणमा सहज पहुँच दिनुपर्ने ।
+      </li>
+      <li>
+        <strong>विवाहित महिला लक्षित सेवा:</strong> विवाह प्रवासका कारण भित्रिने महिलाहरूका लागि प्रजनन स्वास्थ्य, अधिकार
+        जानकारी र सामाजिक सञ्जाल निर्माणका कार्यक्रम सञ्चालन गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>क्षेत्रीय केन्द्रको योजना:</strong> तुलसीपुर आकर्षक केन्द्र भएकाले रोजगारी, शिक्षा र बजार सेवाको दीर्घकालीन
+        सहरी योजना (urban planning) तर्जुमा गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>प्रवास तथ्याङ्क अद्यावधिक:</strong> प्रवासको दिशा, स्रोत र प्रवृत्ति नियमित अनुगमन गरी सेवा योजनाको आधार
+        बलियो बनाउनुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुर एउटा गतिशील, प्रवासी–आकर्षक क्षेत्रीय केन्द्र हो — जहाँ आन्तरिक प्रवास र विवाह–प्रेरित महिला प्रवासले
+      जनसंख्या संरचना नै आकार दिएको छ । यो गतिशीलतालाई सुनियोजित सहरीकरण र समावेशी सेवामार्फत व्यवस्थापन गर्नु नै दिगो
+      विकासको आधार हो ।
+    </p>
+  </div>
 </section>

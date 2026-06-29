@@ -1,0 +1,69 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import AutoViz from "../../../components/viz/AutoViz.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import ClusterBars from "../../../components/viz/ClusterBars.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-84-५-२-६-विवाहित-तथा-अविवाहित-म","title":"५.२.६ विवाहित तथा अविवाहित महिला तथा पुरुषको विवरण"};
+
+const t17 = {"caption":"तालिका नं. ८४ – विवाहित तथा अविवाहित महिला तथा पुरुषको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["क्र.सं.","विवाहित तथा अविवाहित","पुरुषको संख्या","महिलाको संख्या","जम्मा","प्रतिशत"],["१.","अविवाहित","२५३२३","२१,९३४","४७२५७","३१.६६"],["२.","विवाहित","४१५१७","५३,५९५","९५११२","६३.७२"],["३.","एकल (विधुर/विधवा)","१३७१","४,६५६","६०२७","४.०४"],["४.","पारपाचुके","१०७","१७३","२८०","०.१९"],["५.","छुट्टिएको","१७५","४०५","५८०","०.३९"],[{"text":"जम्मा","colspan":2,"rowspan":1},"६८४९३","८०७६३","१४९२५६","१००"]]};
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  {(() => {
+    const find = (re) => t17.rows.find((r) => re.test(cellStr(r[1]))) || [];
+    const unm = find(/अविवाहित/), mar = find(/^विवाहित|विवाहित$/), wid = find(/एकल|विधुर|विधवा/), div = find(/पारपाचुके/), sep = find(/छुट्टिएको/);
+    const jam = t17.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+    const totMen = toNum(jam[2]), totWomen = toNum(jam[3]), totAll = toNum(jam[4]);
+    const widowers = toNum(wid[2]), widows = toNum(wid[3]);
+    const widowRatio = widows / widowers;
+    const marMen = toNum(mar[2]), marWomen = toNum(mar[3]);
+    const missingHusbands = marWomen - marMen;
+    const femWidowRate = widows / totWomen * 100, maleWidowRate = widowers / totMen * 100;
+    const segs = [
+      { label: "विवाहित", value: toNum(mar[4]), color: "#16a34a" },
+      { label: "अविवाहित", value: toNum(unm[4]), color: "#2563eb" },
+      { label: "एकल (विधुर/विधवा)", value: toNum(wid[4]), color: "#dc2626" },
+      { label: "पारपाचुके/छुट्टिएको", value: toNum(div[4]) + toNum(sep[4]), color: "#f59e0b" },
+    ];
+    const genderItems = [
+      { label: "अविवाहित", a: toNum(unm[2]), b: toNum(unm[3]) },
+      { label: "विवाहित", a: marMen, b: marWomen },
+      { label: "एकल", a: widowers, b: widows },
+    ];
+    const kpis = [
+      { label: "जनसंख्या (१० वर्ष+)", value: neInt(totAll) },
+      { label: "विवाहित", value: `${neDec(toNum(mar[4]) / totAll * 100, 0)}%` },
+      { label: "विधवा : विधुर अनुपात", value: `${neDec(widowRatio, 1)}×` },
+      { label: "“अनुपस्थित” पति", value: neInt(missingHusbands) },
+    ];
+    const tiles = [
+      { label: "वैवाहिक जनसंख्या", value: neInt(totAll), sub: "१० वर्ष माथिका", color: "#2563eb" },
+      { label: "विधवाको आधिक्य", value: `${neDec(widowRatio, 1)}×`, sub: `${neInt(widows)} विधवा vs ${neInt(widowers)} विधुर`, color: "#dc2626" },
+      { label: "विवाहित महिला – पुरुष अन्तर", value: `+${neInt(missingHusbands)}`, sub: "पति वैदेशिक रोजगारी/बसाइँसराइमा", color: "#f59e0b" },
+      { label: "पारपाचुके/छुट्टिएको", value: `${neDec((toNum(div[4]) + toNum(sep[4])) / totAll * 100, 1)}%`, sub: "अझै निकै न्यून", color: "#16a34a" },
+    ];
+    return (
+      <>
+        <div class="mt-2"><SectionKpis items={kpis} /></div>
+        <div class="mt-2"><StatTiles title="एक नजरमा — वैवाहिक संरचना" tiles={tiles} cols={4} /></div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>वैवाहिक जनसांख्यिकी (nuptiality) के बताउँछ?</strong> कुनै समाजको विवाह–ढाँचाले उमेर, लैङ्गिक भूमिका, आयु र बसाइँसराइको सूक्ष्म कथा भन्छ । यहाँ {neDec(toNum(mar[4]) / totAll * 100, 0)}% विवाहित, {neDec(toNum(unm[4]) / totAll * 100, 0)}% अविवाहित र पारपाचुके/छुट्टिएको जम्मा {neDec((toNum(div[4]) + toNum(sep[4])) / totAll * 100, 1)}% मात्र — विवाह–विच्छेद अझै सामाजिक रूपमा दुर्लभ छ ।</p>
+        </div>
+        <div class="mt-3 grid gap-4 md:grid-cols-2">
+          <Donut title="वैवाहिक स्थिति" subtitle={`${neInt(totAll)} जना (१० वर्ष+)`} segments={segs} centerValue={neInt(totAll)} centerLabel="जना" />
+          <ClusterBars title="वैवाहिक स्थिति — पुरुष vs महिला" items={genderItems} aLabel="पुरुष" bLabel="महिला" aColor="#2563eb" bColor="#db2777" unit="जना" />
+        </div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>विश्लेषण — दुई लैङ्गिक असमानता:</strong> पहिलो, <strong>विधवाको आधिक्य</strong>: {neInt(widows)} विधवा vs {neInt(widowers)} विधुर — महिला {neDec(widowRatio, 1)} गुणा बढी एकल छन् (महिला विधवा दर {neDec(femWidowRate, 1)}% vs पुरुष {neDec(maleWidowRate, 1)}%) । यो विश्वव्यापी ढाँचा हो — महिला पुरुषभन्दा बढी बाँच्छन्, प्रायः आफूभन्दा जेठो पुरुषसँग विवाह गर्छन्, र विधुरले पुनर्विवाह गर्ने दर विधवाको भन्दा उच्च हुन्छ । विधवा महिलाको आर्थिक–सामाजिक सुरक्षा (एकल महिला भत्ता, सम्पत्ति अधिकार) नीतिगत प्राथमिकता हुनुपर्छ ।</p>
+          <p>दोस्रो, <strong>“अनुपस्थित पति” को रहस्य</strong>: विवाहित महिला ({neInt(marWomen)}) विवाहित पुरुष ({neInt(marMen)}) भन्दा <strong>{neInt(missingHusbands)} ले बढी</strong> छन् । दाम्पत्य त जोडीमै हुन्छ — त्यसो भए यी {neInt(missingHusbands)} महिलाका पति कहाँ? उत्तर हो <a href="/chapters/4/1/5">वैदेशिक रोजगारी र बसाइँसराइ</a>: गणना–अवधिमा घरमा नभएका, विदेश गएका पुरुष पतिको रूपमा गनिएनन् । यो आँकडा नै पुरुष श्रम–बहिर्गमनको प्रत्यक्ष जनसांख्यिक हस्ताक्षर हो — जसले <a href="/chapters/4/5">कृषिको नारीकरण</a> र महिला–प्रधान घरपरिवार दुवैलाई व्याख्या गर्छ ।</p>
+        </div>
+      </>
+    );
+  })()}
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t17.caption}</h3>
+  <DataTable caption={t17.caption} rows={t17.rows} source={t17.source} />
+</section>

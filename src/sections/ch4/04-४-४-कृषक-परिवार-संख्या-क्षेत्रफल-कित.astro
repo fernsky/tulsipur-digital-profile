@@ -1,26 +1,151 @@
 ---
 import DataTable from "../../components/DataTable.astro";
 import AutoViz from "../../components/viz/AutoViz.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
-import { chartFromRows } from "../../lib/chart";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import ClusterBars from "../../components/viz/ClusterBars.astro";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":4,"order":4,"id":"s-4-4-४-४-कृषक-परिवार-संख्या-क्षेत्रफल","title":"४.४ कृषक परिवार संख्या, क्षेत्रफल, कित्ता संख्या, औषत कित्ता संख्या तथा सिंचित क्षेत्रफल","subsections":[]};
 
-// Section KPIs — auto-seeded from the main table. Edit freely.
-const kpis = [];
+const HH = 46018; // कुल घरधुरी (खण्ड ४.१.२)
 
 const t1 = {"caption":"तालिका नं. ३० – स्थानीय तह अनुसार कृषक परिवार संख्या, क्षेत्रफल, कित्ता संख्या, औसत कित्ता संख्या तथा सिंचित क्षेत्रफलको विवरण","source":"स्रोतः राष्ट्रिय कृषिगणना, २०७८","rows":[["प्रदेश/जिल्ला/ स्थानीय तह","जम्मा कृषक परिवार संख्या","कृषक परिवारले चलन गरेको जग्गाको जम्मा क्षेत्रफल (हेक्टर)","जम्मा कित्ता संख्या","औषत कित्ता संख्या","सिँचाइ सुविधा प्रयोग गर्ने कृषक परिवारको संख्या","सिंचित क्षेत्रफल (हेक्टर)"],["लुम्बिनी प्रदेश","७६५०९२","४२६६१४.४","२२५२७६४","२.९","५४८७९९","२४१९४४.३"],["दाङ जिल्ला","१०१८८०","४९२७८.०","२३६८८२","२.३","८११६५","३३६६३.४"],["तुलसीपुर उप–महानगरपालिका","२५२१६","१२५२३.४","५४९११","२.२","२३२७१","१०७३९.३"]]};
-const t1Chart = chartFromRows(t1.rows);
+
+// --- Parse the three administrative levels ----------------------------------
+const lvl = t1.rows.slice(1).map((r) => ({
+  name: cellStr(r[0]),
+  families: toNum(r[1]),
+  area: toNum(r[2]),
+  parcels: toNum(r[3]),
+  avgParcels: toNum(r[4]),
+  irrigFam: toNum(r[5]),
+  irrigArea: toNum(r[6]),
+}));
+const [lumbini, dang, tul] = lvl;
+
+const avgFarm = (x) => x.area / x.families;                 // ha per family
+const irrigCov = (x) => (x.irrigFam / x.families) * 100;    // % families with irrigation
+const irrigAreaPct = (x) => (x.irrigArea / x.area) * 100;   // % of cultivated land irrigated
+const parcelSize = (x) => x.area / x.parcels;               // ha per parcel
+
+const farmHHShare = (tul.families / HH) * 100;
+const tulShareDang = (tul.families / dang.families) * 100;
+
+const kpis = [
+  { label: "कृषक परिवार", value: neInt(tul.families) },
+  { label: "औसत खेत आकार", value: neDec(avgFarm(tul), 2), unit: "हेक्टर" },
+  { label: "सिँचाइ पहुँच", value: neDec(irrigCov(tul)), unit: "%" },
+  { label: "सिंचित क्षेत्रफल", value: neDec(irrigAreaPct(tul)), unit: "%" },
+];
+
+// --- Visualization datasets -------------------------------------------------
+const summaryTiles = [
+  { label: "कृषक परिवार संख्या", value: neInt(tul.families), sub: `कुल घरधुरीको ${neDec(farmHHShare)}% — आधाभन्दा बढी कृषिमा निर्भर`, color: "#16a34a" },
+  { label: "औसत खेत आकार", value: `${neDec(avgFarm(tul), 2)} हे.`, sub: `Smallholder · जिल्ला ${neDec(avgFarm(dang), 2)} हे., प्रदेश ${neDec(avgFarm(lumbini), 2)} हे.`, color: "#f59e0b" },
+  { label: "सिँचाइ पहुँच (परिवार)", value: `${neDec(irrigCov(tul))}%`, sub: `जिल्ला ${neDec(irrigCov(dang))}%, प्रदेश ${neDec(irrigCov(lumbini))}% भन्दा उच्च`, color: "#0891b2" },
+  { label: "सिंचित खेत क्षेत्रफल", value: `${neDec(irrigAreaPct(tul))}%`, sub: `खेतीयोग्य जमिनको · जिल्ला ${neDec(irrigAreaPct(dang))}% भन्दा निकै बढी`, color: "#2563eb" },
+];
+
+const irrigCompare = lvl.map((x) => ({ label: x.name.replace(/ उप–महानगरपालिका/, "").replace(/ प्रदेश/, "").replace(/ जिल्ला/, ""), a: +irrigCov(x).toFixed(1), b: +irrigAreaPct(x).toFixed(1) }));
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
+
+  <!-- Official intro — retained -->
   <div class="prose-ne reveal"><p>राष्ट्रिय जनगणना, २०७८ मा राष्ट्रिय कृषि गणना सञ्चालनको लागि प्रत्येक परिवारमा जग्गा जमिन तथा पशुपन्छीको विवरण सहित कृषक परिवार विवरणका आधारमा नमुना फ्रेम (Sample Frame) तयार गरिएको थियो । उक्त फ्रेमका आधारमा वडा वा गणना क्षेत्र छनोट गरी कृषि परिवारको विस्तृत विवरण सङ्कलन गरिएको थियो । राष्ट्रिय कृषि गणना, २०७८ को नतिजा अनुसार तुलसीपुर उप–महानगरपालिकामा कृषक परिवारको जम्मा सङ्ख्या २५,२१६ रहेको छ ।</p></div>
   <div class="prose-ne reveal"><p>यस उप–महानगरपालिकामा रहेका २५,२१६ कृषक परिवारले जम्मा ५४,९११ ओटा कित्ता जग्गामा १२५२३.४ हेक्टर जमिनमा कृषि चलन गरेको देखिन्छ । यस हिसाबले औसतमा एउटा कृषक परिवारले २.२ कित्ता जग्गामा खेती गरेको देखिन्छ । यहाँ कुल सििंचत क्षेत्रफल १०७३९.३ हेक्टर रहेको छ ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+
+  <!-- ======================= एक नजरमा (agrarian structure) ======================= -->
+  <StatTiles
+    title="एक नजरमा — कृषि संरचना"
+    subtitle="तुलसीपुरको कृषक परिवार, खेत आकार र सिँचाइ — जिल्ला/प्रदेशसँग तुलना"
+    tiles={summaryTiles}
+    cols={4}
+  />
+
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
   <AutoViz table={t1} title={t1.caption} />
+
+  <!-- ======================= comparative benchmarking ======================= -->
+  <ClusterBars
+    title="सिँचाइ तुलना — पालिका, जिल्ला र प्रदेश"
+    subtitle="सिँचाइ पहुँच (% कृषक परिवार) र सिंचित खेत क्षेत्रफल (%)"
+    items={irrigCompare}
+    aLabel="सिँचाइ पहुँच (% परिवार)"
+    bLabel="सिंचित क्षेत्रफल (%)"
+    aColor="#0891b2"
+    bColor="#16a34a"
+    unit="%"
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">तुलसीपुरको सिँचाइ अग्रता</h3>
+    <p>
+      माथिको तुलनाले एउटा उल्लेखनीय बल देखाउँछ — सिँचाइका दृष्टिले तुलसीपुर जिल्ला र प्रदेश दुवैभन्दा अगाडि छ ।
+      यहाँ <strong>{neDec(irrigCov(tul))}%</strong> कृषक परिवारसँग सिँचाइ सुविधा छ, जुन दाङ जिल्लाको {neDec(irrigCov(dang))}% र
+      लुम्बिनी प्रदेशको {neDec(irrigCov(lumbini))}% भन्दा निकै उच्च हो । त्यसैगरी खेतीयोग्य जमिनको <strong>{neDec(irrigAreaPct(tul))}%</strong>
+      सिँचित छ — प्रदेश औसत ({neDec(irrigAreaPct(lumbini))}%) भन्दा झन्डै डेढ गुणा बढी । यो बलियो सिँचाइ पूर्वाधार तुलसीपुरको
+      कृषि उत्पादकत्वको प्रमुख सम्भावना हो ।
+    </p>
+  </div>
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. औसत खेत आकार ({neDec(avgFarm(tul), 2)} हेक्टर):</strong> कुल खेतीयोग्य क्षेत्रफललाई कृषक परिवारले भाग गर्दा
+      आउने औसत जोत । तुलसीपुरमा प्रति परिवार आधा हेक्टरभन्दा कम हुनु <em>साना किसान (smallholder) प्रधान, निर्वाहमुखी कृषि</em>
+      को संकेत हो । सानो जोतमा व्यावसायिक खेती कठिन हुन्छ, त्यसैले सहकारी/समूहगत खेती र मूल्य अभिवृद्धि आवश्यक हुन्छ ।
+    </p>
+    <p>
+      <strong>२. सिँचाइ पहुँच ({neDec(irrigCov(tul))}%) र सिंचित क्षेत्रफल ({neDec(irrigAreaPct(tul))}%):</strong> सिँचाइ कृषि
+      उत्पादकत्वको सबैभन्दा महत्त्वपूर्ण कारक हो — सिँचित जमिनमा वर्षमा एकभन्दा बढी बाली लगाउन सकिन्छ । तुलसीपुरको उच्च सिँचाइ
+      पहुँचले बहुबाली (multiple cropping) र खाद्य सुरक्षाको बलियो आधार दिन्छ ।
+    </p>
+    <p>
+      <strong>३. भूमि खण्डीकरण — औसत कित्ता संख्या ({neDec(tul.avgParcels, 1)}):</strong> प्रति परिवार जग्गा कति टुक्रामा छरिएको छ
+      भन्ने मापन । तुलसीपुरको {neDec(tul.avgParcels, 1)} कित्ता दाङ ({neDec(dang.avgParcels, 1)}) र प्रदेश ({neDec(lumbini.avgParcels, 1)})
+      भन्दा कम हुनु — जग्गा तुलनात्मक रूपमा कम खण्डीकृत छ, जुन यान्त्रिकीकरण र व्यावसायिक खेतीका लागि अनुकूल छ ।
+    </p>
+    <p>
+      <strong>४. कृषि निर्भरता:</strong> कुल {neInt(HH)} घरधुरीमध्ये {neDec(farmHHShare)}% ({neInt(tul.families)}) कृषक परिवार हुनु —
+      आधाभन्दा बढी घर कृषिमा निर्भर छन् । यो कृषि क्षेत्रको आर्थिक महत्त्व र रोजगारीमा यसको केन्द्रीयता पुष्टि गर्छ (खण्ड ४.१.१
+      को प्राथमिक क्षेत्र ५५% सँग मेल खाने) ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको कृषि संरचना विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>सिँचाइ अग्रताको उपयोग:</strong> {neDec(irrigCov(tul))}% सिँचाइ पहुँचलाई आधार बनाई बहुबाली, नगदेबाली र
+        व्यावसायिक तरकारी खेती प्रवर्द्धन गरी उत्पादकत्व अधिकतम बनाउनुपर्ने ।
+      </li>
+      <li>
+        <strong>साना जोत व्यवस्थापन:</strong> औसत खेत आकार {neDec(avgFarm(tul), 2)} हेक्टर मात्र भएकाले सहकारी/समूहगत खेती,
+        भाडाको खेती (land pooling) र साझा यन्त्र प्रयोगमार्फत उत्पादन लागत घटाउनुपर्ने ।
+      </li>
+      <li>
+        <strong>सिँचाइ विस्तार र दिगोपन:</strong> बाँकी असिंचित {neDec(100 - irrigAreaPct(tul))}% जमिनमा समेत सिँचाइ पुर्‍याउन
+        र वर्तमान प्रणालीको मर्मत–सम्भारमा लगानी गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>कृषि–प्रशोधन र बजार:</strong> {neDec(farmHHShare)}% घर कृषिमा निर्भर भएकाले उत्पादनलाई प्रशोधन, भण्डारण र
+        बजारसँग जोडी आय बढाउनुपर्ने (खण्ड ४.१.१ को औद्योगिकीकरणसँग सम्बन्धित) ।
+      </li>
+      <li>
+        <strong>कृषि तथ्याङ्क अद्यावधिक:</strong> जोत आकार, सिँचाइ र उत्पादनको नियमित अभिलेख राखी लक्षित कृषि योजना
+        तर्जुमा गर्नुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुरको कृषि साना जोतमा आधारित निर्वाहमुखी भए पनि <strong>उच्च सिँचाइ पहुँच</strong> यसको विशिष्ट सबल पक्ष हो —
+      जिल्ला र प्रदेशभन्दा अगाडि । यही सिँचाइ अग्रतालाई बहुबाली, व्यावसायीकरण र मूल्य अभिवृद्धिसँग जोडेर तुलसीपुरलाई
+      खाद्य–सुरक्षित र आय–मुखी कृषि केन्द्रमा रूपान्तरण गर्न सकिन्छ ।
+    </p>
+  </div>
 </section>

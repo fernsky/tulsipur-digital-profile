@@ -1,10 +1,11 @@
 ---
 import DataTable from "../../components/DataTable.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import BarList from "../../components/viz/BarList.astro";
-import { cellStr, toNum, toNe, neInt } from "../../lib/ne";
+import Donut from "../../components/viz/Donut.astro";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import Heatmap from "../../components/viz/Heatmap.astro";
+import { cellStr, toNum, toNe, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":8,"id":"s-3-8-३-८-पेशाको-आधारमा-जनसंख्याको-विव","title":"३.८ पेशाको आधारमा जनसंख्याको विवरण","subsections":[]};
 
@@ -12,24 +13,224 @@ const meta = {"chapter":3,"order":8,"id":"s-3-8-३-८-पेशाको-आ�
 const kpis = [{"label":"कृषि कार्य","value":"४८.४३","unit":"%"},{"label":"सामान्य पेशा","value":"२५.१५","unit":"%"},{"label":"कुल सक्रिय","value":"८५,३९३"}];
 
 const t1 = {"caption":"तालिका नं. १२ – पेशाको आधारमा उमेर समूहगत जनसंख्याकाे विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[[{"text":"परिवारको मुख्य पेशा","colspan":1,"rowspan":2},{"text":"उमेर समूह","colspan":12,"rowspan":1},{"text":"जम्मा","colspan":1,"rowspan":2},{"text":"प्रतिशत","colspan":1,"rowspan":2}],["१०–१४","१५–१९","२०–२४","२५–२९","३०–३४","३५–३९","४०–४४","४५–४९","५०–५४","५५–५९","६०–६४","६५–वर्ष माथी"],["सैनिक अधिकारीहरु","","२","२१","३९","४७","९९","४१","१०","६","४","०","०","२६९","०.३२"],["व्यवस्थापकहरु","०","३२","२३९","५५४","७७०","७४९","७१३","४७२","३५३","१९१","१०२","९०","४२६५","४.९९"],["पेशाविद्हरु","०","२९","३६६","५९४","६४६","४८४","४२७","३१४","२८३","१५९","४६","४२","३३९०","३.९७"],["प्राविधिक तथा सहायक पेशाविद्हरु","३","२९","१८१","२१८","१८१","१५२","१२०","७६","८४","३४","२०","४","११०२","१.२९"],["कार्यालय सहायकहरु","१","३१","१०७","१६९","१६८","१२०","९५","८०","५५","३३","१०","१०","८७९","१.०३"],["सेवा तथा बस्तु विक्री गर्ने कामदारहरु","४","७३","३७३","६५९","७७०","७११","६४२","४२६","२५७","१५४","१०४","८०","४२५३","४.९८"],["कृषि कार्यसँग सम्बन्धित रोजगारहरु","५८६","१८२२","४४१६","५३६६","५०८१","४९२१","४६१६","४०७४","३८२९","२६१५","२०७५","१९५९","४१३६०","४८.४३"],["शिल्पकला तथा कालिगढ र यससँग सम्बन्धी व्यापार गर्नेहरु","०","१८६","६१८","८७२","९३०","८४२","६०४","४४८","३६३","१७८","१०७","७४","५२२२","६.१२"],["यन्त्र तथा मेशिन अपरेटर र जडान गर्ने कामदारहरु","०","११५","४६३","६३३","५८१","५१८","३७०","२०८","१०८","५३","१५","१३","३०७७","३.६०"],["सामान्य वा प्राथमिक पेशाका कामदारहरु","२९५८","३३०२","२७०५","२२९४","२०७२","१७४३","१४६०","११७२","१०१६","७०१","७१८","१३३५","२१४७६","२५.१५"],["आर्थिक रुपमा सकृय नभएकाहरु","५","७","९","१६","१४","१४","१४","८","६","४","१","२","१००","०.१२"],["जम्मा","३५५७","५६२८","९४९८","११४१४","११२६०","१०३५३","९१०२","७२८८","६३६०","४१२६","३१९८","३६०९","८५३९३","१००"]]};
-const occPalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#a3a3a3"];
-const occItems = t1.rows
-  .slice(2)
-  .filter((r) => !/जम्मा|प्रतिशत/.test(cellStr(r[0])))
-  .map((r) => ({ label: cellStr(r[0]), value: toNum(r[r.length - 2]), pct: toNum(r[r.length - 1]) }))
-  .sort((a, b) => b.value - a.value)
-  .map((o, i) => ({ label: o.label, value: o.value, color: occPalette[i % occPalette.length], valueText: neInt(o.value) + " · " + toNe(o.pct.toFixed(1)) + "%" }));
+
+// --- Parse the occupation × age matrix --------------------------------------
+const ageLabels = t1.rows[1].map(cellStr);
+const occRows = t1.rows.slice(2).filter((r) => !/जम्मा|प्रतिशत/.test(cellStr(r[0])));
+const occs = occRows.map((r) => ({
+  name: cellStr(r[0]),
+  ages: r.slice(1, 13).map(toNum),
+  total: toNum(r[13]),
+  pct: toNum(r[14]),
+}));
+const GRAND = occs.reduce((s, o) => s + o.total, 0);
+const find = (re) => occs.find((o) => re.test(o.name))?.total || 0;
+
+// --- ISCO-style skill-tier re-aggregation -----------------------------------
+const highSkill = find(/व्यवस्थापक/) + find(/^पेशाविद्/) + find(/^प्राविधिक/); // managers + professionals + technicians
+const serviceClerk = find(/कार्यालय/) + find(/सेवा/);
+const craftMachine = find(/शिल्पकला/) + find(/यन्त्र/);
+const agri = find(/कृषि/);
+const elementary = find(/सामान्य/);
+const armedOther = find(/सैनिक/) + find(/नभएका/);
+
+const agriPct = (agri / GRAND) * 100;
+const elemPct = (elementary / GRAND) * 100;
+const highSkillPct = (highSkill / GRAND) * 100;
+const vulnerable = agri + elementary;
+const vulnerablePct = (vulnerable / GRAND) * 100;
+
+// occupational diversity
+const herf = occs.reduce((s, o) => s + Math.pow(o.total / GRAND, 2), 0);
+const effectiveOcc = 1 / herf;
+const simpsonOcc = 1 - herf;
+
+// child workers (10–14)
+const childTotal = occs.reduce((s, o) => s + o.ages[0], 0);
+const childElem = occs.find((o) => /सामान्य/.test(o.name))?.ages[0] || 0;
+const childElemPct = (childElem / childTotal) * 100;
+const childPct = (childTotal / GRAND) * 100;
+
+const pal = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#a3a3a3"];
+
+// --- Visualization datasets -------------------------------------------------
+const summaryTiles = [
+  { label: "कृषि निर्भरता", value: `${neDec(agriPct)}%`, sub: `Agricultural Dependency · ${neInt(agri)} जना कृषिमा`, color: "#16a34a" },
+  { label: "उच्च दक्ष पेशा", value: `${neDec(highSkillPct)}%`, sub: `व्यवस्थापक, पेशाविद्, प्राविधिक · ${neInt(highSkill)} जना`, color: "#2563eb" },
+  { label: "अदक्ष / प्राथमिक श्रम", value: `${neDec(elemPct)}%`, sub: `Elementary Occupations · ${neInt(elementary)} जना`, color: "#dc2626" },
+  { label: "असुरक्षित रोजगारी", value: `${neDec(vulnerablePct)}%`, sub: `Vulnerable Employment (कृषि + अदक्ष) · ${neInt(vulnerable)} जना`, color: "#f59e0b" },
+];
+
+const tierSegs = [
+  { label: "कृषि", value: agri, color: "#16a34a" },
+  { label: "अदक्ष / प्राथमिक", value: elementary, color: "#dc2626" },
+  { label: "शिल्प तथा यन्त्र", value: craftMachine, color: "#f59e0b" },
+  { label: "उच्च दक्ष / प्राविधिक", value: highSkill, color: "#2563eb" },
+  { label: "सेवा, बिक्री र कार्यालय", value: serviceClerk, color: "#0891b2" },
+  { label: "सैनिक तथा अन्य", value: armedOther, color: "#a3a3a3" },
+];
+
+const rankItems = [...occs]
+  .filter((o) => !/नभएका/.test(o.name))
+  .sort((a, b) => b.total - a.total)
+  .map((o, i) => ({ label: o.name, value: o.total, color: pal[i % pal.length], valueText: neInt(o.total) + " · " + neDec(o.pct) + "%" }));
+
+// row-normalized heatmap: each occupation's % distribution across age bands
+const shortName = (n) =>
+  n.replace(/अधिकारीहरु/, "").replace(/हरु$/, "").replace(/ तथा सहायक पेशाविद्/, "").replace(/ कार्यसँग सम्बन्धित रोजगार/, "")
+   .replace(/ तथा कालिगढ र यससँग सम्बन्धी व्यापार गर्ने/, "/कालिगढ").replace(/ तथा मेशिन अपरेटर र जडान गर्ने कामदार/, " अपरेटर")
+   .replace(/ तथा बस्तु विक्री गर्ने कामदार/, "/बिक्री").replace(/ वा प्राथमिक पेशाका कामदार/, "/प्राथमिक").replace(/आर्थिक रुपमा सकृय नभएका/, "आर्थिक निष्क्रिय").trim();
+const heatRows = occs.map((o) => ({
+  label: shortName(o.name),
+  values: o.ages.map((a) => (o.total > 0 ? Math.round((a / o.total) * 100) : 0)),
+}));
+
+const diversityTiles = [
+  { label: "प्रभावकारी पेशा संख्या", value: neDec(effectiveOcc, 2), sub: `Effective Number of Occupations · ${neInt(occs.length)} मध्ये व्यवहारमा हाबी`, color: "#7c3aed" },
+  { label: "पेशागत विविधता सूचकाङ्क", value: neDec(simpsonOcc, 3), sub: `Simpson Index (०–१) · दुई व्यक्ति फरक पेशाका हुने सम्भावना ${neDec(simpsonOcc * 100)}%`, color: "#0891b2" },
+  { label: "बाल श्रमिक (१०–१४ वर्ष)", value: neInt(childTotal), sub: `${neDec(childPct)}% — मध्ये ${neDec(childElemPct)}% प्राथमिक श्रममा`, color: "#dc2626" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+
+  <!-- Official intro — retained -->
+  <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेका १० देखि ६५ वर्ष उमेर समूहका जम्मा जनसंख्या मध्ये कृषि पेशालाई मुख्य पेशा बनाएका कामदारहरु सबैभन्दा बढी ४१,३६० अर्थात ४८.४३ प्रतिशत रहेका छन् । दोस्रोमा प्राथमिक पेशाका कामदारहरु २१,४७६ अर्थात २५.१५ प्रतिशत रहेका छन् । जसको उमेर समूहगत विस्तृत विवरण माथिको तालिकामा उल्लेख गरिएको छ ।</p></div>
+
+  <!-- ======================= एक नजरमा (labour structure) ======================= -->
+  <StatTiles
+    title="एक नजरमा — श्रम संरचना"
+    subtitle={`कुल आर्थिक रूपमा संलग्न ${neInt(GRAND)} जना (१०–६५+ वर्ष)`}
+    tiles={summaryTiles}
+    cols={4}
+  />
+
+  <Donut
+    title="दक्षता स्तरअनुसार पेशागत संरचना"
+    subtitle="११ पेशालाई ISCO दक्षता–तहमा पुनर्वर्गीकरण"
+    segments={tierSegs}
+    centerValue={neInt(GRAND)}
+    centerLabel="कुल श्रमशक्ति"
+  />
+
+  <div class="prose-ne reveal">
+    <p>
+      <strong>एउटै आँकडा, फरक लेन्स ।</strong> ११ वटा पेशालाई अन्तर्राष्ट्रिय श्रम वर्गीकरण (ISCO) को <em>दक्षता तह</em> अनुसार
+      समूहीकृत गर्दा तुलसीपुरको अर्थतन्त्रको साँचो चित्र देखिन्छ : <strong>कृषि ({neDec(agriPct)}%)</strong> र
+      <strong>अदक्ष/प्राथमिक श्रम ({neDec(elemPct)}%)</strong> ले मिलेर श्रमशक्तिको झन्डै तीन–चौथाइ ({neDec(vulnerablePct)}%) ओगट्छन्,
+      जबकि उच्च दक्ष पेशा (व्यवस्थापक, पेशाविद्, प्राविधिक) मा मात्र <strong>{neDec(highSkillPct)}%</strong> छन् । यो संरचना एउटा
+      <em>निर्वाहमुखी, सङ्क्रमणकालीन अर्थतन्त्र</em> को विशेषता हो ।
+    </p>
+  </div>
+
+  <!-- ======================= full table ======================= -->
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+
   <BarList
     title="मुख्य पेशा अनुसार जनसंख्या"
     subtitle="परिवारको मुख्य पेशाको आधारमा (ठूलोदेखि सानो)"
-    items={occItems}
+    items={rankItems}
   />
-  <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेका १० देखि ६५ वर्ष उमेर समूहका जम्मा जनसंख्या मध्ये कृषि पेशालाई मुख्य पेशा बनाएका कामदारहरु सबैभन्दा बढी ४१,३६० अर्थात ४८.४३ प्रतिशत रहेका छन् । दोस्रोमा प्राथमिक पेशाका कामदारहरु २१,४७६ अर्थात २५.१५ प्रतिशत रहेका छन् । जसको उमेर समूहगत विस्तृत विवरण माथिको तालिकामा उल्लेख गरिएको छ ।</p></div>
+
+  <!-- ======================= age × occupation heatmap ======================= -->
+  <Heatmap
+    title="पेशाको उमेरगत प्रोफाइल"
+    subtitle="प्रत्येक पेशाभित्र उमेर समूहको वितरण (पंक्तिगत %); गाढा = सो पेशाको बाक्लो उमेर · रुझान ↑ बढ्दो उमेरतर्फ, ↓ युवातर्फ"
+    columns={ageLabels}
+    rows={heatRows}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">हिटम्यापले के देखाउँछ ?</h3>
+    <p>
+      माथिको हिटम्यापमा प्रत्येक पंक्ति (पेशा) भित्र उमेर समूहको वितरण देखाइएको छ — गाढा रङ भएको ठाउँमा त्यो पेशा बाक्लो छ ।
+      यसले एउटा गहिरो जीवनचक्र (life-cycle) ढाँचा उजागर गर्छ :
+    </p>
+    <ul>
+      <li>
+        <strong>कृषि — रुझान ↑ (बुढेसकालतर्फ):</strong> कृषिमा संलग्नता बढ्दो उमेरसँगै बढ्छ; पाका उमेरका धेरै व्यक्ति खेतीमै
+        फर्कन्छन् वा टिकिरहन्छन् — यो परम्परागत निर्वाह कृषिको लक्षण हो ।
+      </li>
+      <li>
+        <strong>अदक्ष/प्राथमिक श्रम — रुझान ↓ (युवातर्फ):</strong> यो पेशा कम उमेरमा सबैभन्दा बाक्लो छ, जसले युवाहरू
+        सीपविनै श्रमबजारमा छिर्ने तर उमेरसँगै अन्य पेशामा सर्ने प्रवृत्ति देखाउँछ ।
+      </li>
+      <li>
+        <strong>व्यवस्थापक र पेशाविद् — मध्यम उमेरमा शिखर:</strong> उच्च दक्ष पेशा ३०–४४ वर्षमा बाक्लो हुन्छ — किनभने यी
+        पेशामा शिक्षा, अनुभव र परिपक्वता आवश्यक पर्छ ।
+      </li>
+    </ul>
+    <p>
+      सबैभन्दा चिन्ताजनक संकेत — <strong>१०–१४ वर्षका {neInt(childTotal)} बालबालिका</strong> पहिले नै कुनै न कुनै पेशामा संलग्न
+      छन्, जसमध्ये <strong>{neDec(childElemPct)}%</strong> प्राथमिक (अदक्ष) श्रममा छन् । यो <em>बाल श्रम</em> को स्पष्ट संकेत हो,
+      जसले शिक्षा निरन्तरता र बाल संरक्षणमा तत्काल हस्तक्षेपको माग गर्छ ।
+    </p>
+  </div>
+
+  <!-- ======================= occupational diversity battery ======================= -->
+  <StatTiles
+    title="पेशागत विविधता र संवेदनशीलता सूचकहरू"
+    subtitle="श्रम संरचनाको गहिराइ मापन"
+    tiles={diversityTiles}
+    cols={3}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. कृषि निर्भरता ({neDec(agriPct)}%):</strong> श्रमशक्तिको कति हिस्सा कृषिमा निर्भर छ भन्ने यो विकासको शास्त्रीय
+      सूचक हो । विकसित अर्थतन्त्रमा यो प्रायः १०% भन्दा कम हुन्छ; यहाँ झन्डै आधा जनसंख्या कृषिमा हुनुले अर्थतन्त्र अझै
+      <em>कृषि–प्रधान</em> रहेको र औद्योगिक/सेवा क्षेत्रतर्फको सङ्क्रमण बाँकी रहेको देखाउँछ ।
+    </p>
+    <p>
+      <strong>२. असुरक्षित रोजगारी — Vulnerable Employment ({neDec(vulnerablePct)}%):</strong> अन्तर्राष्ट्रिय श्रम संगठन (ILO) ले
+      निर्वाह कृषि र अदक्ष/स्वरोजगार श्रमलाई “असुरक्षित रोजगारी” भन्छ — किनभने यसमा नियमित ज्याला, सामाजिक सुरक्षा र
+      रोजगारी निश्चितता हुँदैन । तुलसीपुरमा {neDec(vulnerablePct)}% श्रमशक्ति यस्तै अवस्थामा छ, जुन आय अस्थिरता र गरिबीको
+      जोखिमसँग प्रत्यक्ष जोडिन्छ ।
+    </p>
+    <p>
+      <strong>३. प्रभावकारी पेशा संख्या ({neDec(effectiveOcc, 2)}) र विविधता सूचकाङ्क ({neDec(simpsonOcc, 3)}):</strong> तालिकामा
+      {neInt(occs.length)} पेशा भए पनि, तौलिएर हेर्दा वास्तवमै करिब <strong>{neDec(effectiveOcc, 2)}</strong> पेशा मात्र प्रभावकारी
+      छन् — किनभने कृषि र प्राथमिक श्रम दुईले नै अधिकांश ओगटेका छन् । अर्थतन्त्र विविधीकरण भएमा यो अंक बढ्दै जान्छ ।
+    </p>
+    <p>
+      <strong>४. उच्च दक्ष पेशा ({neDec(highSkillPct)}%):</strong> व्यवस्थापन, पेशागत र प्राविधिक काममा संलग्न जनशक्ति — यो
+      “ज्ञानमा आधारित” अर्थतन्त्रको आधार हो । यो हिस्सा बढाउन प्राविधिक शिक्षा, उच्च शिक्षा र सीप विकासमा लगानी आवश्यक छ ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको पेशागत संरचनाको विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>कृषि आधुनिकीकरण:</strong> {neDec(agriPct)}% ({neInt(agri)}) श्रमशक्ति कृषिमा भएकाले व्यावसायिक खेती, यान्त्रिकीकरण,
+        बजारीकरण र मूल्य–शृंखला विकासमार्फत कृषिलाई आय–मुखी बनाउनुपर्ने ।
+      </li>
+      <li>
+        <strong>सीप विकास र विविधीकरण:</strong> असुरक्षित रोजगारी {neDec(vulnerablePct)}% रहेकाले अदक्ष श्रमिकलाई सीपमूलक
+        तालिममार्फत दक्ष/अर्धदक्ष पेशातर्फ रूपान्तरण गर्ने लक्षित कार्यक्रम सञ्चालन गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>बाल श्रम अन्त्य:</strong> १०–१४ वर्षका {neInt(childTotal)} बालबालिका श्रममा संलग्न भएकाले अनिवार्य शिक्षा,
+        छात्रवृत्ति र बाल संरक्षण अभियानमार्फत तत्काल बाल श्रम निवारण गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>उच्च दक्ष जनशक्ति प्रवर्द्धन:</strong> उच्च दक्ष पेशा मात्र {neDec(highSkillPct)}% भएकाले प्राविधिक/उच्च शिक्षा,
+        उद्यमशीलता र रोजगारीका अवसर सिर्जना गरी ज्ञानमुखी अर्थतन्त्र निर्माण गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>सेवा क्षेत्र विस्तार:</strong> सेवा, बिक्री र पर्यटनजन्य रोजगारी विस्तार गरी कृषिमाथिको अत्यधिक निर्भरता
+        घटाउनुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुरको श्रम संरचना कृषि र अदक्ष श्रममा अत्यधिक केन्द्रित छ — एउटा निर्वाहमुखी अर्थतन्त्रको स्पष्ट तस्बिर ।
+      सीप विकास, कृषि आधुनिकीकरण र बाल श्रम निवारणमार्फत यसलाई उत्पादनशील, दक्ष र सुरक्षित श्रमबजारमा रूपान्तरण गर्नु नै
+      आर्थिक समृद्धिको आधार हो ।
+    </p>
+  </div>
 </section>

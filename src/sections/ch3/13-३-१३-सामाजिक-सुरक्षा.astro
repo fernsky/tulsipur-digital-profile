@@ -1,36 +1,91 @@
 ---
 import DataTable from "../../components/DataTable.astro";
 import AutoViz from "../../components/viz/AutoViz.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import StackedBar from "../../components/viz/StackedBar.astro";
-import { cellStr, toNum } from "../../lib/ne";
+import Donut from "../../components/viz/Donut.astro";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":13,"id":"s-3-13-३-१३-सामाजिक-सुरक्षा","title":"३.१३ सामाजिक सुरक्षा","subsections":[]};
 
-// Section KPIs — auto-seeded from the main table. Edit freely.
-const kpis = [];
+const TOTAL_POP = 179755;
+const ELDERLY_POP = 15245;   // ६०+ जनसंख्या (तालिका ७ / खण्ड ३.३)
+const DISABLED_TOTAL = 3012; // कुल अपाङ्गता (खण्ड ३.१०)
 
 const t1 = {"caption":"तालिका नं. २२ – पालिकामा रहेका लक्षित वर्गसँग सम्बिन्धत सञ्जालहरुको विवरण","source":"","rows":[["क्र.सं.","सञ्जालहरु","संख्या"],["१","ज्येष्ठ नागरिक नगर सञ्जाल","१"],["२","ज्येष्ठ नागरिक वडा सञ्जाल","१९"],["३","बालबालिकाको नगर सञ्जाल","१"],["४","अपाङ्गता भएका व्यक्तिहरुको नगर सञ्जाल","१"],["५","अपाङ्गता भएका व्यक्तिहरुको वडा सञ्जाल","१९"]]};
 const t2 = {"caption":"तालिका नं. २३ – सामाजिक सुरक्षा भत्ता प्राप्त गर्ने लाभग्राहीहरुको संख्यात्मक विवरण","source":"","rows":[[{"text":"वडा नं.","colspan":1,"rowspan":2},{"text":"विवरण शिर्षक","colspan":8,"rowspan":1},{"text":"जम्मा","colspan":1,"rowspan":2}],["अन्य ज्येष्ठ नागरिक भत्ता","ज्येष्ठ नागरिक भत्ता (दलित)","ज्येष्ठ नागरिक भत्ता (एकल महिला)","विधवा","पूर्ण अपाङ्गता भत्ता","अति अशक्त अपाङ्गता भत्ता","दलित बालबालिका","लोपोन्मुख जाति"],["१","२९९","७१","४१","७७","९","२७","१०१","०","६२५"],["२","२६२","१२","४४","८१","६","२२","१९","०","४४६"],["३","४६५","६९","१०२","१७३","९","६०","८७","०","९६५"],["४","५१७","८६","१०४","१५३","१६","४३","१०६","८","१०३३"],["५","२९१","६८","८१","१६३","१०","३८","१३२","०","७८३"],["६","४८६","५६","९१","१८३","२३","४२","१०८","०","९८९"],["७","६२७","११४","१२०","२०३","२१","७२","१३८","०","१२९५"],["८","३९२","४२","६२","११७","१२","३९","८३","०","७४७"],["९","२४७","६२","३९","१०३","१७","३१","९६","०","५९५"],["१०","३३९","७","६५","११७","१२","२९","७","०","५७६"],["११","५४४","४८","८१","१४६","१३","४८","४८","०","९२८"],["१२","४६२","३१","९८","१५६","१४","२७","६९","०","८५७"],["१३","३२६","७६","४५","११३","५","२८","९९","०","६९२"],["१४","३३४","५३","७५","११४","११","३२","७९","०","६९८"],["१५","४०६","४२","७४","११८","११","३४","५१","०","७३६"],["१६","४०७","२२","७४","१२६","१५","३०","३३","०","७०७"],["१७","४१६","६३","७५","१३९","१७","४०","८१","०","८३१"],["१८","४२६","८६","७३","१३२","१२","२८","१४५","०","९०२"],["१९","३४३","६१","८३","१०९","७","२३","१२०","०","७४६"],["","७५८९","१०६९","१४२७","२५२३","२४०","६९३","१६०२","८","१५१५१"]]};
-const ssPalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04"];
+
+// --- Parse the beneficiary table --------------------------------------------
 const ssHeader = t2.rows[1].map(cellStr);
-const ssTotals = t2.rows[t2.rows.length - 1];
+const totalsRow = t2.rows[t2.rows.length - 1];
+const typeVals = ssHeader.map((n, i) => ({ name: n, v: toNum(totalsRow[i + 1]) }));
+const grandTotal = toNum(totalsRow[ssHeader.length + 1]);
+const find = (re) => typeVals.filter((t) => re.test(t.name)).reduce((s, t) => s + t.v, 0);
+
+const senior = find(/ज्येष्ठ/);
+const widow = find(/विधवा/);
+const disability = find(/अपाङ्गता/);
+const children = find(/बालबालिका/);
+const endangered = find(/लोपोन्मुख/);
+const dalitTargeted = find(/दलित/);
+const singleWomenSenior = find(/एकल महिला/);
+const womenTargeted = singleWomenSenior + widow;
+
+const coverage = (grandTotal / TOTAL_POP) * 100;
+const seniorCoverage = (senior / ELDERLY_POP) * 100;
+const disabilityCoverage = (disability / DISABLED_TOTAL) * 100;
+
+// ward beneficiary counts
+const wardRows = t2.rows.slice(2).filter((r) => cellStr(r[0]) !== "")
+  .map((r) => ({ ward: cellStr(r[0]), total: toNum(r[ssHeader.length + 1]) }));
+const topWard = wardRows.reduce((a, b) => (b.total > a.total ? b : a));
+
+// social-protection networks (table 1)
+const netTotal = t1.rows.slice(1).reduce((s, r) => s + toNum(r[2]), 0);
+
+const kpis = [
+  { label: "कुल लाभग्राही", value: neInt(grandTotal) },
+  { label: "सामाजिक सुरक्षा कभरेज", value: neDec(coverage), unit: "%" },
+  { label: "ज्येष्ठ नागरिक भत्ता", value: neInt(senior) },
+  { label: "महिला लक्षित भत्ता", value: neInt(womenTargeted) },
+];
+
+// --- Visualization datasets -------------------------------------------------
+const ssPalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04"];
 const ssSegments = ssHeader
-  .map((name, i) => ({ label: name, value: toNum(ssTotals[i + 1]), color: ssPalette[i % ssPalette.length] }))
+  .map((name, i) => ({ label: name, value: toNum(totalsRow[i + 1]), color: ssPalette[i % ssPalette.length] }))
   .filter((s) => s.value > 0);
+
+const groupSegs = [
+  { label: "ज्येष्ठ नागरिक भत्ता", value: senior, color: "#7c3aed" },
+  { label: "विधवा/एकल महिला (विधवा)", value: widow, color: "#db2777" },
+  { label: "दलित बालबालिका पोषण", value: children, color: "#16a34a" },
+  { label: "अपाङ्गता भत्ता", value: disability, color: "#dc2626" },
+  { label: "लोपोन्मुख जाति", value: endangered, color: "#a3a3a3" },
+];
+
+const coverageTiles = [
+  { label: "सामाजिक सुरक्षा कभरेज दर", value: `${neDec(coverage)}%`, sub: `Coverage Rate · कुल जनसंख्याको · ${neInt(grandTotal)} लाभग्राही`, color: "#2563eb" },
+  { label: "ज्येष्ठ नागरिक कभरेज", value: `${neDec(seniorCoverage)}%`, sub: `६०+ जनसंख्या (${neInt(ELDERLY_POP)}) मध्ये भत्ता पाउने`, color: "#7c3aed" },
+  { label: "अपाङ्गता भत्ता कभरेज", value: `${neDec(disabilityCoverage)}%`, sub: `कुल अपाङ्गता (${neInt(DISABLED_TOTAL)}) मध्ये भत्ता पाउने (गम्भीर मात्र)`, color: "#dc2626" },
+  { label: "महिला लक्षित भत्ता हिस्सा", value: `${neDec((womenTargeted / grandTotal) * 100)}%`, sub: `विधवा + एकल महिला · ${neInt(womenTargeted)} जना`, color: "#db2777" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
+
+  <!-- Official intro — retained -->
   <div class="prose-ne reveal"><p>समाजमा पछािड पारिएका तथा परेका ज्येष्ठ नागरिक, एकल महिला, अपाङ्गता भएका व्यक्तिहरूलाई सामाजिक सुरक्षा भत्ताको नाममा राज्य कोषबाट सहयोग गर्ने अवधारणा कल्याणकारी राज्यको अवधारणा हो । वि.सं. २०५१ देखि ज्येष्ठ नागरिकलाई मासिक १०० रूपैयाँ भत्ता दिने नारा सहित शुरु गरिएको सामाजिक सुरक्षा भत्ता अहिले ज्येष्ठ नागरिकका साथसाथै एकल महिला, अपाङ्गता भएका र दलित ज्येष्ठ नागरिकलाई समेत प्रदान गरिदै आएको छ । यसले समाजमा पछाडि परेका अशक्तहरूलाई सम्मानपूर्वक बाँच्न प्रोत्साहन हुने विश्वास गरिएको छ ।</p></div>
+
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
   <AutoViz table={t1} title={t1.caption} />
   <div class="prose-ne reveal"><p>स्रोत– नगरकार्यपालिकाको कार्यालय</p></div>
+  <div class="prose-ne reveal"><p>लक्षित वर्गका हक–हित संरक्षणका लागि पालिकाभर जम्मा <strong>{neInt(netTotal)} वटा सञ्जाल</strong> (ज्येष्ठ नागरिक, बालबालिका र अपाङ्गता) क्रियाशील छन्, जसले सामाजिक सुरक्षाको संस्थागत आधार बलियो बनाएका छन् ।</p></div>
   <div class="prose-ne reveal"><p>सामाजिक सुरक्षा ऐन, २०७५ अनुसार देहाय बमोजिमका नेपाली नागरिकलाई सामाजिक सुरक्षा भत्ता पाउने उल्लेख गरिएको छ :–</p></div>
+
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
   <StackedBar
@@ -40,6 +95,46 @@ const ssSegments = ssHeader
     unit="जना"
   />
   <div class="prose-ne reveal"><p>स्रोतः नगरकार्यपालिकाको कार्यालय</p></div>
+
+  <!-- ======================= target-group re-aggregation + coverage ======================= -->
+  <Donut
+    title="लक्षित वर्गअनुसार लाभग्राही संरचना"
+    subtitle="८ भत्ता प्रकारलाई प्रमुख लक्षित समूहमा पुनर्समूहीकरण"
+    segments={groupSegs}
+    centerValue={neInt(grandTotal)}
+    centerLabel="कुल लाभग्राही"
+  />
+
+  <StatTiles
+    title="सामाजिक सुरक्षा कभरेज सूचकहरू"
+    subtitle="कति लक्षित जनसंख्यासम्म भत्ता पुगेको छ"
+    tiles={coverageTiles}
+    cols={4}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">कभरेजको गहिराइ — अरू खण्डसँग जोडेर</h3>
+    <p>
+      <strong>सामाजिक सुरक्षा कभरेज दर ({neDec(coverage)}%):</strong> कुल जनसंख्याको कति हिस्सालाई राज्यले भत्ता दिन्छ भन्ने
+      मापन । तुलसीपुरमा प्रत्येक १२ जनामध्ये करिब एक जना ({neInt(grandTotal)} लाभग्राही) कुनै न कुनै सामाजिक सुरक्षा भत्ता
+      पाउँछन् — यो कल्याणकारी राज्यको बलियो उपस्थिति देखाउँछ ।
+    </p>
+    <p>
+      <strong>तर साँचो कभरेज लक्षित समूहसँग तुलना गर्दा खुल्छ ।</strong> ज्येष्ठ नागरिक भत्ता पाउने {neInt(senior)} जनालाई
+      खण्ड ३.३ को ६०+ जनसंख्या ({neInt(ELDERLY_POP)}) सँग तुलना गर्दा <strong>{neDec(seniorCoverage)}%</strong> वृद्धले भत्ता
+      पाएको देखिन्छ (बाँकीले ६८ वर्ष ननाघेकाले अझै पाएका छैनन्) । त्यसैगरी, अपाङ्गता भत्ता पाउने {neInt(disability)} जनालाई
+      खण्ड ३.१० को कुल अपाङ्गता ({neInt(DISABLED_TOTAL)}) सँग तुलना गर्दा मात्र <strong>{neDec(disabilityCoverage)}%</strong> ले
+      भत्ता पाएको देखिन्छ — किनभने भत्ता पूर्ण/अति अशक्त (तह क र ख) अपाङ्गतालाई मात्र दिइन्छ, हल्का अपाङ्गतालाई होइन ।
+    </p>
+    <p>
+      <strong>लैङ्गिक र समावेशी आयाम:</strong> कुल लाभग्राहीमध्ये <strong>{neDec((womenTargeted / grandTotal) * 100)}%</strong>
+      ({neInt(womenTargeted)}) विधवा र एकल महिला लक्षित भत्ता हुन्, र <strong>{neInt(dalitTargeted)}</strong> ({neDec((dalitTargeted / grandTotal) * 100)}%)
+      दलित–लक्षित (ज्येष्ठ + बालबालिका) भत्ता हुन् । यसले सामाजिक सुरक्षा प्रणालीले महिला र दलित जस्ता ऐतिहासिक रूपमा पछाडि
+      पारिएका वर्गलाई प्राथमिकता दिएको देखाउँछ । सबैभन्दा बढी लाभग्राही वडा {topWard.ward} ({neInt(topWard.total)}) मा छन् ।
+    </p>
+  </div>
+
+  <!-- Official allowance descriptions — retained -->
   <div class="prose-ne reveal"><p>(क) ज्येष्ठ नागरिक, (ख) आर्थिक रूपले विपन्न, (ग) अशक्त र असहाय अवस्थामा रहेका व्यक्ति, (घ) असहाय एकल महिला (ङ) अपाङ्गता भएका, (च) बालबालिका (छ) आफ्नो हेरचाह आफै गर्न नसक्ने (ज) लोपोन्मुख जाति आदि ।</p></div>
   <div class="prose-ne reveal"><p>ज्येष्ठ नागरिक भत्ता: (१) दलित र एकल महिला ज्येष्ठ नागरिकले साठी वर्ष उमेर पूरा गरेपछि र अन्य ज्येष्ठ नागरिकले अठ्सठ्ठी वर्ष उमेर पूरा गरेपछि सामाजिक सुरक्षा भत्ताको रूपमा नेपाल सरकारले तोके बमोजिमको ज्येष्ठ नागरिक भत्ता पाउँछन् ।</p></div>
   <div class="prose-ne reveal"><p>विपन्न नागरिक भत्ताः आर्थिक रूपले विपन्न नागरिकले तोकिए बमोजिम सामाजिक सुरक्षा भत्ताको रूपमा नेपाल सरकारले तोकेको रकम विपन्न नागरिक भत्ता पाउँछ ।</p></div>
@@ -49,4 +144,36 @@ const ssSegments = ssHeader
   <div class="prose-ne reveal"><p>बाल पोषण भत्ताः अति विपन्न, लोपोन्मुख र नेपाल सरकारले तोकेका पाँच वर्ष उमेर पूरा नगरेका बालबालिकाले सामाजिक सुरक्षा भत्ताको रूपमा नेपाल सरकारले तोकेको बालपोषण भत्ता पाउँछन् ।</p></div>
   <div class="prose-ne reveal"><p>लोपोन्मुख जाति भत्ताः लोपोन्मुख जातिका नागरिकले नेपाल सरकारले तोकेको सामाजिक सुरक्षा भत्ता पाउँछन् ।</p></div>
   <div class="prose-ne reveal"><p>आफ्नो हेरचाह आफै गर्न नसक्नेलाई स्याहार भत्ताः आफ्नो हेरचाह आपmै गर्न नसक्ने नागरिकले नेपाल सरकारले तोकेको सामाजिक सुरक्षा भत्ता पाउँछन् ।</p></div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको सामाजिक सुरक्षा तथ्याङ्कको विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>शतप्रतिशत पात्रता पहुँच:</strong> ज्येष्ठ नागरिक कभरेज {neDec(seniorCoverage)}% रहेकाले उमेर पुगेका सबै पात्रलाई
+        भत्तामा स्वतः समावेश गर्न दर्ता–अनुगमन प्रणाली सुदृढ गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>अपाङ्गता कभरेज विस्तार:</strong> कुल अपाङ्गताको मात्र {neDec(disabilityCoverage)}% ले भत्ता पाएकाले मध्यम/हल्का
+        अपाङ्गतालाई समेत सीप, रोजगारी र आंशिक सहयोगमा समेट्ने नीति आवश्यक ।
+      </li>
+      <li>
+        <strong>महिला र दलित प्राथमिकता निरन्तरता:</strong> महिला ({neDec((womenTargeted / grandTotal) * 100)}%) र दलित–लक्षित
+        भत्ता निरन्तर राखी समावेशी सामाजिक सुरक्षाको मर्म कायम राख्नुपर्ने ।
+      </li>
+      <li>
+        <strong>भत्ताभन्दा माथि — सशक्तिकरण:</strong> भत्तालाई आय–सुरक्षासँगै सीप, स्वास्थ्य र सामाजिक सहभागिता कार्यक्रमसँग
+        जोडी लाभग्राहीलाई आत्मनिर्भर बनाउने रणनीति अपनाउनुपर्ने ।
+      </li>
+      <li>
+        <strong>सञ्जाल परिचालन:</strong> {neInt(netTotal)} सक्रिय सञ्जालमार्फत भत्ता वितरण अनुगमन, गुनासो सुनुवाइ र हक–अधिकार
+        सचेतना कार्यक्रम सञ्चालन गर्नुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुरको सामाजिक सुरक्षा प्रणाली व्यापक र समावेशी छ — विशेषतः ज्येष्ठ नागरिक, महिला र दलित वर्गमा केन्द्रित ।
+      पात्रता पहुँच पूर्ण बनाउँदै भत्तालाई सशक्तिकरणसँग जोड्नु नै मर्यादित र आत्मनिर्भर समाज निर्माणको आधार हो ।
+    </p>
+  </div>
 </section>

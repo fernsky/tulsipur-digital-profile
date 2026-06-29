@@ -1,10 +1,12 @@
 ---
 import DataTable from "../../components/DataTable.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import StackedBar from "../../components/viz/StackedBar.astro";
-import { cellStr, toNum } from "../../lib/ne";
+import Donut from "../../components/viz/Donut.astro";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import ClusterBars from "../../components/viz/ClusterBars.astro";
+import BarList from "../../components/viz/BarList.astro";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":4,"id":"s-3-4-३-४-मातृभाषाको-आधारमा-जनसंख्याको","title":"३.४ मातृभाषाको आधारमा जनसंख्याको विवरण","subsections":[]};
 
@@ -13,28 +15,219 @@ const kpis = [{"label":"जम्मा जनसंख्या","value":"१,�
 
 const t1 = {"caption":"तालिका नं. ८ – मातृभाषाअनुसार जनसंख्याको विवरण","source":"स्रोत : राष्ट्रिय जनगणना, २०७८","rows":[[{"text":"मातृभाषा","colspan":1,"rowspan":2},{"text":"जम्मा जनसंख्या","colspan":3,"rowspan":1},{"text":"प्रतिशत","colspan":1,"rowspan":2}],["पुरुष","महिला","जम्मा"],["नेपाली","६३८८४","७२६६८","१३६५५२","७५.९७"],["थारु","१७८२१","१९२५७","३७०७८","२०.६३"],["मगर ढुट","९५८","११०८","२०६६","१.१५"],["हिन्दी","५६०","४३०","९९०","०.५५"],["मगर खाम","३३७","४०५","७४२","०.४१"],["नेवारी","२१७","२६४","४८१","०.२७"],["भोजपुरी","१९९","१४९","३४८","०.१९"],["अवधि","१७८","१४७","३२५","०.१८"],["गुरुङ","१४९","१६६","३१५","०.१८"],["कुमाल","१५९","१४९","३०८","०.१७"],["अन्य","३०२","२४८","५५०","०.३१"],["जम्मा","८४७६४","९४९९१","१७९७५५","१००"]]};
 
-const langPalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#a3a3a3"];
-const langSegments = t1.rows
-  .slice(2)
-  .filter((r) => !/जम्मा/.test(cellStr(r[0])))
-  .map((r, i) => ({ label: cellStr(r[0]), value: toNum(r[3]), color: langPalette[i % langPalette.length] }));
+// --- Derive everything from the mother-tongue table -------------------------
+const langRows = t1.rows.slice(2).filter((r) => !/जम्मा/.test(cellStr(r[0])));
+const langs = langRows.map((r) => ({
+  name: cellStr(r[0]),
+  m: toNum(r[1]),
+  f: toNum(r[2]),
+  t: toNum(r[3]),
+  pct: toNum(r[4]),
+}));
+const TOT = langs.reduce((s, x) => s + x.t, 0);
+const M = langs.reduce((s, x) => s + x.m, 0);
+const F = langs.reduce((s, x) => s + x.f, 0);
+
+const named = langs.filter((l) => l.name !== "अन्य");
+const top = langs[0];                 // नेपाली
+const second = langs[1];              // थारु
+const third = langs[2];               // मगर ढुट
+const topTwoPct = ((top.t + second.t) / TOT) * 100;
+const nonNepali = TOT - top.t;
+const nonNepaliPct = (nonNepali / TOT) * 100;
+
+// Greenberg Linguistic Diversity Index (probability two random people differ)
+const sumSq = langs.reduce((s, x) => s + Math.pow(x.t / TOT, 2), 0);
+const diversityIndex = 1 - sumSq;
+const effectiveLangs = 1 / sumSq;
+
+const sexRatio = (l) => (l.m / l.f) * 100;        // males per 100 females
+const maleSkewed = langs.filter((l) => l.name !== "अन्य" && sexRatio(l) > 110);
+
+// "Other 8 languages" bucket (everything below top three)
+const restTotal = TOT - top.t - second.t - third.t;
+const restPct = (restTotal / TOT) * 100;
+
+const pal = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#a3a3a3"];
+
+// --- Visualization datasets -------------------------------------------------
+const overviewTiles = [
+  { label: "नेपाली भाषी", value: neInt(top.t), sub: `कुल जनसंख्याको ${neDec(top.pct)}%`, color: "#2563eb" },
+  { label: "थारु भाषी", value: neInt(second.t), sub: `कुल जनसंख्याको ${neDec(second.pct)}%`, color: "#16a34a" },
+  { label: "मगर ढुट भाषी", value: neInt(third.t), sub: `कुल जनसंख्याको ${neDec(third.pct)}%`, color: "#f59e0b" },
+  { label: "अन्य ८ भाषा (कुल)", value: neInt(restTotal), sub: `कुल जनसंख्याको ${neDec(restPct)}%`, color: "#7c3aed" },
+];
+
+const donutSegs = [
+  { label: "नेपाली", value: top.t, color: "#2563eb" },
+  { label: "थारु", value: second.t, color: "#16a34a" },
+  { label: "मगर ढुट", value: third.t, color: "#f59e0b" },
+  { label: "अन्य भाषाहरू", value: restTotal, color: "#a3a3a3" },
+];
+
+const langSegments = langs.map((l, i) => ({ label: l.name, value: l.t, color: pal[i % pal.length] }));
+
+const diversityTiles = [
+  { label: "भाषिक विविधता सूचकाङ्क", value: neDec(diversityIndex, 2), sub: `Linguistic Diversity Index (०–१) · दुई जना अनियमित व्यक्तिको मातृभाषा फरक हुने सम्भावना ${neDec(diversityIndex * 100)}%`, color: "#7c3aed" },
+  { label: "प्रभावकारी भाषा संख्या", value: neDec(effectiveLangs), sub: `Effective Number of Languages · व्यवहारमा हाबी भाषा संख्या`, color: "#0891b2" },
+  { label: "प्रमुख दुई भाषाको हिस्सा", value: `${neDec(topTwoPct)}%`, sub: `Top-2 concentration · नेपाली + थारु`, color: "#2563eb" },
+  { label: "गैर–नेपालीभाषी जनसंख्या", value: neInt(nonNepali), sub: `${neDec(nonNepaliPct)}% · नेपालीबाहेक मातृभाषा`, color: "#dc2626" },
+  { label: "कुल अभिलिखित मातृभाषा", value: `${neInt(named.length)}+`, sub: `${neInt(named.length)} नामित भाषा र "अन्य" वर्ग`, color: "#16a34a" },
+  { label: "सबैभन्दा ठूलो मातृभाषिक अल्पसंख्यक", value: neInt(second.t), sub: `थारु — ${neDec(second.pct)}% (सबैभन्दा ठूलो आदिवासी भाषा)`, color: "#f59e0b" },
+];
+
+const topForGender = langs.filter((l) => l.name !== "अन्य").slice(0, 6);
+const genderCluster = topForGender.map((l) => ({ label: l.name, a: l.m, b: l.f }));
+
+const rankList = langs.map((l, i) => ({
+  label: l.name,
+  value: l.t,
+  color: pal[i % pal.length],
+  valueText: `${neInt(l.t)} (${neDec(l.pct)}%)`,
+  sub: `पुरुष ${neInt(l.m)} · महिला ${neInt(l.f)} · लिङ्ग अनुपात ${neDec(sexRatio(l))}`,
+}));
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
+
+  <!-- Official intro (retained, leads the section) -->
   <div class="prose-ne reveal"><p>नेपाल एक बहु–जाति, बहु–भाषा र बहु–साँस्कृतिक विशेषता बोकेको राष्ट्र हो । यस उप–महानगरपालिकामा पनि भाषिक विविधता रहेको देखिन्छ । उप–महानगरपालिकामा रहेका कुल १,७९,७५५ जनसंख्या मध्ये सबैभन्दा बढी १,३६,५५२ अर्थात ७५.९७ प्रतिशतले नेपाली भाषा बोल्ने गरेको पाइयो भने ३७,०७८ अर्थात २०.६३ प्रतिशतले थारु र २,०६६ अर्थात १.१५ प्रतिशतले मगर ढुट भाषा बोल्ने गरेको पाइयो । संविधानको धारा ३२ ले भाषा तथा संस्कृतिको हकलाई मौलिक हकको रुपमा स्थापित गरेको र धारा ३१ को शिक्षा सम्बन्धी हकको उपधारा ५ बमोजिम “नेपालमा बसोबास गर्ने प्रत्येक नेपाली समुदायलाई कानून बमोजिम आफ्नो मातृभाषामा शिक्षा पाउने र त्यसका लागि विद्यालय तथा शैक्षिक संस्था खोल्ने र संचालन गर्ने हक हुनेछ” भनी स्पष्ट किटान गरेको छ । आफ्नो मातृभाषामा पढ्न चाहने विद्यार्थीहरूलाई उप–महानगरपालिकाले विशेष व्यवस्था गर्न सक्ने प्रावधान रहेको छ । मातृभाषा अनुुसारको विस्तृत विवरण तालिकामा उल्लेख गरिएको छ ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
-  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
-  <StackedBar
+
+  <!-- ======================= एक नजरमा (visual summary) ======================= -->
+  <StatTiles
+    title="एक नजरमा — मातृभाषाको हिस्सा"
+    subtitle={`कुल जनसंख्या ${neInt(TOT)} (पुरुष ${neInt(M)} · महिला ${neInt(F)})`}
+    tiles={overviewTiles}
+    cols={4}
+  />
+
+  <Donut
     title="मातृभाषाको संरचना"
+    subtitle="कुल जनसंख्यामा प्रमुख मातृभाषाहरूको हिस्सा"
+    segments={donutSegs}
+    centerValue={neInt(TOT)}
+    centerLabel="कुल जनसंख्या"
+  />
+
+  <div class="prose-ne reveal">
+    <p>
+      माथिको चित्रले देखाउँछ — तुलसीपुर भाषिक रूपमा <strong>नेपाली–प्रधान</strong> भए पनि एकल–भाषी समाज होइन । कुल जनसंख्याको
+      <strong>{neDec(nonNepaliPct)}%</strong> ({neInt(nonNepali)} जना) ले नेपालीबाहेक अन्य मातृभाषा बोल्छन्, जसमध्ये थारु
+      भाषा (एक्लै {neDec(second.pct)}%) ले यो पालिकाको प्रमुख मातृभाषिक अल्पसंख्यक समुदायको पहिचान बनाएको छ । तल पहिले प्रत्येक
+      भाषाको पूर्ण विवरण, त्यसपछि यो विविधतालाई कसरी “नाप्ने” भन्ने सूचकहरूको सरल व्याख्या गरिएको छ ।
+    </p>
+  </div>
+
+  <!-- ======================= full table ======================= -->
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+
+  <StackedBar
+    title="मातृभाषाको पूर्ण संरचना"
     subtitle="कुल जनसंख्यामा प्रत्येक मातृभाषाको हिस्सा"
     segments={langSegments}
     unit="जना"
   />
-  <h4 id="h-16-क-आदिबासी" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">(क) आदिबासी</h4>
+
+  <BarList
+    title="मातृभाषाको क्रमबद्ध सूची"
+    subtitle="संख्या, प्रतिशत र लिङ्गगत वितरण सहित"
+    items={rankList}
+  />
+
+  <!-- ======================= diversity indicators ======================= -->
+  <StatTiles
+    title="भाषिक विविधताका सूचकहरू (Linguistic Diversity Indicators)"
+    subtitle="एउटै तालिकाबाट निकालिएका व्युत्पन्न सूचकहरू"
+    tiles={diversityTiles}
+    cols={3}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">यी सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. भाषिक विविधता सूचकाङ्क (Linguistic Diversity Index):</strong> यो ० देखि १ सम्मको एउटा अंक हो जसले “यदि
+      भीडबाट दुई जना मानिस अनियमित (random) रूपमा रोजियो भने उनीहरूको मातृभाषा फरक हुने सम्भावना कति छ ?” भन्ने नाप्छ ।
+      ० भनेको सबैले एउटै भाषा बोल्ने (शून्य विविधता), र १ भनेको हरेक व्यक्ति फरक भाषा बोल्ने (पूर्ण विविधता) । तुलसीपुरको
+      यो सूचकाङ्क <strong>{neDec(diversityIndex, 2)}</strong> छ — अर्थात् करिब <strong>{neDec(diversityIndex * 100)}%</strong>
+      सम्भावना छ कि दुई अनियमित व्यक्तिको मातृभाषा फरक होस् । नेपाली भाषाको बलियो बाहुल्यताले यो अंकलाई मध्यम स्तरमा राखेको छ ।
+    </p>
+    <p>
+      <strong>२. प्रभावकारी भाषा संख्या (Effective Number of Languages):</strong> तालिकामा भाषा {neInt(named.length)}+ भए पनि,
+      व्यवहारमा “तौलिएर” हेर्दा कति भाषा वास्तवमै हाबी छन् भन्ने यसले देखाउँछ । तुलसीपुरमा यो करिब <strong>{neDec(effectiveLangs)}</strong>
+      मात्र छ — किनभने नेपाली र थारु दुई भाषाले मिलेर कुल जनसंख्याको <strong>{neDec(topTwoPct)}%</strong> ओगट्छन्, र बाँकी भाषाहरूको
+      हिस्सा अत्यन्त सानो छ । अर्थात् धेरै भाषा अभिलिखित भए पनि सार्वजनिक जीवनमा प्रभावकारी रूपमा दुईवटा भाषा नै चल्छन् ।
+    </p>
+    <p>
+      <strong>३. प्रमुख दुई भाषाको केन्द्रीकरण (Concentration):</strong> नेपाली ({neDec(top.pct)}%) र थारु ({neDec(second.pct)}%)
+      मिलेर <strong>{neDec(topTwoPct)}%</strong> जनसंख्या समेट्छन् । यो उच्च केन्द्रीकरणले एकातिर शासन र शिक्षामा सहजता ल्याउँछ
+      भने अर्कातिर साना भाषाहरू (मगर ढुट, मगर खाम, नेवारी, भोजपुरी, अवधि, गुरुङ, कुमाल आदि) लोप हुने जोखिममा पर्न सक्ने संकेत गर्छ ।
+    </p>
+  </div>
+
+  <!-- ======================= gender composition ======================= -->
+  <ClusterBars
+    title="प्रमुख मातृभाषामा पुरुष–महिला तुलना"
+    subtitle="माथिल्ला ६ भाषामा लिङ्गगत वितरण"
+    items={genderCluster}
+    aLabel="पुरूष"
+    bLabel="महिला"
+    aColor="#2563eb"
+    bColor="#db2777"
+    unit="जना"
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">लिङ्ग अनुपात — भाषाले बसाइँसराइ झल्काउँछ</h3>
+    <p>
+      <strong>लिङ्ग अनुपात (Sex Ratio)</strong> भनेको प्रति १०० महिलामा कति पुरुष भन्ने मापन हो । अधिकांश स्थानीय मातृभाषामा
+      (नेपाली {neDec(sexRatio(top))}, थारु {neDec(sexRatio(second))}) महिलाको बाहुल्यता छ, जुन समग्र जनसंख्याकै प्रवृत्ति हो ।
+      तर केही मधेस/भारतीय सिमाना नजिकका भाषाहरूमा — विशेषतः
+      {maleSkewed.map((l, i) => `${l.name} (${neDec(sexRatio(l))})${i < maleSkewed.length - 1 ? ", " : ""}`).join("")}
+      — पुरुषको स्पष्ट बाहुल्यता छ । यो प्रायः रोजगारी वा व्यापारका सिलसिलामा आएका पुरुषबहुल बसाइँसराइ (labour migration) को
+      संकेत हो, किनभने यी भाषा बोल्ने धेरै पुरुष परिवारबिना नै बसोबास गरेका हुन सक्छन् । यसरी भाषिक तथ्याङ्कले जनसंख्याको
+      गतिशीलता (mobility) समेत उजागर गर्छ ।
+    </p>
+  </div>
+
+  <!-- ======================= retained social analysis ======================= -->
+  <h4 id="h-16-क-आदिबासी" class="reveal scroll-mt-24 mt-7 mb-2 text-[1rem] font-bold text-[var(--color-text)]">(क) आदिबासी</h4>
   <div class="prose-ne reveal"><p>आदिवासी/जनजाती उत्थान राष्ट्रिय प्रतिष्ठान ऐन, २०५८ अनुसार आदिबासी जनजाती भन्नाले आफ्नो मातृभाषा र परम्परागत रीतिरिवाज, छुट्टै साँस्कृतिक पहिचान, छुट्टै सामाजिक संरचना र लिखित वा अलिखित इतिहास भएका ५८ जाति वा समुदायलार्ई बुझिन्छ । यस उप–महानगरपालिकाको कुल जनसंख्या १,७९,७५५ मध्ये २१.३ प्रतिशत (३८,३२५ जना) जनसंख्या थारु समुदायका रहेका छन् । यसैगरी उप–महानगरपालिकामा कुल जनसंख्याको ९ प्रतिशत मगर, ७.५ प्रतिशत विश्वकर्मा, ३.७ प्रतिशत परियार, २.३ प्रतिशत सन्यासी/दसनामी र १.७ प्रतिशत मिजार समुदायका व्यक्तिहरुको बसोबास रहेको पाउन सकिन्छ । यी समुदायद्वारा उप–महानगरपालिकाको मौलिक संस्कृतिलाई जीवन्त राख्न सहयोग प्रुयाएको देखिए तापनि यो समुदाय सामाजिक, राजनैतिक र आर्थिक विकासको दृष्टिकोणले पछाडि परेको देखिन्छ । उप–महानगरपालिकाको विकासको लागि यो समुदायलाई अहिलेको अवस्थाबाट माथि उठाउन क्षमता विकास, सशक्तिकरण जस्ता विशेष कार्यक्रमहरू सञ्चालन गर्नुपर्ने देखिन्छ ।</p></div>
   <h4 id="h-17-ख-उत्पीडित-तथा-सिमान्तकृत-सम" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">(ख) उत्पीडित तथा सिमान्तकृत समुदाय</h4>
   <div class="prose-ne reveal"><p>नेपालको संविधानको भाग ३४ अन्तर्गतको धारा ३०६ को (ड) मा सीमान्तकृत समुदाय भन्नाले राजनीतिक, आर्थिक र सामाजिक रुपले पछाडि पारिएका विभेद र उत्पीडन तथा भौगोलिक विकटताको कारणले सेवा सुविधाको उपभोग गर्न नसकेका वा त्यसबाट बञ्चित रहेका संघीय कानून बमोजिमको मानव विकासको स्तर भन्दा न्यून स्थितिमा रहेका समुदाय सम्झनु पर्दछ भनी उल्लेख गरेको छ ।</p></div>
   <div class="prose-ne reveal"><p>सामाजिक विभेदका रुपमा छुवाछुत जस्तो अमानवीय भेदभाव भोगिरहेको यो समुदायले राजनैतिक, आर्थिक र सामाजिक क्षेत्रमा समेत उपेक्षाको अनुभूत गर्नु परेको छ । यस समुदायका आधारभूत र मा.वि.मा अध्ययनरत छात्र छात्राहरूको संख्या तुलनात्मक रुपमा कम रहेको छ । परम्परागत सिपको धनी यो समुदायले आफ्नो सिपलाई आर्थिक विपन्नता र सामाजिक उपेक्षाका कारण पनि अघि बढाउन नसकेको पाइन्छ । निजामती सेवा र गैरसरकारी सेवामा पनि यो समुदायको उपस्थिति अत्यन्तै न्यून छ । त्यसैगरी राजनितिक क्षेत्रमा २०४६, साल यता यो समुदायले आफ्ना सामुदायिक संगठनहरू समेत निर्माण गरेको पाइन्छ । राजनितिक नेतृत्वमा भने सिमित व्यक्तिहरूले मात्र यस समुदायको प्रतिनिधित्व गरिरहेका छन् । यस समुदायका अधिकांश व्यक्तिहरू अदक्ष र अर्धदक्ष जनशक्ति कै रुपमा ज्याला, मजदुरी गरेर जीवनयापन गरिरहेको पाइन्छ । यस उप–महानगरपालिकाको विकासका लागि यो समुदायलाई अहिलेको अवस्थाबाट माथि उठाउन विशेष अभियानको थालनी गर्नुपर्ने अवस्था देखिन्छ ।</p></div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको मातृभाषिक संरचनाको विश्लेषणबाट निम्न निष्कर्ष र नीतिगत सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>बहुभाषिक शिक्षा:</strong> गैर–नेपालीभाषी {neDec(nonNepaliPct)}% ({neInt(nonNepali)} जना) भएकाले संविधानको धारा ३१(५)
+        बमोजिम थारुलगायतका मातृभाषामा प्रारम्भिक शिक्षाको व्यवस्था गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>थारु भाषा–संस्कृति संरक्षण:</strong> थारु ({neDec(second.pct)}%) सबैभन्दा ठूलो मातृभाषिक समुदाय भएकाले यस भाषाको
+        लिखित सामग्री, शिक्षक तालिम र साँस्कृतिक कार्यक्रममा लगानी गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>लोपोन्मुख भाषाको संरक्षण:</strong> मगर ढुट, मगर खाम, नेवारी, भोजपुरी, अवधि, गुरुङ, कुमाल जस्ता साना भाषाहरू
+        (प्रत्येक १% भन्दा कम) लोप हुने जोखिममा रहेकाले अभिलेखीकरण र पुस्तान्तरणका कार्यक्रम सञ्चालन गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>बसाइँसराइ संवेदनशील सेवा:</strong> हिन्दी, भोजपुरी, अवधि जस्ता पुरुषबहुल भाषिक समूह बसाइँसराइसँग जोडिएकाले
+        यी समुदायलाई सूचना, स्वास्थ्य र श्रम अधिकार सम्बन्धी सेवा सहज भाषामा पुर्‍याउनुपर्ने ।
+      </li>
+      <li>
+        <strong>समावेशी सशक्तिकरण:</strong> आदिवासी, दलित तथा सिमान्तकृत भाषिक समुदायलाई क्षमता विकास, छात्रवृत्ति र
+        प्रतिनिधित्वका विशेष कार्यक्रमबाट मूलधारमा ल्याउनुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुर भाषिक रूपले नेपाली–प्रधान भए पनि थारुलगायत {neInt(named.length)}+ मातृभाषाको सहअस्तित्व बोकेको
+      बहुभाषिक समाज हो । यो विविधतालाई बोझ होइन, साँस्कृतिक सम्पदा र पहिचानको स्रोतका रूपमा हेरी संरक्षण र प्रवर्द्धन गर्नु नै
+      समावेशी विकासको आधार हो ।
+    </p>
+  </div>
 </section>

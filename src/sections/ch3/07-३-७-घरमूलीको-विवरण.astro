@@ -1,11 +1,11 @@
 ---
 import DataTable from "../../components/DataTable.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import Pyramid from "../../components/viz/Pyramid.astro";
 import Donut from "../../components/viz/Donut.astro";
-import { cellStr, toNum } from "../../lib/ne";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import BarList from "../../components/viz/BarList.astro";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":7,"id":"s-3-7-३-७-घरमूलीको-विवरण","title":"३.७ घरमूलीको विवरण","subsections":[]};
 
@@ -13,29 +13,93 @@ const meta = {"chapter":3,"order":7,"id":"s-3-7-३-७-घरमूलीको
 const kpis = [{"label":"पुरुष परिवारमूली","value":"२८४३१"},{"label":"महिला परिवारमूली","value":"१७५८७"},{"label":"जम्मा परिवार संख्या","value":"४६०१८"}];
 
 const t1 = {"caption":"तालिका नं. ११ – लिङ्ग अनुसार परिवारमूलीको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["उमेर समूह","पुरुष परिवारमूली","महिला परिवारमूली","जम्मा परिवार संख्या"],["१०-१४","३०","२८","५८"],["१५-१९","४६६","५५९","१०२५"],["२०-२९","२८८२","४२६६","७१४८"],["३०-३९","६५५२","५९८०","१२५३२"],["४०-४९","७२५९","३३१३","१०५७२"],["५०-५९","५७८४","१७३४","७५१८"],["६०-६९","३७४७","१११०","४८५७"],["७० वर्ष माथि","१७११","५९७","२३०८"],["जम्मा","२८४३१","१७५८७","४६०१८"],["प्रतिशत","६१.७८","३८.२२","१००"]]};
-const headRows = t1.rows
-  .slice(1)
-  .filter((r) => !/जम्मा|प्रतिशत/.test(cellStr(r[0])))
-  .map((r) => ({ label: cellStr(r[0]), left: toNum(r[1]), right: toNum(r[2]) }))
-  .reverse();
-const headTotal = t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+
+const TOTAL_POP = 179755; // उप–महानगरपालिकाको कुल जनसंख्या (तालिका ७)
+
+// --- Parse the headship × age table -----------------------------------------
+const bandMeta = { "१०-१४": [10, 5], "१५-१९": [15, 5], "२०-२९": [20, 10], "३०-३९": [30, 10], "४०-४९": [40, 10], "५०-५९": [50, 10], "६०-६९": [60, 10], "७० वर्ष माथि": [70, 10] };
+const ageRows = t1.rows.slice(1).filter((r) => !/जम्मा|प्रतिशत/.test(cellStr(r[0])))
+  .map((r) => {
+    const label = cellStr(r[0]);
+    const m = toNum(r[1]), f = toNum(r[2]), t = toNum(r[3]);
+    const [start, width] = bandMeta[label] || [0, 10];
+    return { label, m, f, t, start, width, femalePct: (f / t) * 100 };
+  });
+
+const totRow = t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const TOThh = toNum(totRow[3]);
+const maleH = toNum(totRow[1]);
+const femaleH = toNum(totRow[2]);
+
+const avgHHSize = TOTAL_POP / TOThh;
+const fhhRate = (femaleH / TOThh) * 100;                  // Female-Headed Household rate
+const headSexRatio = (maleH / femaleH) * 100;            // पुरुष घरमूली प्रति १०० महिला घरमूली
+const under20 = ageRows.filter((r) => r.start < 20).reduce((s, r) => s + r.t, 0);
+const under20Pct = (under20 / TOThh) * 100;
+const elderly = ageRows.filter((r) => r.start >= 60).reduce((s, r) => s + r.t, 0);
+const elderlyPct = (elderly / TOThh) * 100;
+const peakFemale = ageRows.reduce((a, b) => (b.femalePct > a.femalePct ? b : a));
+const femaleMajorityBands = ageRows.filter((r) => r.femalePct >= 50);
+
+// median head age via interpolation
+let half = TOThh / 2, cum = 0, medianHead = 0;
+for (const r of ageRows) {
+  if (cum + r.t >= half) { medianHead = r.start + ((half - cum) / r.t) * r.width; break; }
+  cum += r.t;
+}
+
+// --- Visualization datasets -------------------------------------------------
+const headRows = [...ageRows].reverse().map((r) => ({ label: r.label, left: r.m, right: r.f }));
 const headSegs = [
-  { label: "पुरुष घरमूली", value: toNum(headTotal[1]), color: "#2563eb" },
-  { label: "महिला घरमूली", value: toNum(headTotal[2]), color: "#db2777" },
+  { label: "पुरुष घरमूली", value: maleH, color: "#2563eb" },
+  { label: "महिला घरमूली", value: femaleH, color: "#db2777" },
 ];
+
+const summaryTiles = [
+  { label: "औसत परिवार आकार", value: neDec(avgHHSize), sub: `Average Household Size · प्रति परिवार ${neDec(avgHHSize)} जना`, color: "#2563eb" },
+  { label: "महिला घरमूली दर (FHH)", value: `${neDec(fhhRate)}%`, sub: `Female-Headed Household Rate · ${neInt(femaleH)} परिवार`, color: "#db2777" },
+  { label: "घरमूली लिङ्ग अनुपात", value: neDec(headSexRatio), sub: `प्रति १०० महिला घरमूलीमा ${neDec(headSexRatio)} पुरुष घरमूली`, color: "#0891b2" },
+  { label: "ज्येष्ठ घरमूली परिवार (६०+)", value: `${neDec(elderlyPct)}%`, sub: `${neInt(elderly)} परिवार वृद्ध घरमूलीद्वारा नेतृत्व`, color: "#7c3aed" },
+  { label: "अनुमानित मध्यम घरमूली उमेर", value: `${neDec(medianHead)} वर्ष`, sub: `Median age of household head`, color: "#f59e0b" },
+  { label: "किशोर घरमूली परिवार (२० वर्षमुनि)", value: `${neDec(under20Pct)}%`, sub: `${neInt(under20)} परिवार — संवेदनशील समूह`, color: "#dc2626" },
+];
+
+const femaleByAge = ageRows.map((r) => ({
+  label: r.label,
+  value: +r.femalePct.toFixed(1),
+  color: r.femalePct >= 50 ? "#db2777" : "#2563eb",
+  valueText: `${neDec(r.femalePct)}%`,
+  badge: `${neInt(r.t)} परिवार`,
+  sub: `पुरुष घरमूली ${neInt(r.m)} · महिला घरमूली ${neInt(r.f)}`,
+}));
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
-  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+
+  <!-- Official intro — retained -->
+  <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेको कुल घरपरिवार संख्या ४६,०१८ मध्ये २८,४३१ अर्थात ६१.७८ प्रतिशत घरपरिवारमा पुरुष घरमूली रहेका छन् भने १७,५८७ अर्थात ३८.२२ प्रतिशत घरपरिवारमा महिला घरमूली रहेका छन् । जसको विस्तृत विवरण तालिकामा उल्लेख गरिएको छ :–</p></div>
+
+  <!-- ======================= एक नजरमा (household indicators) ======================= -->
+  <StatTiles
+    title="एक नजरमा — घरपरिवार सूचकहरू"
+    subtitle={`कुल ${neInt(TOThh)} परिवार · कुल जनसंख्या ${neInt(TOTAL_POP)}`}
+    tiles={summaryTiles}
+    cols={3}
+  />
+
   <Donut
     title="घरमूली लिङ्ग अनुपात"
+    subtitle="कुल परिवारमा पुरुष र महिला घरमूलीको हिस्सा"
     segments={headSegs}
-    centerValue="४६,०१८"
+    centerValue={neInt(TOThh)}
     centerLabel="जम्मा परिवार"
   />
+
+  <!-- ======================= full table ======================= -->
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+
   <Pyramid
     title="उमेर अनुसार घरमूली (लिङ्ग अनुसार)"
     subtitle="पुरुष र महिला घरमूलीको उमेरगत वितरण"
@@ -43,5 +107,93 @@ const headSegs = [
     leftLabel="पुरुष घरमूली"
     rightLabel="महिला घरमूली"
   />
-  <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेको कुल घरपरिवार संख्या ४६,०१८ मध्ये २८,४३१ अर्थात ६१.७८ प्रतिशत घरपरिवारमा पुरुष घरमूली रहेका छन् भने १७,५८७ अर्थात ३८.२२ प्रतिशत घरपरिवारमा महिला घरमूली रहेका छन् । जसको विस्तृत विवरण तालिकामा उल्लेख गरिएको छ :–</p></div>
+
+  <!-- ======================= the migration-signature viz ======================= -->
+  <BarList
+    title="महिला घरमूली अनुपात — उमेर अनुसार"
+    subtitle="प्रत्येक उमेर समूहमा महिला घरमूली भएका परिवारको प्रतिशत (गुलाबी = महिला बहुमत)"
+    items={femaleByAge}
+    max={100}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">एउटा चकित पार्ने ढाँचा — र यसले के भन्छ</h3>
+    <p>
+      माथिको चित्रमा एउटा स्पष्ट ढाँचा देखिन्छ : <strong>कम उमेरमा महिला घरमूली बहुमतमा छन्, बढ्दो उमेरसँगै पुरुष घरमूली हाबी
+      हुँदै जान्छन् ।</strong> महिला घरमूली अनुपात <strong>{peakFemale.label} वर्ष</strong> उमेर समूहमा सर्वोच्च
+      <strong>{neDec(peakFemale.femalePct)}%</strong> पुग्छ — अर्थात् यो उमेरका अधिकांश परिवार महिलाद्वारा नेतृत्व गरिएका छन् —
+      र त्यसपछि क्रमशः घट्दै ४०–४९ मा करिब एक–तिहाइ र ५०+ मा एक–चौथाइमा झर्छ ।
+    </p>
+    <p>
+      यो “युवावस्थामा महिला, प्रौढावस्थामा पुरुष” ढाँचा संयोग होइन — यो प्रायः <strong>पुरुष वैदेशिक रोजगारी (labour migration)</strong>
+      को प्रत्यक्ष संकेत हो । विवाहपछि युवा पुरुषहरू कमाउन विदेश जाँदा घरको व्यवस्थापन र निर्णय श्रीमती (वा आमा) को हातमा आउँछ,
+      फलस्वरूप ती परिवार कागजमा र व्यवहारमा <em>महिला–नेतृत्व</em> बन्छन् । प्रौढ उमेरमा पुरुष फर्केपछि वा बसाइँ स्थिर भएपछि
+      घरमूली पुनः पुरुषमा फर्कन्छ । यसरी यो तालिकाले वैदेशिक रोजगारी र रेमिट्यान्सको कथालाई समेत अप्रत्यक्ष रूपमा पुष्टि गर्छ ।
+    </p>
+  </div>
+
+  <!-- ======================= first-principles explanations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. औसत परिवार आकार ({neDec(avgHHSize)} जना):</strong> कुल जनसंख्या ({neInt(TOTAL_POP)}) लाई कुल परिवार संख्या
+      ({neInt(TOThh)}) ले भाग गर्दा आउने अंक । यो {neDec(avgHHSize)} ले देखाउँछ — तुलसीपुरमा औसत परिवार सानो (करिब चार जनाको)
+      छ, जुन संयुक्त परिवारबाट एकल/केन्द्रीय परिवार (nuclear family) तर्फको सङ्क्रमणको संकेत हो । परिवार आकार सानो हुँदा प्रति
+      परिवार आवास, खानेपानी र सेवाको माग बढ्छ ।
+    </p>
+    <p>
+      <strong>२. महिला घरमूली दर — FHH Rate ({neDec(fhhRate)}%):</strong> घरमूली भनेको परिवारको मुख्य निर्णयकर्ता वा जिम्मेवार
+      व्यक्ति । महिला घरमूली दर एक महत्त्वपूर्ण लैङ्गिक सूचक हो, तर यसको <em>दुई अर्थ</em> हुन्छ : एकातिर यसले महिला सशक्तिकरण र
+      स्वायत्तता झल्काउँछ; अर्कातिर यो पुरुषको अनुपस्थिति (वैदेशिक रोजगारी, विधवापन, परित्याग) को परिणाम पनि हुन सक्छ ।
+      तुलसीपुरको {neDec(fhhRate)}% दर राष्ट्रिय औसतभन्दा उच्च छ, र उमेरगत ढाँचाले यसको ठूलो हिस्सा <strong>बसाइँ–प्रेरित</strong>
+      (de-facto headship) रहेको संकेत गर्छ । त्यसैले यी परिवारलाई सशक्तिकरणसँगै सुरक्षा–जालको आवश्यकता पनि पर्छ ।
+    </p>
+    <p>
+      <strong>३. घरमूली लिङ्ग अनुपात ({neDec(headSexRatio)}):</strong> प्रति १०० महिला घरमूलीमा कति पुरुष घरमूली छन् भन्ने ।
+      यहाँ {neDec(headSexRatio)} हुनुले पुरुष घरमूलीको समग्र बाहुल्यता देखाउँछ, तर यो जनसंख्याको लिङ्ग अनुपात (महिला बहुल) सँग
+      उल्टो छ — किनभने घरमूलीको पद सामाजिक भूमिकाले निर्धारण हुन्छ, जनसंख्याले होइन ।
+    </p>
+    <p>
+      <strong>४. किशोर घरमूली ({neDec(under20Pct)}%) र ज्येष्ठ घरमूली ({neDec(elderlyPct)}%):</strong> २० वर्षमुनिका
+      {neInt(under20)} परिवार किशोरद्वारा नेतृत्व गरिएका छन् — यी आर्थिक र सामाजिक रूपमा अत्यन्त <em>संवेदनशील</em> परिवार हुन्,
+      जसलाई शिक्षा निरन्तरता र सुरक्षाको विशेष ध्यान चाहिन्छ । त्यसैगरी {neDec(elderlyPct)}% परिवार वृद्ध घरमूलीद्वारा चलेका छन्,
+      जसलाई सामाजिक सुरक्षा र स्वास्थ्य सेवाको पहुँच आवश्यक छ ।
+    </p>
+    <p>
+      <strong>५. मध्यम घरमूली उमेर ({neDec(medianHead)} वर्ष):</strong> आधा घरमूली यो उमेरभन्दा कम, आधा बढी उमेरका छन् ।
+      यो प्रौढ उमेर हुनुले परिवारको नेतृत्व मुख्यतया कमाउने–अनुभवी उमेरका व्यक्तिको हातमा रहेको देखाउँछ ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको घरमूली संरचनाको विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>महिला–नेतृत्व परिवार लक्षित सेवा:</strong> {neDec(fhhRate)}% ({neInt(femaleH)}) महिला घरमूली भएकाले उनीहरूलाई
+        सम्पत्ति अधिकार, ऋण/वित्तीय पहुँच, सीप र निर्णय क्षमता विकासका कार्यक्रम लक्षित गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>बसाइँ–प्रभावित परिवार सहयोग:</strong> युवावस्थामा महिला घरमूलीको उच्च अनुपात वैदेशिक रोजगारीसँग जोडिएकाले
+        “पछाडि छुटेका परिवार” (left-behind families) लाई मनोसामाजिक परामर्श, बाल हेरचाह र रेमिट्यान्स व्यवस्थापन सहयोग पुर्‍याउनुपर्ने ।
+      </li>
+      <li>
+        <strong>किशोर घरमूली संरक्षण:</strong> २० वर्षमुनिका {neInt(under20)} परिवारलाई बाल संरक्षण, शिक्षा निरन्तरता र
+        आर्थिक सहायताका विशेष कार्यक्रममा समेट्नुपर्ने ।
+      </li>
+      <li>
+        <strong>ज्येष्ठ घरमूली सुरक्षा:</strong> वृद्ध घरमूलीद्वारा चलेका {neInt(elderly)} परिवारलाई सामाजिक सुरक्षा भत्ता,
+        स्वास्थ्य बीमा र घरेलु स्याहार सेवा सुनिश्चित गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>परिवार आकारअनुरूप पूर्वाधार:</strong> औसत परिवार आकार {neDec(avgHHSize)} जना (एकल परिवारतर्फको प्रवृत्ति) भएकाले
+        आवास, खानेपानी र फोहोर व्यवस्थापन योजना बढ्दो परिवार संख्याअनुसार विस्तार गर्नुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, घरमूली तथ्याङ्कले तुलसीपुरको सामाजिक संक्रमण उजागर गर्छ — एकल परिवारतर्फको झुकाव, उच्च महिला नेतृत्व, र
+      वैदेशिक रोजगारीको गहिरो छाप । यी परिवारलाई सशक्तिकरण र सुरक्षा दुवै दृष्टिले सम्बोधन गर्नु नै समावेशी स्थानीय विकासको आधार हो ।
+    </p>
+  </div>
 </section>

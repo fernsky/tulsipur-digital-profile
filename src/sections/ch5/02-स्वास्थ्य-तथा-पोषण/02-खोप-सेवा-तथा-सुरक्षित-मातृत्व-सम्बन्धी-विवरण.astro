@@ -1,0 +1,80 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import AutoViz from "../../../components/viz/AutoViz.astro";
+import Heatmap from "../../../components/viz/Heatmap.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-73-५-२-२-खोप-सेवा-तथा-सुरक्षित-","title":"५.२.२ खोप सेवा तथा सुरक्षित मातृत्व सम्बन्धी विवरण"};
+
+const t4 = {"caption":"","source":"स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा","rows":[["क्र.सं.","सुचकहरू","श्रावण २०७८ देखि असार २०७९","श्रावण २०७९ देखि असार २०८०","श्रावण २०८० देखि असार २०८१","श्रावण २०८१ देखि असार २०८२"],["१","% of 1 year children immunized with rota2","१०३.४१","११४.५६","१११.१","८३.५५"],["२","% of children <1 year immunized with DPT-HepB-Hib3","१०८.०३","११३.७९","११३.८७","८७.१४"],["३","% of children <1 year immunized with DPT-HePB-Hib1","१०७.२१","११६.६४","११३.८७","८४.१५"],["४","% of children aged 12-23 months immunized with JE","१०९.६३","१०५.६४","१३०.५३","१००.५३"],["५","% of children aged 12-23 months immunized with MR2","१०८.४","९५.०९","१३२.९७","१०२.८९"]]};
+const t5 = {"caption":"","source":"स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा","rows":[["क्र.सं.","सुचकहरू","श्रावण २०७८","श्रावण २०७९","श्रावण २०८०","श्रावण २०८१","श्रावण २०८२"],["१","6.1-Percentage of children under one year immunized with BCG","१२५.२४","१२७.४१","१२३.३१","१०३.३४","८९.३७"],["२","6.10- Percentage of children under one year immunized with DPT-HepB-Hib1","१०७.२१","११६.६४","११३.६९","८४.१५","८१.५७"],["३","6.11-Percentage of children under one year immunized with DPT-HepB-Hib3","१०८.०३","११३.७९","११३.८७","८७.१४","७२.७९"],["४","6.13- Percentage of children aged 12-23 months immunized with JE","१०९.६३","१०५.६४","१३०.५३","१००.५३","५६.७४"],["५","6.14- Percentage of children aged 12-23 months immunized with mभबकभिकरचगदभििब","१०८.४२","९५.०९","१३२.९७","१०२.८९","५६.३७"],["६","6.20-DPT-HepB-Hib dropout rate (DPT-HepB-Hib 1 vs 3)","-०.७६","२.४४","-०.१६","-३.५६","१०.७७"],["७","6.21- DPT-HepB-Hib1 vs MR2 dropout rate","-०.१३","१८.१४","-७.१","-१७.५९","२.०३"],["८","6.3- Percentage of 1 year children immunized with rota 2","१०३.४१","११४.५६","१११.१","८३.५५","७३.८८"]]};
+const t6 = {"caption":"तालिका नं. ७४ – सुरक्षित मातृत्वको अवस्थाको विवरण","source":"स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा","rows":[["क्र.सं.","सुचकहरू","श्रावण २०७९ देखि असार २०८०","श्रावण २०८० देखि असार २०८१","श्रावण २०८१ देखि असार २०८२"],["१","Newborn care-Managed with KMC-Hypothermia","०","ण्","ज्ञ"],["२","Newborn care-Managed with KMC-Preterm","११","ठ","ज्ञद्द"],["३","Newborn care-Managed-Package","१","द्ध","द्द"],["४","Newborn care-outcome","२०","ज्ञड","घद्द"],["५","Newborn care-sick admitted-Congential anamolies","२","घ","द्ध"]]};
+const khop4Cols = t4.rows[0].slice(2).map(cellStr);
+const khop4Rows = t4.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0]))).map((r) => ({ label: cellStr(r[1]), values: r.slice(2).map(toNum) }));
+const khop5Cols = t5.rows[0].slice(2).map(cellStr);
+const khop5Rows = t5.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0]))).map((r) => ({ label: cellStr(r[1]), values: r.slice(2).map(toNum) }));
+
+// ── Live computation (from t5 — 5-year series) ─────────────────────
+const lastIdx = t5.rows[0].length - 1; // latest FY column
+const seriesOf = (re) => { const row = t5.rows.find((r) => re.test(cellStr(r[1]))); return row ? row.slice(2).map(toNum) : []; };
+const bcg = seriesOf(/BCG/);
+const dpt3 = seriesOf(/DPT-HepB-Hib3/);
+const je = seriesOf(/JE/);
+const dropout = seriesOf(/DPT-HepB-Hib 1 vs 3|DPT-HepB-Hib1 vs 3|dropout rate \(DPT/);
+const latest = (a) => a.length ? a[a.length - 1] : 0;
+const peak = (a) => a.length ? Math.max(...a) : 0;
+const bcgLatest = latest(bcg), dpt3Latest = latest(dpt3), jeLatest = latest(je), dropLatest = latest(dropout);
+const dpt3Decline = peak(dpt3) - dpt3Latest;
+
+const kpis = [
+  { label: "BCG कभरेज (पछिल्लो वर्ष)", value: `${neDec(bcgLatest, 0)}%` },
+  { label: "DPT-HepB-Hib3 कभरेज", value: `${neDec(dpt3Latest, 0)}%` },
+  { label: "खसार–रुबेला (MR/JE)", value: `${neDec(jeLatest, 0)}%` },
+  { label: "DPT ड्रपआउट दर", value: `${neDec(dropLatest, 1)}%` },
+];
+const tiles = [
+  { label: "पूर्ण खोप (DPT3) — पछिल्लो", value: `${neDec(dpt3Latest, 0)}%`, sub: `शिखरबाट ${neDec(dpt3Decline, 0)} अंकले घट्यो`, color: dpt3Latest < 90 ? "#dc2626" : "#16a34a" },
+  { label: "BCG कभरेज", value: `${neDec(bcgLatest, 0)}%`, sub: "क्षयरोगविरुद्ध — जन्ममै", color: "#2563eb" },
+  { label: "ड्रपआउट दर (DPT1→3)", value: `${neDec(dropLatest, 1)}%`, sub: "जति बढी, उति अपूर्ण खोप", color: dropLatest > 5 ? "#dc2626" : "#16a34a" },
+  { label: "हर्ड इम्युनिटी सीमा", value: "~९५%", sub: "खसारका लागि आवश्यक", color: "#7c3aed" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <h4 id="h-74-क-खोपको-विवरण" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) खोपको विवरण</h4>
+  <div class="prose-ne reveal"><p>बालबालिका भविष्यका निर्माता हुन् । यसको लागि यिनीहरू स्वस्थ र निरोगी हुनु आवश्यक छ । बाल्य अवस्थामा उनीहरूलाई बी.सी.जी. एक पटक, डी.पी.टी.तीन पटक, दादुरा एक पटक, पोलियो र भिटामिन तोकिएको मात्रामा दिनै पर्दछ । बालबालिकाहरूको लागि पाँच वटै खोपहरू नियमित र पुरा मात्रामा दिनु पर्दछ । नेपाल सरकारले राष्ट्रिय खोप कार्यक्रमलाई उच्च प्राथमिकतामा राखेको छ । खोप कार्यक्रम कम खर्चिलो तथा मितव्ययी रुपमा गरिने स्वास्थ्य क्षेत्रको एउटा प्रभावकारी प्रयत्न हो । खोप कार्यक्रमले उल्लेख्य रुपमा बालमृत्युदर घटाउन र विभिन्न रोगलाई रोकथाम गर्न सहयोग प्रुयाएको छ । जसले गर्दा दिगो विकास लक्ष्यको बालमृत्युदर घटाउने लक्ष्य (एम.डी.जी.–४) प्राप्त गर्न सहयोग पुगेको छ ।</p></div>
+  <div class="prose-ne reveal"><p>बाल्यकाल तथा उमेर पुगेपछि लाग्न सक्ने प्राणघातक रोगहरू जस्तैः क्षयरोग, भ्यागुते रोग, लहरे खोकी, धनुष्टंकार, हेपाटाइटिस बी, इन्फुल्युन्जा टाइप बी, पोलियो, न्यूमोनिया, दादुरा, रुबेला र जापानीज इन्सफ्लाइटिस् विरुद्ध चरणबद्ध रुपमा समयमै खोपहरू अनिवार्य रुपमा लगाउनु पर्दछ । ती खोपहरू क्रमशः BCG, DPT, OPV, PCV, IPV, MR, JE / ID हुन् । यसरी खोपहरू समयमै लगाउँदा सिमित लगानीमा ठूला रोगहरूको जोखिमबाट मुक्त भई बाल मृत्युदर नियन्त्रण गर्ने प्रभावकारी उपाय हुन्छ ।</p></div>
+  <div class="mt-2"><SectionKpis items={kpis} /></div>
+  <div class="mt-2"><StatTiles title="एक नजरमा — खोप कभरेजको अवस्था" tiles={tiles} cols={4} /></div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>खोप, हर्ड इम्युनिटी र “१००% भन्दा बढी” को रहस्य:</strong> खोपले व्यक्तिलाई मात्र होइन, पूरै समुदायलाई बचाउँछ — जब जनसंख्याको ठूलो हिस्सा (खसारका लागि ~९५%) खोप लगाउँछ, रोग फैलने शृङ्खला टुट्छ; यसलाई <em>सामूहिक प्रतिरोध–क्षमता</em> (herd immunity) भनिन्छ । तालिकामा केही वर्ष कभरेज <strong>१००% भन्दा बढी</strong> देखिनुको कारण रोग होइन — हो <em>हरबाट</em> (denominator): अनुमानित लक्षित बाल–जनसंख्या वास्तविकभन्दा कम आँकलन हुँदा, वा वरिपरिका क्षेत्रबाट आएका बच्चालाई समेत खोप लगाउँदा प्रतिशत १०० नाघ्छ । त्यसैले निरपेक्ष प्रतिशतभन्दा <em>प्रवृत्ति</em> (trend) र <em>ड्रपआउट</em> महत्त्वपूर्ण हुन्छ ।</p>
+  </div>
+  <div class="prose-ne reveal mt-3">
+    <p><strong>चिन्ताजनक प्रवृत्ति — पछिल्लो वर्षको गिरावट:</strong> हिटम्यापले स्पष्ट देखाउँछ — विगत वर्षहरूमा बलियो (प्रायः १००%+) रहेको खोप कभरेज <strong>श्रावण २०८१/८२ मा अचानक घट्यो</strong>: DPT-HepB-Hib3 शिखरबाट {neDec(dpt3Decline, 0)} अंकले झरेर {neDec(dpt3Latest, 0)}%, JE/MR2 ५७% सम्म, र <strong>ड्रपआउट दर {neDec(dropLatest, 1)}%</strong> मा बढ्यो । ड्रपआउट बढ्नुको अर्थ — पहिलो डोज लगाएका धेरै बच्चा तेस्रो/अन्तिम डोजसम्म फर्केनन्, अर्थात् <em>खोप अपूर्ण</em> रह्यो । यो खसार–रुबेला प्रकोपको जोखिम बढाउने रातो झन्डा हो; तत्काल खोज–भेट (defaulter tracking) र पुनः–खोप अभियान आवश्यक छ ।</p>
+  </div>
+
+  <div class="prose-ne reveal"><p>खोप सम्बन्धी विवरण</p></div>
+  <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
+  <Heatmap title="खोप सेवाको वार्षिक तुलना" subtitle="आर्थिक वर्ष अनुसार खोप सूचकहरूको कभरेज (%)" columns={khop4Cols} rows={khop4Rows} />
+  <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
+  <Heatmap title="खोपको विस्तृत वार्षिक तुलना" subtitle="आर्थिक वर्ष अनुसार खोप सूचकहरूको कभरेज (%)" columns={khop5Cols} rows={khop5Rows} />
+  <h4 id="h-75-ख-सुरक्षित-मातृत्वको-अवस्थाक" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ख) सुरक्षित मातृत्वको अवस्थाको विवरण</h4>
+  <div class="prose-ne reveal"><p>बालबालिकालाई गर्भमा रहँदा देखि र जन्मेपछि स्याहार तथा रेखदेख गर्न सकिएन भने उनीहरू विभिन्न रोगबाट संक्रमित हुने जोखिम हुन्छ । गर्भमा रहँदा मूलतः आमाको उमेर, पोषण, आराम, मादक तथा सुर्तिजन्य पदार्थको सेवन लगायतका अवस्थाले बालबालिकाको स्वास्थ्य निर्भर रहन्छ । बालबालिका स्वस्थ जन्मनका लागि गर्भवती महिलाले कम्तीमा पनि चारपटक नियमित स्वास्थ्य जाँच गराउनुपर्दछ र आवश्यक खोप (टि.टि.) तथा आइरन, भिटामिन चक्कीहरू नियमित सेवन गर्नुपर्दछ । कम उमेरमै गर्भवती हुँदा आमा र शिशु दुवैको स्वास्थ्यमा हानी नोक्सानी पुग्ने भएकाले सरकारले कानूनी रुपमा विवाह गर्ने न्यूनतम उमेर २० वर्ष तोकेको छ । तर, १७ प्रतिशत किशोरीहरू १५ देखि १९ वर्ष उमेरमा गर्भवती भएका वा आमा भइसकेका हुन्छन् (नेपाल जनसांख्यिक तथा स्वास्थ्य सर्वेक्षण, २०११) । सरकारले स्वास्थ्य सेवा विभाग मार्फत सुरक्षित मातृत्व तथा नव शिशु स्वास्थ्यका लागि समुदायमा आधारित कार्यक्रम सञ्चालन गरिरहेको छ ।</p></div>
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t6.caption}</h3>
+  <DataTable caption={t6.caption} rows={t6.rows} source={t6.source} />
+  <div class="prose-ne reveal mt-2">
+    <p><strong>नवजात शिशु स्याहार (newborn care):</strong> यो तालिकाले प्रिटर्म (समयअगावै जन्मेका) र हाइपोथर्मिया (शरीर चिसो हुने) नवजातलाई <em>कङ्गारु मदर केयर (KMC)</em> — आमाको छातीमा छाला–छाला सम्पर्कद्वारा न्यानो राख्ने सरल तर जीवनरक्षक विधि — मार्फत व्यवस्थापन गरेको देखाउँछ । नवजात मृत्युको प्रमुख कारण हाइपोथर्मिया र अपरिपक्वता हुने भएकाले KMC सेवा महत्त्वपूर्ण छ ।</p>
+    <p class="text-sm text-[var(--color-text-secondary)]"><em>(टिप्पणी: स्रोत तालिका ७४ का केही सङ्ख्यात्मक मान पुरानो प्रिटी फन्टबाट रूपान्तरण हुँदा अपठनीय भएकाले यहाँ तिनको गणनात्मक विश्लेषण गरिएको छैन ।)</em></p>
+  </div>
+  <div class="prose-ne reveal mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-brand)]">निष्कर्ष र सिफारिसहरू</h3>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>खोप गिरावट रोक्ने:</strong> पछिल्लो वर्षको कभरेज गिरावट र बढ्दो ड्रपआउटलाई defaulter tracking, खोप–शिविर र समुदाय–परिचालनबाट तत्काल सम्बोधन गरी हर्ड इम्युनिटी जोगाउनुपर्छ ।</li>
+      <li><strong>सही हरबाट (denominator):</strong> १००%+ कभरेजको कृत्रिम चित्र हटाउन वास्तविक लक्षित बाल–जनसंख्याको अद्यावधिक तथ्याङ्क प्रयोग गर्नुपर्छ ।</li>
+      <li><strong>सुरक्षित मातृत्व–खोप कडी:</strong> गर्भवती जाँच (ANC), संस्थागत प्रसूति र नवजात KMC सेवालाई बाल–खोपसँग एकीकृत गरी आमा–शिशु निरन्तरता (continuum of care) सुनिश्चित गर्नुपर्छ (हे. <a href="/chapters/5/2/7">सुरक्षित मातृत्व</a>) ।</li>
+    </ul>
+  </div>
+</section>

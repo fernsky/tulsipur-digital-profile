@@ -1,10 +1,11 @@
 ---
 import DataTable from "../../components/DataTable.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import StackedBar from "../../components/viz/StackedBar.astro";
-import { cellStr, toNum } from "../../lib/ne";
+import Donut from "../../components/viz/Donut.astro";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import BarList from "../../components/viz/BarList.astro";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":6,"id":"s-3-6-३-६-जातजातिको-आधारमा-जनसंख्याको-","title":"३.६ जातजातिको आधारमा जनसंख्याको विवरण","subsections":[]};
 
@@ -12,25 +13,207 @@ const meta = {"chapter":3,"order":6,"id":"s-3-6-३-६-जातजातिक
 const kpis = [{"label":"क्षेत्री","value":"३५.२५","unit":"%"},{"label":"थारु","value":"२१.३२","unit":"%"},{"label":"ब्राह्मण–पहाड","value":"१२.२३","unit":"%"}];
 
 const t1 = {"caption":"तालिका नं. १० – जातजातिको आधारमा जनसंख्याको विवरण","source":"स्रोतः राष्ट्रिय जनगणना,२०७८","rows":[[{"text":"जातजाति","colspan":1,"rowspan":2},{"text":"लिङ्ग","colspan":3,"rowspan":1},{"text":"प्रतिशत","colspan":1,"rowspan":2}],["पुरुष","महिला","जम्मा"],["क्षेत्री","२९५४२","३३८२३","६३३६५","३५.२५"],["थारु","१८४२८","१९८९७","३८३२५","२१.३२"],["ब्राह्मण–पहाड","१०४८५","११५०५","२१९९०","१२.२३"],["मगर","७५६९","८६८५","१६२५४","९.०४"],["विश्वकर्मा","६३१८","७१६१","१३४७९","७.५०"],["परियार","३०६९","३६२०","६६८९","३.७२"],["सन्यासी/दसनामी","१९४५","२२२५","४१७०","२.३२"],["ठकुरी","१५६०","१७८२","३३४२","१.८६"],["मिजार","१४६७","१६४९","३११६","१.७३"],["बाह्रमण तराई","७४६","८०४","१५५०","०.८६"],["अन्य","३६३५","३८४०","७४७५","४.१६"],["जम्मा","८४७६४","९४९९१","१७९७५५","१००"]]};
-const castePalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#a3a3a3"];
-const casteSegments = t1.rows
-  .slice(2)
-  .filter((r) => !/जम्मा/.test(cellStr(r[0])))
-  .map((r, i) => ({ label: cellStr(r[0]), value: toNum(r[3]), color: castePalette[i % castePalette.length] }));
+
+// --- Parse the caste × sex table --------------------------------------------
+const casteRows = t1.rows.slice(2).filter((r) => !/जम्मा/.test(cellStr(r[0])));
+let castes = casteRows.map((r) => ({ name: cellStr(r[0]), m: toNum(r[1]), f: toNum(r[2]), t: toNum(r[3]) }));
+castes.sort((a, b) => b.t - a.t);
+
+const TOT = castes.reduce((s, x) => s + x.t, 0);
+const M = castes.reduce((s, x) => s + x.m, 0);
+const F = castes.reduce((s, x) => s + x.f, 0);
+const p = castes.map((c) => c.t / TOT);
+
+// --- Re-aggregate into Nepal's constitutional social clusters ---------------
+const CLUSTER = {
+  "क्षेत्री": "खस आर्य", "ब्राह्मण–पहाड": "खस आर्य", "ठकुरी": "खस आर्य", "सन्यासी/दसनामी": "खस आर्य",
+  "थारु": "आदिवासी जनजाति", "मगर": "आदिवासी जनजाति",
+  "विश्वकर्मा": "दलित (पहाडी)", "परियार": "दलित (पहाडी)", "मिजार": "दलित (पहाडी)",
+  "बाह्रमण तराई": "मधेसी / तराई", "अन्य": "अन्य / मिश्रित",
+};
+const CL_ORDER = ["खस आर्य", "आदिवासी जनजाति", "दलित (पहाडी)", "मधेसी / तराई", "अन्य / मिश्रित"];
+const CL_COLOR = { "खस आर्य": "#2563eb", "आदिवासी जनजाति": "#16a34a", "दलित (पहाडी)": "#dc2626", "मधेसी / तराई": "#f59e0b", "अन्य / मिश्रित": "#a3a3a3" };
+const clMap = {};
+castes.forEach((c) => { const k = CLUSTER[c.name] || "अन्य / मिश्रित"; clMap[k] = (clMap[k] || 0) + c.t; });
+const clusters = CL_ORDER.map((name) => ({ name, t: clMap[name] || 0, color: CL_COLOR[name] }));
+
+const khasArya = clMap["खस आर्य"];
+const janajati = clMap["आदिवासी जनजाति"];
+const dalit = clMap["दलित (पहाडी)"];
+const marginalized = TOT - khasArya;                  // गैर–खस आर्य
+const marginalizedPct = (marginalized / TOT) * 100;
+
+// --- Ethnic diversity / polarization battery --------------------------------
+const herfindahl = p.reduce((s, x) => s + x * x, 0);
+const elf = 1 - herfindahl;                           // Ethno-Linguistic Fractionalization
+const effectiveN = 1 / herfindahl;
+const shannon = -p.reduce((s, x) => (x > 0 ? s + x * Math.log(x) : s), 0);
+const evenness = shannon / Math.log(castes.length);
+const rq = 1 - p.reduce((s, x) => s + Math.pow((0.5 - x) / 0.5, 2) * x, 0); // Reynal-Querol
+const cr1 = p[0] * 100;
+const cr3 = (p[0] + p[1] + p[2]) * 100;
+
+const sexRatio = (c) => (c.m / c.f) * 100;
+const pal = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#a3a3a3"];
+
+// --- Visualization datasets -------------------------------------------------
+const clusterTiles = [
+  { label: "खस आर्य", value: neInt(khasArya), sub: `कुल जनसंख्याको ${neDec((khasArya / TOT) * 100)}% (क्षेत्री, ब्राह्मण, ठकुरी, सन्यासी)`, color: "#2563eb" },
+  { label: "आदिवासी जनजाति", value: neInt(janajati), sub: `कुल जनसंख्याको ${neDec((janajati / TOT) * 100)}% (थारु, मगर)`, color: "#16a34a" },
+  { label: "दलित (पहाडी)", value: neInt(dalit), sub: `कुल जनसंख्याको ${neDec((dalit / TOT) * 100)}% (विश्वकर्मा, परियार, मिजार)`, color: "#dc2626" },
+  { label: "गैर–खस आर्य (समावेशी लक्षित)", value: neInt(marginalized), sub: `${neDec(marginalizedPct)}% — ऐतिहासिक रूपमा पछाडि पारिएका समूह`, color: "#7c3aed" },
+];
+
+const clusterSegs = clusters.filter((c) => c.t > 0).map((c) => ({ label: c.name, value: c.t, color: c.color }));
+
+const fullSegments = castes.map((c, i) => ({ label: c.name, value: c.t, color: pal[i % pal.length] }));
+
+const rankList = castes.map((c, i) => ({
+  label: c.name,
+  value: c.t,
+  color: pal[i % pal.length],
+  valueText: `${neInt(c.t)} (${neDec((c.t / TOT) * 100)}%)`,
+  badge: CLUSTER[c.name],
+  sub: `पुरुष ${neInt(c.m)} · महिला ${neInt(c.f)} · लिङ्ग अनुपात ${neDec(sexRatio(c))}`,
+}));
+
+const indexTiles = [
+  { label: "जातीय खण्डीकरण सूचकाङ्क (ELF)", value: neDec(elf, 3), sub: `Ethnic Fractionalization (०–१) · दुई अनियमित व्यक्ति फरक जातका हुने सम्भावना ${neDec(elf * 100)}%`, color: "#7c3aed" },
+  { label: "प्रभावकारी जातीय समूह", value: neDec(effectiveN, 2), sub: `Effective Number of Groups · व्यवहारमा हाबी समूह संख्या`, color: "#2563eb" },
+  { label: "जातीय ध्रुवीकरण सूचकाङ्क", value: neDec(rq, 3), sub: `Reynal-Querol Polarization · केही ठूला समूह आमनेसामने हुँदा बढ्ने`, color: "#dc2626" },
+  { label: "समानता सूचकाङ्क (Evenness)", value: `${neDec(evenness * 100)}%`, sub: `Pielou's J (०–१) · हिस्सा कति समान रूपमा बाँडिएको`, color: "#16a34a" },
+  { label: "बहुसंख्यक प्रभुत्व (CR1)", value: `${neDec(cr1)}%`, sub: `सबैभन्दा ठूलो समूह — क्षेत्री`, color: "#f59e0b" },
+  { label: "माथिल्ला ३ समूह (CR3)", value: `${neDec(cr3)}%`, sub: `क्षेत्री + थारु + ब्राह्मण–पहाड को संयुक्त हिस्सा`, color: "#0891b2" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
+
+  <!-- Official intro — retained -->
   <div class="prose-ne reveal"><p>उप–महानगरपालिकामा जातजातिका आधारमा जनसंख्याको विवरणलाई हेर्दा सबैभन्दा धेरै ६३,३६५ अर्थात ३५.३ प्रतिशत क्षेत्री, दोस्रोमा ३८,३२५ अर्थात २१.३२ प्रतिशत थारु, तेस्रोमा २१,९९० अर्थात १२.२३ प्रतिशत ब्राहमण–पहाड रहेका छन् । त्यसैगरी उप–महानगरपालिकामा मगर, विश्वकर्मा, परियार, सन्यासी/दसनामी, ठकुरी, मिजार, बाह्रमण तराई लगायतका जातजातिहरुको बसोबास रहेको छ । यसरी जातीय हिसाबले विविधतायुक्त समाजमा स्थानीयहरू सामाजिक सहिष्णुताका साथ बसेको पाइन्छ । आफ्नो छुट्टै भाषा, संस्कृति र रहनसहन भएका नेपालको सीमान्तकृत जाति लगायत उप–महानगरपालिकामा बसोबास गर्ने विभिन्न जातजातिको मौलिक संस्कृति, परम्परा, भाषा र रहनसहनलाई संरक्षण गरी उनीहरूको पहिचान कायम राख्ने कार्यक्रमहरूको निर्माण गर्नु आवश्यक छ । जसको विस्तृत विवरण तलको तालिकामा प्रस्तुत गरिएको छ ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+
+  <!-- ======================= social-cluster re-aggregation (signature lens) ======================= -->
+  <StatTiles
+    title="एक नजरमा — सामाजिक समूहअनुसार पुनर्संरचना"
+    subtitle={`११ जातजातिलाई नेपालको संवैधानिक सामाजिक समूहमा वर्गीकरण · कुल ${neInt(TOT)}`}
+    tiles={clusterTiles}
+    cols={4}
+  />
+
+  <Donut
+    title="सामाजिक समूहको संरचना"
+    subtitle="जातजातिलाई खस आर्य, जनजाति, दलित र मधेसी समूहमा पुनर्वर्गीकरण"
+    segments={clusterSegs}
+    centerValue={neInt(TOT)}
+    centerLabel="कुल जनसंख्या"
+  />
+
+  <div class="prose-ne reveal">
+    <p>
+      <strong>किन पुनर्वर्गीकरण ?</strong> छुट्टाछुट्टै ११ जातजाति हेर्दा समावेशी योजनाको ठूलो चित्र छुट्छ । नेपालको संविधान र
+      समावेशी नीतिले जनसंख्यालाई <strong>खस आर्य, आदिवासी जनजाति, दलित, मधेसी</strong> जस्ता <em>सामाजिक समूह</em> मा हेर्छ —
+      किनभने राज्यसेवा, आरक्षण र सशक्तिकरण कार्यक्रम यिनै समूहका आधारमा बनाइन्छन् । यस लेन्सबाट हेर्दा खस आर्य समुदाय
+      <strong>{neDec((khasArya / TOT) * 100)}%</strong> सँग बहुमतको नजिक छ, भने आदिवासी जनजाति <strong>{neDec((janajati / TOT) * 100)}%</strong>
+      र पहाडी दलित <strong>{neDec((dalit / TOT) * 100)}%</strong> ले समाजको झन्डै आधा हिस्सा (गैर–खस आर्य {neDec(marginalizedPct)}%) ओगट्छन् —
+      जुन समावेशी विकास नीतिको प्रत्यक्ष लक्षित जनसंख्या हो ।
+    </p>
+  </div>
+
+  <!-- ======================= full table ======================= -->
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+
   <StackedBar
-    title="जातजातिको संरचना"
+    title="जातजातिको संरचना (पूर्ण)"
     subtitle="कुल जनसंख्यामा प्रत्येक जातजातिको हिस्सा"
-    segments={casteSegments}
+    segments={fullSegments}
     unit="जना"
   />
+
+  <BarList
+    title="जातजातिको क्रमबद्ध सूची"
+    subtitle="संख्या, प्रतिशत, सामाजिक समूह र लिङ्गगत वितरण सहित"
+    items={rankList}
+  />
+
+  <!-- ======================= ethnic diversity / polarization battery ======================= -->
+  <StatTiles
+    title="जातीय संरचनाका परिमाणात्मक सूचकहरू"
+    subtitle="खण्डीकरण, ध्रुवीकरण, समानता र प्रभुत्वका विभिन्न मापन"
+    tiles={indexTiles}
+    cols={3}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">प्रत्येक सूचकको अर्थ — र धर्मसँगको तीव्र भिन्नता</h3>
+    <p>
+      रोचक कुरा — <strong>धर्म</strong>को तुलनामा <strong>जातजाति</strong>को संरचना ठीक उल्टो छ । धर्ममा एउटै समूह (हिन्दू) ले
+      लगभग सबै ओगटेकाले विविधता न्यून थियो; जातजातिमा भने धेरै ठूला समूह सँगसँगै रहेकाले तस्बिर बिल्कुल फरक छ ।
+    </p>
+    <p>
+      <strong>१. जातीय खण्डीकरण सूचकाङ्क — ELF ({neDec(elf, 3)}):</strong> Ethno-Linguistic Fractionalization राजनीतिक
+      अर्थशास्त्रको सबैभन्दा प्रयोग हुने सूचक हो । यसले “दुई अनियमित व्यक्ति फरक जातका हुने सम्भावना” नाप्छ । यहाँ यो
+      <strong>{neDec(elf * 100)}%</strong> छ — अर्थात् १०० मध्ये करिब {neDec(elf * 100, 0)} पटक दुई व्यक्ति फरक जातका हुन्छन् ।
+      (धर्ममा यो मात्र ६% थियो ।) यो उच्च अंकले तुलसीपुर जातीय रूपले अत्यन्त <em>विविधतायुक्त</em> रहेको देखाउँछ ।
+    </p>
+    <p>
+      <strong>२. प्रभावकारी जातीय समूह ({neDec(effectiveN, 2)}):</strong> तालिकामा {neInt(castes.length)} समूह भए पनि, तौलिएर हेर्दा
+      वास्तवमै करिब <strong>{neDec(effectiveN, 2)}</strong> समूह प्रभावकारी छन् (धर्ममा यो मात्र १ थियो) । यसले बहु–जातीय
+      शक्ति–सन्तुलनको संकेत गर्छ ।
+    </p>
+    <p>
+      <strong>३. जातीय ध्रुवीकरण सूचकाङ्क — Reynal-Querol ({neDec(rq, 3)}):</strong> यो सबैभन्दा महत्त्वपूर्ण फरक हो । ध्रुवीकरण
+      विविधताभन्दा अलग्गै कुरा हो — यो केही <em>ठूला र तुलनात्मक रूपमा बराबर</em> समूह आमनेसामने हुँदा उच्च हुन्छ, र त्यस्तो
+      अवस्थामा सामाजिक तनावको सम्भावना बढी मानिन्छ । तुलसीपुरमा क्षेत्री ({neDec(cr1)}%), थारु ({neDec(p[1] * 100)}%) र
+      ब्राह्मण ({neDec(p[2] * 100)}%) जस्ता ठूला समूह सँगसँगै भएकाले ध्रुवीकरण <strong>{neDec(rq, 3)}</strong> मा पुगेको छ —
+      जुन धर्मको ०.१२ भन्दा निकै उच्च हो । यसैले जातीय समावेशिता र सन्तुलित प्रतिनिधित्वमा बढी सचेत हुनुपर्छ ।
+    </p>
+    <p>
+      <strong>४. समानता सूचकाङ्क — Evenness ({neDec(evenness * 100)}%):</strong> समूहहरूको हिस्सा कति समान रूपमा बाँडिएको छ
+      भन्ने मापन । यहाँ <strong>{neDec(evenness * 100)}%</strong> (धर्ममा मात्र १०%) हुनुले वितरण निकै सन्तुलित रहेको देखाउँछ —
+      कुनै एउटै समूहले पूर्ण प्रभुत्व जमाएको छैन ।
+    </p>
+    <p>
+      <strong>५. प्रभुत्व अनुपात — CR1 ({neDec(cr1)}%) र CR3 ({neDec(cr3)}%):</strong> सबैभन्दा ठूलो समूह (क्षेत्री) ले एक्लै
+      {neDec(cr1)}%, र माथिल्ला तीन समूहले मिलेर {neDec(cr3)}% ओगट्छन् । बाँकी {neDec(100 - cr3)}% मा आठवटा साना समूह
+      रहेकाले यो बहुलवादी (pluralistic) जातीय बनोट हो ।
+    </p>
+  </div>
+
+  <!-- Official note about "अन्य" — retained -->
   <div class="prose-ne reveal"><p>नोटः अन्यमा तामाङ, नेवार, विश्वकर्मा, मुस्लिम, यादव, राई, गुरुङ, याक्थुङ, चमार, कुशवा, धाँनुक, कथबनीयाँ, कलवार, कुमाल, घर्ती/भुजेल, हजाम/ठाकुर, राजबंशी, शेर्पा, लोहार, हलवारी, माझी, बीन, सुनार, सुनुवार, बादी, थकाली, कोरी, छन्त्याल, गाईने, पुरी, बनीयान, विदेशी अन्य लगायतका जातजातिहरु बसोबास गर्दछन ।</p></div>
-  <div class="prose-ne reveal"><p>जातजातिको विवरणलाई स्तम्भ चित्रमा समेत प्रस्तुत गरिएको छ ।</p></div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको जातीय संरचनाको बहुआयामिक विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>सन्तुलित समावेशी प्रतिनिधित्व:</strong> उच्च खण्डीकरण (ELF {neDec(elf, 2)}) र ध्रुवीकरण ({neDec(rq, 2)}) भएकाले
+        स्थानीय सेवा, समिति र निर्णय प्रक्रियामा सबै सामाजिक समूहको समानुपातिक प्रतिनिधित्व सुनिश्चित गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>दलित सशक्तिकरण:</strong> पहाडी दलित {neDec((dalit / TOT) * 100)}% ({neInt(dalit)} जना) ऐतिहासिक रूपमा पछाडि
+        पारिएको हुनाले छात्रवृत्ति, सीप, रोजगारी र छुवाछूत अन्त्यका लक्षित कार्यक्रम सञ्चालन गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>जनजाति पहिचान संरक्षण:</strong> आदिवासी जनजाति {neDec((janajati / TOT) * 100)}% (विशेषतः थारु) को भाषा, संस्कृति
+        र परम्परागत ज्ञान संरक्षणमा लगानी गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>सामाजिक सद्भाव संरक्षण:</strong> ठूला समूह सँगसँगै रहेको ध्रुवीकृत संरचनामा अन्तर–सामुदायिक संवाद, साझा
+        चाडपर्व र विवाद समाधान संयन्त्रबाट सहिष्णुता कायम राख्नुपर्ने ।
+      </li>
+      <li>
+        <strong>सूक्ष्म तथ्याङ्क:</strong> "अन्य" वर्गभित्रका दर्जनौँ साना जातिको अलग्गै अभिलेखीकरण गरी लक्षित योजनाको आधार
+        बलियो बनाउनुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, धर्मको हिसाबले एकरूप तुलसीपुर जातीय हिसाबले भने अत्यन्त बहुल र सन्तुलित समाज हो — जहाँ कुनै एउटै समूहको पूर्ण
+      प्रभुत्व छैन । यही बहुलता नै यसको सामाजिक सम्पदा हो; तर उच्च ध्रुवीकरणलाई समावेशिता, समानुपातिक प्रतिनिधित्व र दलित–जनजाति
+      सशक्तिकरणमार्फत सद्भावमा रूपान्तरण गर्नु नै दीर्घकालीन स्थिरताको कुञ्जी हो ।
+    </p>
+  </div>
 </section>

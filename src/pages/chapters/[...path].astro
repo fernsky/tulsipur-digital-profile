@@ -1,0 +1,143 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { ne } from "../../lib/table";
+import { chapters } from "../../sections/nav";
+import { views, sectionsForChapter, chapterMeta } from "../../lib/views";
+
+export function getStaticPaths() {
+  const paths: any[] = [];
+  // Chapter overview pages: /chapters/3
+  for (const c of chapters) {
+    paths.push({ params: { path: String(c.number) }, props: { kind: "chapter", chapter: c.number } });
+  }
+  // Per-view pages: /chapters/3/1  or  /chapters/3/1/1
+  views.forEach((v, i) => {
+    const rel = v.url.replace(/^\/chapters\//, "");
+    paths.push({
+      params: { path: rel },
+      props: { kind: "view", index: i },
+    });
+  });
+  return paths;
+}
+
+const { kind } = Astro.props as any;
+
+let chapter: number;
+let prev: any = null;
+let next: any = null;
+let view: any = null;
+let Comp: any = null;
+
+if (kind === "view") {
+  const { index } = Astro.props as any;
+  view = views[index];
+  chapter = view.chapter;
+  prev = views[index - 1] || null;
+  next = views[index + 1] || null;
+  Comp = view.Comp;
+} else {
+  chapter = (Astro.props as any).chapter;
+}
+
+const cMeta = chapterMeta(chapter)!;
+const groups = sectionsForChapter(chapter);
+const pageTitle = kind === "view" ? `${view.title}` : cMeta.title;
+---
+
+<BaseLayout title={pageTitle} current={chapter}>
+  <div class="lg:flex lg:gap-10">
+    <article class="min-w-0 flex-1">
+      {kind === "chapter" ? (
+        <>
+          <header class="animate-fade-up border-b border-[var(--color-border)] pb-5">
+            <p class="text-[0.85rem] font-medium text-[var(--color-text-secondary)]">परिच्छेद {ne(chapter)}</p>
+            <h1 class="mt-1 text-[2rem] font-bold leading-tight text-[var(--color-text)]">{cMeta.title}</h1>
+          </header>
+          <ol class="mt-6 grid gap-3 sm:grid-cols-2">
+            {groups.map((g) => (
+              <li class="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 card-hover">
+                <a href={g.url} class="block">
+                  <span class="block font-semibold text-[var(--color-text)]">{ne(g.secTitle)}</span>
+                  {g.views.length > 1 && (
+                    <ol class="mt-2 space-y-1 border-l border-[var(--color-border)] pl-3">
+                      {g.views.map((v) => (
+                        <li>
+                          <a href={v.url} class="block text-[0.85rem] text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">
+                            {ne(v.title)}
+                          </a>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : (
+        <>
+          <header class="animate-fade-up border-b border-[var(--color-border)] pb-4">
+            <nav class="flex flex-wrap items-center gap-1.5 text-[0.8rem] text-[var(--color-text-secondary)]">
+              <a href={`/chapters/${chapter}`} class="hover:text-[var(--color-primary)]">परिच्छेद {ne(chapter)}</a>
+              {view.subOrder > 0 && (
+                <>
+                  <span>›</span>
+                  <a href={`/chapters/${chapter}/${view.secOrder}`} class="hover:text-[var(--color-primary)]">{ne(view.secTitle)}</a>
+                </>
+              )}
+            </nav>
+            <h1 class="mt-1.5 text-[1.7rem] font-bold leading-tight text-[var(--color-text)]">{ne(view.title)}</h1>
+          </header>
+
+          <div data-pagefind-body class="mt-2">
+            {Comp ? <Comp /> : <p class="text-[var(--color-text-secondary)]">यस खण्डको सामग्री तयार हुँदैछ ।</p>}
+          </div>
+
+          <nav class="mt-14 flex items-stretch justify-between gap-4 border-t border-[var(--color-border)] pt-6">
+            {prev ? (
+              <a href={prev.url} class="card-hover flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                <span class="text-[0.8rem] text-[var(--color-text-secondary)]">अघिल्लो</span>
+                <span class="mt-1 block font-semibold text-[var(--color-text)]">{ne(prev.title)}</span>
+              </a>
+            ) : <span class="flex-1"></span>}
+            {next ? (
+              <a href={next.url} class="card-hover flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-right">
+                <span class="text-[0.8rem] text-[var(--color-text-secondary)]">अर्को</span>
+                <span class="mt-1 block font-semibold text-[var(--color-text)]">{ne(next.title)}</span>
+              </a>
+            ) : <span class="flex-1"></span>}
+          </nav>
+        </>
+      )}
+    </article>
+
+    {kind === "view" && groups.length > 0 && (
+      <aside id="section-toc" class="hidden w-[var(--toc-width)] shrink-0 xl:block">
+        <div class="sticky top-24">
+          <p class="mb-2 text-[0.8rem] font-semibold text-[var(--color-text)]">यस परिच्छेदमा</p>
+          <ol class="space-y-1 border-l border-[var(--color-border)]">
+            {groups.map((g) => (
+              <li>
+                <a href={g.url} class:list={["-ml-px block border-l-2 py-1 pl-3 text-[0.82rem] leading-snug hover:border-[var(--color-primary)] hover:text-[var(--color-text)]", g.secOrder === view.secOrder ? "border-[var(--color-primary)] text-[var(--color-text)]" : "border-transparent text-[var(--color-text-secondary)]"]}>
+                  {ne(g.secTitle)}
+                </a>
+                {g.views.length > 1 && (
+                  <ol class="space-y-0.5">
+                    {g.views.map((v) => (
+                      <li>
+                        <a href={v.url} class:list={["-ml-px block border-l-2 py-0.5 pl-6 text-[0.78rem] leading-snug hover:border-[var(--color-primary)] hover:text-[var(--color-text)]", v.url === view.url ? "border-[var(--color-primary)] text-[var(--color-text)]" : "border-transparent text-[var(--color-text-secondary)]"]}>
+                          {ne(v.title)}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </aside>
+    )}
+  </div>
+</BaseLayout>

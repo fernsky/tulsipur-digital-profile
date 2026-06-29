@@ -1,0 +1,16 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import AutoViz from "../../../components/viz/AutoViz.astro";
+
+const meta = {"id":"h-48-४-६-९-कृषि-बजार-तथा-हाटबजार-","title":"४.६.९ कृषि बजार तथा हाटबजार सम्बन्धी विवरण"};
+
+const t11 = {"caption":"तालिका नं. ५८ – कृषि बजार तथा हाटबजार सम्बन्धी विवरण","source":"","rows":[["सि.नं.","संस्थाको नाम","वडा नं.","सम्पर्क व्यक्ति","सर्म्पक नम्बर"],["१.","शितलपुर कृषि बजार तथा हाटबजार","१२","नवराज रावत","९८५७८२४८११"],["२.","ग्वारखोला कृषि बजार तथा हाट बजार","१८","सञ्चालनको क्रममा रहेको",""],["३.","तुलसीपुर बसपार्क कृषि बजार तथा हाट बजार","५","सञ्चालनको क्रममा रहेको",""]]};
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <div class="prose-ne reveal"><p>यस उप–महानगरपालिकामा रहेका कृषि बजार तथा हाटबजार निम्नानुसार रहेका छन्ः</p></div>
+  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
+  <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
+  <AutoViz table={t11} title={t11.caption} />
+  <div class="prose-ne reveal"><p>स्रोत : नगर कार्यपालिकाको कार्यालय</p></div>
+</section>

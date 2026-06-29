@@ -1,0 +1,229 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import Pyramid from "../../../components/viz/Pyramid.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
+
+const vizPalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#65a30d", "#e11d48", "#a3a3a3"];
+
+const meta = {"id":"h-34-४-१-५-वैदेशिक-रोजगारीमा-गएका","title":"४.१.५ वैदेशिक रोजगारीमा गएकाहरूको विवरण"};
+
+const HH = 46018;       // कुल घरधुरी (खण्ड ४.१.२)
+const TOTAL_POP = 179755;
+
+const t7 = {"caption":"तालिका नं. २९ – उप–महानगरपालिकामा रहेका वैदेशिक रोजगारीमा गएका जनसंख्याको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[[{"text":"उमेर जमुह","colspan":1,"rowspan":2},{"text":"लिङ्ग","colspan":1,"rowspan":2},{"text":"देशको नाम","colspan":13,"rowspan":1},{"text":"जम्मा","colspan":1,"rowspan":2}],["भारत","सार्क","एशियन","मध्यपूर्ब","अन्य एशियन","युरोप","अन्य युरोप","उत्तर अमेरिका","दक्षिण अमेरिका","अफ्रिका","प्यासिफिक","अन्य","नखुलाएको"],[{"text":"०-१४ वर्ष","colspan":1,"rowspan":3},"पुरुष","२९२","१","७","२९","९","६","७","२३","१","०","९","०","३","३८७"],["महिला","१४५","०","२","४","७","३","४","३५","०","०","८","०","१","२०९"],["जम्मा","४३७","१","९","३३","१६","९","११","५८","१","०","१७","०","४","५९६"],[{"text":"१५-२४ वर्ष","colspan":1,"rowspan":3},"पुरुष","११४४","१३","८४२","२३२६","२८३","११६","५८","२६४","२","१३","२४७","३","१५","५३२६"],["महिला","२७२","३","१३","११३","१०२","३०","१६","७७","०","०","१२१","१","१","७४९"],["जम्मा","१४१६","१६","८५५","२४३९","३८५","१४६","७४","३४१","२","१३","३६८","४","१६","६०७५"],[{"text":"२५-३४ वर्ष","colspan":1,"rowspan":3},"पुरुष","६९३","११","९३३","२६८८","१२३","८०","३५","२६१","१","१९","८६","१","८","४९३९"],["महिला","१५८","३","१६","१६१","२७","१०","१२","६१","०","३","३२","०","३","४८६"],["जम्मा","८५१","१४","९४९","२८४९","१५०","९०","४७","३२२","१","२२","११८","१","११","५४२५"],[{"text":"३५-४४ वर्ष","colspan":1,"rowspan":3},"पुरुष","४६७","६","३५०","८४४","९","३२","९","५४","०","१६","१०","१","२","१८००"],["महिला","९८","१","५","८३","१","१","२","८","०","०","५","०","०","२०४"],["जम्मा","५६५","७","३५५","९२७","१०","३३","११","६२","०","१६","१५","१","२","२००४"],[{"text":"४५-५४ वर्ष","colspan":1,"rowspan":3},"पुरुष","२०२","०","१५","१०६","४","१","१","५","०","०","०","०","०","३३४"],["महिला","२७","०","०","८","०","१","०","३","०","०","१","०","०","४०"],["जम्मा","२२९","०","१५","११४","४","२","१","८","०","०","१","०","०","३७४"],[{"text":"५५-६४ वर्ष","colspan":1,"rowspan":3},"पुरुष","४२","१","१","८","०","०","०","२","०","०","०","०","०","५४"],["महिला","९","०","०","०","०","०","०","१","०","०","०","०","०","१०"],["जम्मा","५१","१","१","८","०","०","०","३","०","०","०","०","०","६४"],[{"text":"६५ वर्ष देखि माथि","colspan":1,"rowspan":3},"पुरुष","५","०","०","०","०","०","०","१","०","०","०","०","०","६"],["महिला","२","०","०","०","०","०","०","०","०","०","०","०","०","२"],["जम्मा","७","०","०","०","०","०","०","१","०","०","०","०","०","८"],[{"text":"उल्लेख नभएको","colspan":1,"rowspan":3},"पुरुष","७५","०","३८","९५","६","२","३","१६","१","१","४","०","२","२४३"],["महिला","३३","०","०","३","५","३","२","१२","०","०","४","०","०","६२"],["जम्मा","१०८","०","३८","९८","११","५","५","२८","१","१","८","०","२","३०५"],[{"text":"जम्मा","colspan":2,"rowspan":1},"३६६४","३९","२२२२","६४६८","५७६","२८५","१४९","८२३","५","५२","५२७","६","३५","१४८५१"]]};
+
+// --- Parse destination totals -----------------------------------------------
+const destNames = t7.rows[1].map(cellStr);
+const grandRow = t7.rows[t7.rows.length - 1];
+const destVals = destNames.map((n, i) => ({ name: n, v: toNum(grandRow[i + 1]) }));
+const TOTAL = destVals.reduce((s, d) => s + d.v, 0);
+const findD = (re) => destVals.filter((d) => re.test(d.name)).reduce((s, d) => s + d.v, 0);
+
+// --- Destination-region re-aggregation --------------------------------------
+const gulf = findD(/मध्यपूर्ब/);
+const india = findD(/भारत/);
+const eastAsia = findD(/एशियन|सार्क/);
+const developed = findD(/युरोप|उत्तर अमेरिका|प्यासिफिक/);
+const otherD = findD(/अफ्रिका|दक्षिण अमेरिका|^अन्य$|नखुलाएको/);
+const pct = (n) => (n / TOTAL) * 100;
+
+// destination diversity
+const herf = destVals.reduce((s, d) => s + Math.pow(d.v / TOTAL, 2), 0);
+const effDest = 1 / herf;
+
+// --- Parse age × sex --------------------------------------------------------
+const ageData = [];
+let curAge = null, curM = 0, curF = 0;
+for (const r of t7.rows.slice(2)) {
+  if (typeof r[0] === "object") { curAge = cellStr(r[0]); curM = toNum(r[r.length - 1]); }
+  else if (cellStr(r[0]) === "महिला") { curF = toNum(r[r.length - 1]); }
+  else if (cellStr(r[0]) === "जम्मा" && curAge !== null) {
+    if (curAge !== "जम्मा") ageData.push({ age: curAge, m: curM, f: curF, t: toNum(r[r.length - 1]) });
+    curAge = null;
+  }
+}
+const totalM = ageData.reduce((s, x) => s + x.m, 0);
+const totalF = ageData.reduce((s, x) => s + x.f, 0);
+const maleShare = (totalM / TOTAL) * 100;
+const femShare = (totalF / TOTAL) * 100;
+const sexRatio = (totalM / totalF) * 100;
+
+const ageT = (re) => ageData.filter((a) => re.test(a.age)).reduce((s, a) => s + a.t, 0);
+const youth = ageT(/१५-२४|२५-३४/);
+const youthPct = (youth / TOTAL) * 100;
+const under14 = ageT(/०-१४/);
+
+const migrantsPerHH = TOTAL / HH;     // ~1 migrant per 3 households
+
+// illustrative remittance scenario (labour-migration destinations)
+const labourMig = gulf + eastAsia + findD(/अफ्रिका/);
+const REMIT_PER_WORKER = 350000;      // अनुमानित वार्षिक रु. प्रति कामदार
+const remittance = labourMig * REMIT_PER_WORKER;
+
+// --- Visualization datasets -------------------------------------------------
+const kpis = [
+  { label: "कुल वैदेशिक रोजगारी", value: neInt(TOTAL) },
+  { label: "खाडी मुलुक", value: neDec(pct(gulf)), unit: "%" },
+  { label: "युवा (१५–३४)", value: neDec(youthPct), unit: "%" },
+  { label: "पुरुष", value: neDec(maleShare), unit: "%" },
+];
+
+const summaryTiles = [
+  { label: "वैदेशिक रोजगारी घनत्व", value: `${neDec(migrantsPerHH * 100, 0)}%`, sub: `प्रति घरधुरी · करिब हरेक ३ घरमध्ये १ मा वैदेशिक रोजगारी`, color: "#dc2626" },
+  { label: "प्रमुख गन्तव्य — खाडी", value: `${neDec(pct(gulf))}%`, sub: `मध्यपूर्व · ${neInt(gulf)} जना`, color: "#f59e0b" },
+  { label: "विकसित मुलुक (आकांक्षी)", value: `${neDec(pct(developed))}%`, sub: `युरोप, उत्तर अमेरिका, प्यासिफिक · ${neInt(developed)} जना`, color: "#2563eb" },
+  { label: "गन्तव्य विविधता", value: neDec(effDest, 2), sub: `Effective Destinations · ${neInt(destVals.length)} मध्ये प्रभावकारी`, color: "#7c3aed" },
+];
+
+const regionSegs = [
+  { label: "खाडी मुलुक (मध्यपूर्व)", value: gulf, color: "#f59e0b" },
+  { label: "भारत", value: india, color: "#dc2626" },
+  { label: "पूर्वी एशिया/आसियान", value: eastAsia, color: "#16a34a" },
+  { label: "विकसित मुलुक (युरोप/अमेरिका/प्यासिफिक)", value: developed, color: "#2563eb" },
+  { label: "अन्य", value: otherD, color: "#a3a3a3" },
+];
+
+const destItems = destVals.filter((d) => d.v > 0).sort((a, b) => b.v - a.v)
+  .map((d, i) => ({ label: d.name, value: d.v, color: vizPalette[i % vizPalette.length], valueText: neInt(d.v) + " · " + neDec(pct(d.v)) + "%" }));
+
+const pyrRows = ageData.filter((a) => !/उल्लेख/.test(a.age))
+  .map((a) => ({ label: a.age.replace(/\s*वर्ष.*/, "").replace(/देखि माथि/, "+").trim(), left: a.m, right: a.f })).reverse();
+
+const structureTiles = [
+  { label: "लैङ्गिक संरचना", value: `${neDec(maleShare)}% पुरुष`, sub: `लिङ्ग अनुपात ${neDec(sexRatio)} · महिला मात्र ${neDec(femShare)}%`, color: "#2563eb" },
+  { label: "श्रम बनाम आकांक्षी प्रवास", value: `${neDec(pct(gulf + india + eastAsia))}%`, sub: `खाडी+भारत+आसियान (श्रम) बनाम ${neDec(pct(developed))}% विकसित`, color: "#f59e0b" },
+  { label: "अनुमानित वार्षिक रेमिट्यान्स", value: `रु. ${neDec(remittance / 1e9, 2)} अर्ब`, sub: `परिदृश्य: ${neInt(labourMig)} श्रम कामदार × रु. ${neInt(REMIT_PER_WORKER)}/वर्ष`, color: "#16a34a" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <!-- Official intro — retained -->
+  <div class="prose-ne reveal"><p>यस उप–महानगरपालिकाबाट विभिन्न देशहरूमा वैदेशिक रोजगारीमा जानेहरूको संख्या १४,८५१ रहेको छ । उमेरगत रूपमा विश्लेषण गर्दा सबैभन्दा बढी १५–२४ उमेर समूहका ६,०७५ जना वैदेशिक रोजगारीमा गएका छन् भने सबैभन्दा कम ६५ वर्ष माथि उमेर समूहका ८ जना वैदेशिक रोजगारीमा गएका छन् । वैदेशिक रोजगारीमा गएका मध्ये सबैभन्दा बढी मध्यपूर्वी देश जानेहरुको संख्या रहेको छ ।</p></div>
+
+  <!-- ======================= एक नजरमा (foreign employment) ======================= -->
+  <StatTiles
+    title="एक नजरमा — वैदेशिक रोजगारीको स्वरूप"
+    subtitle={`कुल ${neInt(TOTAL)} जना वैदेशिक रोजगारीमा — गन्तव्य, घनत्व र विविधता`}
+    tiles={summaryTiles}
+    cols={4}
+  />
+
+  <Donut
+    title="गन्तव्य क्षेत्रअनुसार वैदेशिक रोजगारी"
+    subtitle="१३ गन्तव्यलाई प्रमुख आर्थिक क्षेत्रमा पुनर्समूहीकरण"
+    segments={regionSegs}
+    centerValue={neInt(TOTAL)}
+    centerLabel="कुल वैदेशिक रोजगारी"
+  />
+
+  <div class="prose-ne reveal">
+    <p>
+      गन्तव्यको स्वरूपले श्रम बजारको चरित्र खोल्छ । तुलसीपुरबाट <strong>खाडी मुलुक (मध्यपूर्व) मा {neDec(pct(gulf))}%</strong>
+      ({neInt(gulf)}), <strong>भारतमा {neDec(pct(india))}%</strong> ({neInt(india)}) र <strong>पूर्वी एशिया/आसियानमा {neDec(pct(eastAsia))}%</strong>
+      ({neInt(eastAsia)}) गएका छन् — यी तीनै मिलेर <strong>{neDec(pct(gulf + india + eastAsia))}%</strong> हुन्छन्, जुन मूलतः
+      <em>अदक्ष/अर्धदक्ष श्रम</em> गन्तव्य हुन् । युरोप, उत्तर अमेरिका र प्यासिफिक जस्ता <em>विकसित (आकांक्षी)</em> मुलुक भने
+      मात्र {neDec(pct(developed))}% ({neInt(developed)}) छन्, जहाँ प्रायः शिक्षा वा दक्ष रोजगारीका लागि जान्छन् ।
+    </p>
+  </div>
+
+  <!-- ======================= full table ======================= -->
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t7.caption}</h3>
+  <DataTable caption={t7.caption} rows={t7.rows} source={t7.source} />
+  <BarList title="वैदेशिक रोजगारीको गन्तव्य देश" subtitle="गन्तव्य देश अनुसार वैदेशिक रोजगारीमा गएकाको संख्या" items={destItems} />
+
+  <!-- ======================= age × sex profile ======================= -->
+  <Pyramid
+    title="वैदेशिक रोजगारी — उमेर र लिङ्ग अनुसार"
+    subtitle="को जान्छ विदेश — उमेर र लिङ्गको संरचना"
+    rows={pyrRows}
+    leftLabel="पुरुष"
+    rightLabel="महिला"
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">को जान्छ विदेश ? — युवा पुरुषको बहिर्गमन</h3>
+    <p>
+      पिरामिडले एउटा अत्यन्त असन्तुलित तस्बिर देखाउँछ : वैदेशिक रोजगारी <strong>{neDec(maleShare)}% पुरुष</strong> (लिङ्ग अनुपात
+      <strong>{neDec(sexRatio)}</strong> — प्रति १०० महिलामा {neDec(sexRatio, 0)} पुरुष) र <strong>{neDec(youthPct)}% युवा (१५–३४ वर्ष)</strong>
+      ले ओगटेको छ । अर्थात् विदेश जानेमध्ये अधिकांश <em>तन्नेरी पुरुष</em> हुन् — समाजको सबैभन्दा उत्पादनशील र प्रजननशील उमेरका ।
+    </p>
+    <p>
+      <strong>यो नै अघिल्ला खण्डहरूमा देखिएका धेरै ढाँचाको साझा कारण हो ।</strong> खण्ड ३.७ मा देखिएको
+      <em>२०–२९ उमेरमा महिला घरमूलीको शिखर (६०%)</em>, खण्ड ३.११ को <em>महिला–बहुल बसाइँसराइ</em>, र खण्ड ३.३ को
+      <em>महिला–बहुल कुल जनसंख्या (लिङ्ग अनुपात ८९)</em> — यी सबैको जड यहीँ छ : युवा पुरुषहरू कमाउन विदेश जाँदा घरमा
+      श्रीमती/आमा घरमूली बन्छिन्, र स्थानीय जनसंख्या महिला–बहुल देखिन्छ । यसरी वैदेशिक रोजगारी तुलसीपुरको सिङ्गो जनसांख्यिकीय
+      संरचनाको <strong>केन्द्रीय चालक</strong> हो ।
+    </p>
+  </div>
+
+  <!-- ======================= structure & remittance ======================= -->
+  <StatTiles
+    title="वैदेशिक रोजगारीको संरचनात्मक सूचकहरू"
+    subtitle="लैङ्गिक स्वरूप, श्रम–आकांक्षी अनुपात र आर्थिक प्रभाव"
+    tiles={structureTiles}
+    cols={3}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. वैदेशिक रोजगारी घनत्व ({neDec(migrantsPerHH * 100, 0)}%):</strong> कुल {neInt(TOTAL)} वैदेशिक रोजगारीलाई
+      {neInt(HH)} घरधुरीसँग तुलना गर्दा प्रति घर औसत {neDec(migrantsPerHH)} जना — अर्थात् <em>करिब हरेक तीन घरमध्ये एकमा</em>
+      कोही न कोही विदेशमा छन् । यो उच्च घनत्वले स्थानीय अर्थतन्त्र रेमिट्यान्समा निकै निर्भर रहेको देखाउँछ ।
+    </p>
+    <p>
+      <strong>२. श्रम बनाम आकांक्षी प्रवास:</strong> {neDec(pct(gulf + india + eastAsia))}% खाडी/भारत/आसियानमा (अदक्ष श्रम,
+      न्यून ज्याला, उच्च जोखिम) र मात्र {neDec(pct(developed))}% विकसित मुलुकमा (दक्ष/शैक्षिक) जानु — यो श्रम–प्रधान प्रवासको
+      संकेत हो । दक्ष जनशक्ति उत्पादन गरेमा आकांक्षी प्रवासको हिस्सा बढ्न सक्छ, जसले उच्च आम्दानी र सुरक्षा दिन्छ ।
+    </p>
+    <p>
+      <strong>३. अनुमानित रेमिट्यान्स (रु. {neDec(remittance / 1e9, 2)} अर्ब):</strong> यो एउटा <em>परिदृश्य अनुमान</em> हो —
+      श्रम गन्तव्यका {neInt(labourMig)} कामदारले औसत वार्षिक रु. {neInt(REMIT_PER_WORKER)} पठाएको मानेर निकालिएको ।
+      वास्तविक रकम गन्तव्य, सीप र पेशाअनुसार फरक पर्न सक्छ, तर यो रकमले स्थानीय अर्थतन्त्र, घरजग्गा, शिक्षा र उपभोगमा ठूलो
+      योगदान पुर्‍याउँछ । उत्पादनशील क्षेत्रमा यसको परिचालन नै मुख्य नीतिगत चुनौती हो ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको वैदेशिक रोजगारी तथ्याङ्कको विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>सीपमूलक तालिम र दक्ष प्रवास:</strong> {neDec(pct(gulf + india + eastAsia))}% अदक्ष श्रम गन्तव्यमा गएकाले गन्तव्य
+        मुलुकको माग अनुसार सीप परीक्षण, प्रमाणीकरण र भाषा तालिममार्फत दक्ष/उच्च–आय प्रवासतर्फ रूपान्तरण गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>सुरक्षित वैदेशिक रोजगारी:</strong> खाडी मुलुक ({neDec(pct(gulf))}%) मा जोखिम उच्च भएकाले प्रस्थानपूर्व
+        अभिमुखीकरण, श्रम सम्झौता निगरानी र संकटकालीन सहयोग संयन्त्र सुदृढ गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>रेमिट्यान्स उत्पादनशील परिचालन:</strong> अनुमानित रु. {neDec(remittance / 1e9, 2)} अर्ब रेमिट्यान्सलाई उपभोगबाट
+        उद्यम, कृषि–प्रशोधन र साना उद्योगमा लगानी गर्न प्रोत्साहन र वित्तीय साक्षरता कार्यक्रम सञ्चालन गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>पछाडि छुटेका परिवार सहयोग:</strong> युवा पुरुष विदेश गएपछि महिला–नेतृत्व बनेका परिवारलाई मनोसामाजिक परामर्श,
+        बाल हेरचाह र निर्णय क्षमता विकासमा सहयोग पुर्‍याउनुपर्ने (खण्ड ३.७ सँग सम्बन्धित) ।
+      </li>
+      <li>
+        <strong>फिर्ती पुनःएकीकरण:</strong> वैदेशिक रोजगारीबाट फर्किएकाहरूको सीप, अनुभव र पुँजीलाई स्थानीय उद्यमशीलतामा
+        उपयोग गर्ने पुनःएकीकरण कार्यक्रम सञ्चालन गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>स्थानीय रोजगारी सिर्जना:</strong> दीर्घकालमा वैदेशिक रोजगारीमाथिको निर्भरता घटाउन स्थानीय उद्योग, कृषि र
+        सेवा क्षेत्रमा रोजगारीका अवसर सिर्जना गर्नुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, वैदेशिक रोजगारी तुलसीपुरको अर्थतन्त्र र जनसांख्यिकी दुवैको केन्द्रीय शक्ति हो — यसले रेमिट्यान्समार्फत समृद्धि
+      ल्याएको छ, तर युवा पुरुषको बहिर्गमनले परिवार र जनसंख्या संरचना नै बदलेको छ । सुरक्षित, दक्ष र उत्पादनशील प्रवास तथा
+      रेमिट्यान्सको सदुपयोगमार्फत यो शक्तिलाई दिगो विकासमा रूपान्तरण गर्नु नै प्रमुख दायित्व हो ।
+    </p>
+  </div>
+</section>

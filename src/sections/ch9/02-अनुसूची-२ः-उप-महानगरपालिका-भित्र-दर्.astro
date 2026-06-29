@@ -16,7 +16,6 @@ const t1Chart = chartFromRows(t1.rows);
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
   <AutoViz table={t1} title={t1.caption} />

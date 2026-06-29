@@ -1,0 +1,52 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import AutoViz from "../../../components/viz/AutoViz.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import { cellStr, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-69-५-१-५-उप-महानगरपालिकाको-प्रा","title":"५.१.५ उप–महानगरपालिकाको प्राविधिक धारका कलेज तथा विद्यार्थीको संख्या सम्बन्धी विवरण"};
+
+const t10 = {"caption":"","source":"","rows":[[{"text":"कलेज/क्याम्पसको नाम","colspan":1,"rowspan":2},{"text":"वडा","colspan":1,"rowspan":2},{"text":"संकाय","colspan":1,"rowspan":2},{"text":"पढाई हुने तह","colspan":1,"rowspan":2},{"text":"पढाई हुने प्रमुख विषय","colspan":1,"rowspan":2},{"text":"विद्यार्थी संख्या","colspan":3,"rowspan":1}],["छात्रा","छात्र","जम्मा"],["Campus of live science","१३","B.Sc.Ag","Bachelor","B.Sc.Ag","१०८","९०","१९९"]]};
+const t11 = {"caption":"तालिका नं. ७० – इन्टरनेट सुविधा उपलब्ध भएका विद्यालयहरुको विवरण","source":"स्रोतः उप–महानगरपालिका शिक्षा शाखा","rows":[["क्र.स","विद्यालयको नाम","ठेगाना"],["१","Birendra Ma. Vi. Bhyudahar Sunpur","तुलसीपुर १ दाङ"],["२","Bal Pra Vi. Kumalgaun","तुलसीपुर १ दाङ"],["३","Srijanshil Aa. Vi. Chhote","तुलसीपुर १ दाङ"],["९","Ratannath Pra Vi. Potali","तुलसीपुर २ दाङ"],["१०","Ma Vi. Balapur","तुलसीपुर २ दाङ"],["११","Saraswoti Ma Vi. Damargaun","तुलसीपुर ३ दाङ"],["१२","Ma Vi. Pratapkot Ambas","तुलसीपुर ३ दाङ"],["१३","Janata Pra Vi. Harneti","तुलसीपुर ३ दाङ"],["१४","Aa Vi Ranagaun","तुलसीपुर ३ दाङ"],["१६","Pra Vi. Thapapani","तुलसीपुर ३ दाङ"],["१९","Gurujajur Ma V Rakshyachaur","तुलसीपुर ४ दाङ"],["२०","Janasharm Ma V Khadre","तुलसीपुर ४ दाङ"],["२१","Deep Jyoti A.V.Ghoraneti","तुलसीपुर ४ दाङ"],["२६","Gyan Jyoti Aa V Sundarnagar","तुलसीपुर ५ दाङ"],["२७","Janashramik Pra V Gairapatu","तुलसीपुर ५ दाङ"],["२९","Ma V Tulsipur Center","तुलसीपुर ६ दाङ"],["३१","Bal Kalyan Pra V Dadapatu","तुलसीपुर ७ दाङ"],["३२","Pra V Motipur","तुलसीपुर ७ दाङ"],["३३","Ma Vi Kalakhola","तुलसीपुर ७ दाङ"],["३५","Ma V Ashwara","तुलसीपुर ८ दाङ"],["३७","Saraswoti Chautara Aa. Vi. Salliban","तुलसीपुर ९ दाङ"],["३८","Ma. Vi Doghare","तुलसीपुर ९ दाङ"],["४०","Jana Jagriti Ma V Patubangaun","तुलसीपुर १० दाङ"],["४१","Pra V Gaurigaun","तुलसीपुर १० दाङ"],["४२","Shanti Aa Vi Nawalpur","तुलसीपुर ११ दाङ"],["४५","Adharbhut Vidyalaya Kataha","तुलसीपुर ११ दाङ"],["४६","Amar Ma V Urahari","तुलसीपुर ११ दाङ"],["४७","Pashupati Ma V Haripauri","तुलसीपुर १२ दाङ"],["४८","Jana Kalyan Pra V Kwangi","तुलसीपुर १२ दाङ"],["४९","Jana Mukhi Pra V Tarigain","तुलसीपुर १२ दाङ"],["५०","Mahendra Ma V Tulsipur","तुलसीपुर १२ दाङ"],["५१","Pra V Bakhariya","तुलसीपुर १३ दाङ"],["५२","Ambeshori Ma V Ambapur","तुलसीपुर १३ दाङ"],["५३","Jana Jyoti Ma V Tuhiraniyapur","तुलसीपुर १३ दाङ"],["५४","Adharbhut Vidyalaya Barahakhuti","तुलसीपुर १३ दाङ"],["५५","Adharbhut Vidyalaya Lohadabara","तुलसीपुर १४ दाङ"],["५६","Kisan Pra V Akamimatera","तुलसीपुर १४ दाङ"],["५८","Bal Miteri Ma V Bhojpur","तुलसीपुर १४ दाङ"],["६१","Aa. Vi. Kothari","तुलसीपुर १५ दाङ"],["६२","Bal Chetana Aa. Vi. Dhamakapur","तुलसीपुर १५ दाङ"],["६३","Bal Kalyan Pra V Pahelpar","तुलसीपुर १५ दाङ"],["६५","Laxmi Ma. Vi Laxmipur","तुलसीपुर १६ दाङ"],["६६","Saraswoti Pra V Majagaun","तुलसीपुर १६ दाङ"],["६७","Dipendra Ma V Manpur","तुलसीपुर १७ दाङ"],["७०","Janata Pra V Majgai","तुलसीपुर १७ दाङ"],["७२","Ma.Vi. Beljhundi","तुलसीपुर १८ दाङ"],["७३","Jana Kalyan Ma V Dudharas","तुलसीपुर १८ दाङ"],["७४","Janata Sanskrit Ma V Bijauri","तुलसीपुर १८ दाङ"],["७५","Suvakoti Pra V Manikapur","तुलसीपुर १८ दाङ"],["७८","Nawa Jagaran Ma V Kutechour","तुलसीपुर १९ दाङ"],["७९","Ma V Bhitrisakram","तुलसीपुर १९ दाङ"],["८०","Ganesh Pra V Tinukhola","तुलसीपुर १९ दाङ"],["८१","Netra Lal Pra V Akkasi","तुलसीपुर १९ दाङ"]]};
+// ── Live computation ───────────────────────────────────────────────
+const NEDIG = "०१२३४५६७८९";
+const wardOf = (s) => { const m = cellStr(s).match(/[०-९]+/); return m ? parseInt([...m[0]].map((c) => NEDIG.indexOf(c)).join(""), 10) : null; };
+const netSchools = t11.rows.slice(1);
+const netCount = netSchools.length;
+const TOTAL_WARDS = 19, COMMUNITY_SCHOOLS = 84;
+const netPct = (netCount / COMMUNITY_SCHOOLS) * 100;
+const netWardCount = {};
+netSchools.forEach((r) => { const w = wardOf(r[2]); if (w) netWardCount[w] = (netWardCount[w] || 0) + 1; });
+const netWards = Object.keys(netWardCount).length;
+const wardItems = Array.from({ length: TOTAL_WARDS }, (_, i) => i + 1)
+  .map((w) => ({ label: `वडा ${w}`, value: netWardCount[w] || 0, valueText: neInt(netWardCount[w] || 0), color: (netWardCount[w] || 0) ? "#2563eb" : "#d1d5db" }));
+
+const kpis = [
+  { label: "प्राविधिक धारका कलेज", value: neInt(1), unit: "वटा" },
+  { label: "इन्टरनेट भएका विद्यालय", value: neInt(netCount), unit: "वटा" },
+  { label: "इन्टरनेट पहुँच (सामुदायिक)", value: `~${neDec(netPct, 0)}%` },
+  { label: "इन्टरनेट पुगेका वडा", value: `${neInt(netWards)}/${neInt(TOTAL_WARDS)}` },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <div class="prose-ne reveal mt-2">
+    <p><strong>प्राविधिक धार (TVET) किन महत्त्वपूर्ण छ?</strong> सामान्य शैक्षिक धारले प्रमाणपत्र दिन्छ, तर प्राविधिक तथा व्यावसायिक शिक्षा–तालिम (TVET) ले सीधै रोजगारीयोग्य <em>सीप</em> दिन्छ — कृषि, इन्जिनियरिङ, स्वास्थ्यजस्ता क्षेत्रमा । युवा बेरोजगारी र <a href="/chapters/4/1/5">वैदेशिक रोजगारीतर्फको बहिर्गमन</a> रोक्ने सबैभन्दा प्रभावकारी उपायमध्ये TVET एक हो । तुलसीपुरमा हाल B.Sc.Ag (कृषि स्नातक) पढाउने एक मात्र प्राविधिक कलेज (१९९ विद्यार्थी) अभिलिखित छ — स्थानीय <a href="/chapters/4/5">कृषि अर्थतन्त्र</a> को आकार हेर्दा यो क्षमता निकै कम छ, विस्तारको ठूलो सम्भावना छ ।</p>
+  </div>
+
+  <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
+  <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
+
+  <div class="mt-3">
+    <BarList title="इन्टरनेट सुविधा भएका विद्यालय — वडागत" subtitle={`${neInt(netCount)} विद्यालय · ${neInt(netWards)}/${neInt(TOTAL_WARDS)} वडामा`} items={wardItems} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण — विद्यालयको डिजिटल विभाजन (digital divide):</strong> {neInt(netCount)} सामुदायिक विद्यालयमा इन्टरनेट पुगेको छ, जुन झन्डै {neDec(netPct, 0)}% (~८४ सामुदायिक विद्यालयमध्ये) हो — अर्थात् करिब एक–तिहाइ विद्यालय अझै इन्टरनेटविहीन छन् । डिजिटल पहुँच अब विलासिता नभई आधारभूत शैक्षिक पूर्वाधार हो: अनलाइन सामग्री, डिजिटल साक्षरता र दूर–सिकाइका लागि अपरिहार्य । इन्टरनेट {neInt(netWards)} वडामा फैलिए पनि वितरण असमान छ; इन्टरनेटविहीन विद्यालय प्रायः <a href="/chapters/5/1/3">ग्रामीण सरकारी–प्रधान वडा</a> मा पर्छन्, जसले शैक्षिक खाडललाई डिजिटल खाडलले थप चर्काउँछ । सबै विद्यालयमा इन्टरनेट र डिजिटल उपकरण पुर्‍याउनु प्राथमिकता हुनुपर्छ ।</p>
+  </div>
+</section>

@@ -1,10 +1,12 @@
 ---
 import DataTable from "../../components/DataTable.astro";
-import Chart from "../../components/Chart.astro";
-import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import StackedBar from "../../components/viz/StackedBar.astro";
-import { cellStr, toNum } from "../../lib/ne";
+import Donut from "../../components/viz/Donut.astro";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import ClusterBars from "../../components/viz/ClusterBars.astro";
+import BarList from "../../components/viz/BarList.astro";
+import { cellStr, toNum, neInt, neDec } from "../../lib/ne";
 
 const meta = {"chapter":3,"order":5,"id":"s-3-5-३-५-धर्म-अनुसार-जनसंख्याको-विवरण","title":"३.५ धर्म अनुसार जनसंख्याको विवरण","subsections":[]};
 
@@ -12,24 +14,236 @@ const meta = {"chapter":3,"order":5,"id":"s-3-5-३-५-धर्म-अनु�
 const kpis = [{"label":"हिन्दू","value":"१७३,९४६"},{"label":"बौद्ध मार्गी","value":"१,४६६"},{"label":"ईस्लाम","value":"१,०८२"},{"label":"क्रिस्चियन","value":"२,०५६"}];
 
 const t1 = {"caption":"तालिका नं. ९ – धर्म अनुसार जनसंख्याको विवरण","source":"स्रोत : राष्ट्रिय जनगणना, २०७८","rows":[["लिङ्ग","हिन्दू","बौद्ध मार्गी","ईस्लाम","क्रिस्चियन","प्रकृति","किरात","बहाई","जम्मा"],["पुरुष","८१,९७९","६९५","५९७","९५०","५३५","७","१","८४,७६६"],["महिला","९१,९६७","७७१","४८५","१,१०६","६५१","८","३","९४,९८९"],["जम्मा","१७३,९४६","१,४६६","१,०८२","२,०५६","१,१८६","१५","४","१७९,७५५"],["प्रतिशत","९६.७७","०.८२","०.६०","१.१४","०.६६","०.०१","०.००२","१००"]]};
-const relPalette = ["#f59e0b", "#7c3aed", "#16a34a", "#2563eb", "#0891b2", "#dc2626", "#db2777"];
-const relHeader = t1.rows[0].slice(1, 8).map(cellStr);
-const relTotals = (t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || []).slice(1, 8);
-const religionSegments = relHeader.map((name, i) => ({ label: name, value: toNum(relTotals[i]), color: relPalette[i % relPalette.length] }));
+
+// --- Parse the religion × sex table -----------------------------------------
+const relNames = t1.rows[0].slice(1, 8).map(cellStr);
+const rowBy = (re) => (t1.rows.find((r) => re.test(cellStr(r[0]))) || []).slice(1, 8).map(toNum);
+const mArr = rowBy(/पुरुष/), fArr = rowBy(/महिला/), tArr = rowBy(/जम्मा/);
+let rels = relNames.map((name, i) => ({ name, m: mArr[i], f: fArr[i], t: tArr[i] }));
+rels.sort((a, b) => b.t - a.t);
+
+const TOT = rels.reduce((s, x) => s + x.t, 0);
+const M = rels.reduce((s, x) => s + x.m, 0);
+const F = rels.reduce((s, x) => s + x.f, 0);
+const p = rels.map((r) => r.t / TOT);
+
+const major = rels[0];                         // हिन्दू
+const minorities = rels.slice(1);              // सबै अल्पसंख्यक
+const largestMin = minorities[0];             // क्रिस्चियन
+const nonMajor = TOT - major.t;               // गैर–हिन्दू
+const nonMajorPct = (nonMajor / TOT) * 100;
+const cr1 = (major.t / TOT) * 100;            // बहुसंख्यक प्रभुत्व
+
+// --- The full battery of categorical-share measures -------------------------
+const herfindahl = p.reduce((s, x) => s + x * x, 0);        // Σp²  (concentration)
+const simpson = 1 - herfindahl;                             // Simpson / Blau diversity
+const effectiveN = 1 / herfindahl;                         // effective # of religions
+const shannon = -p.reduce((s, x) => (x > 0 ? s + x * Math.log(x) : s), 0); // nats
+const evenness = shannon / Math.log(rels.length);          // Pielou's J (0–1)
+// Reynal-Querol religious polarization: RQ = 1 − Σ ((0.5−pᵢ)/0.5)² pᵢ
+const rq = 1 - p.reduce((s, x) => s + Math.pow((0.5 - x) / 0.5, 2) * x, 0);
+
+const sexRatio = (r) => (r.m / r.f) * 100;     // males per 100 females
+const femaleSkewed = rels.filter((r) => r.t > 100 && sexRatio(r) < 88);
+const maleSkewed = rels.filter((r) => r.t > 100 && sexRatio(r) > 110);
+
+const pal = ["#f59e0b", "#2563eb", "#7c3aed", "#0891b2", "#16a34a", "#dc2626", "#db2777"];
+
+// --- Visualization datasets -------------------------------------------------
+const overviewTiles = [
+  { label: "हिन्दू धर्मावलम्बी", value: neInt(major.t), sub: `कुल जनसंख्याको ${neDec(cr1)}%`, color: "#f59e0b" },
+  { label: "सबैभन्दा ठूलो अल्पसंख्यक", value: neInt(largestMin.t), sub: `${largestMin.name} — ${neDec((largestMin.t / TOT) * 100)}%`, color: "#2563eb" },
+  { label: "गैर–हिन्दू जनसंख्या", value: neInt(nonMajor), sub: `${neDec(nonMajorPct)}% (${neInt(minorities.length)} धर्म)`, color: "#7c3aed" },
+  { label: "अभिलिखित धर्म संख्या", value: neInt(rels.length), sub: `विभिन्न धार्मिक समुदाय`, color: "#16a34a" },
+];
+
+// Donut zooms into the non-Hindu composition (the majority would flatten it)
+const minoritySegs = minorities.map((r, i) => ({ label: r.name, value: r.t, color: pal[(i + 1) % pal.length] }));
+
+const fullSegments = rels.map((r, i) => ({ label: r.name, value: r.t, color: pal[i % pal.length] }));
+
+const rankList = rels.map((r, i) => ({
+  label: r.name,
+  value: r.t,
+  color: pal[i % pal.length],
+  valueText: `${neInt(r.t)} (${neDec((r.t / TOT) * 100, 2)}%)`,
+  sub: `पुरुष ${neInt(r.m)} · महिला ${neInt(r.f)} · लिङ्ग अनुपात ${neDec(sexRatio(r))}`,
+}));
+
+const indexTiles = [
+  { label: "सिम्पसन विविधता सूचकाङ्क", value: neDec(simpson, 3), sub: `Simpson / Blau (०–१) · दुई अनियमित व्यक्तिको धर्म फरक हुने सम्भावना ${neDec(simpson * 100)}%`, color: "#7c3aed" },
+  { label: "स्यानन एन्ट्रोपी", value: `${neDec(shannon, 2)} न्याट`, sub: `Shannon Entropy · सूचना–सिद्धान्तमा आधारित विविधताको मात्रा`, color: "#0891b2" },
+  { label: "प्रभावकारी धर्म संख्या", value: neDec(effectiveN, 2), sub: `Effective Number of Religions · व्यवहारमा हाबी धर्म संख्या`, color: "#2563eb" },
+  { label: "समानता सूचकाङ्क (Evenness)", value: `${neDec(evenness * 100)}%`, sub: `Pielou's J (०–१) · हिस्सा कति समान रूपमा बाँडिएको`, color: "#16a34a" },
+  { label: "धार्मिक ध्रुवीकरण सूचकाङ्क", value: neDec(rq, 3), sub: `Reynal-Querol Polarization · टकरावको सम्भाव्यता मापन`, color: "#dc2626" },
+  { label: "बहुसंख्यक प्रभुत्व (CR1)", value: `${neDec(cr1)}%`, sub: `Concentration Ratio · एक्लो हिन्दू बहुमत`, color: "#f59e0b" },
+];
+
+const genderTop = rels.filter((r) => r.t > 100).slice(0, 5);
+const genderCluster = genderTop.map((r) => ({ label: r.name, a: r.m, b: r.f }));
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
-  <h2 class="reveal mb-3 text-[1.4rem] font-bold leading-snug text-[var(--color-text)]">{meta.title}</h2>
   <SectionKpis items={kpis} />
+
+  <!-- Official intro #1 (constitution / secularism) — retained -->
   <div class="prose-ne reveal"><p>नेपालमा धार्मिक स्वतन्त्रता र विविधता रहेको छ । अझै विधिवत रुपमा नेपालको अन्तरिम संविधान २०६३, ले मिति २०६३ जेष्ठ ४ मा पुर्नस्थापित संसदको ऐतिहासिक घोषणाले नेपाललाई एक धर्म निरपेक्ष राष्ट्रको रुपमा घोषणा ग्रयो । त्यस्तै नेपालको संविधान, २०७२ को प्रस्तावनामा नेपाललाई एक बहुजातीय, बहुभाषिक, बहुधार्मिक, बहुसाँस्कृतिक तथा भौगोलिक विविधतायुक्त विशेषतालाई आत्मसात् गरी विविधता बिचको एकता, सामाजिक साँस्कृतिक ऐक्यबद्धता, सहिष्णुता र सद्भावलाई संरक्षण एवं प्रवद्धर्न गर्दै, वर्गीय, जातीय, क्षेत्रीय, भाषिक, धार्मिक, लैङ्गिक विभेद र सबै प्रकारका जातीय छुवाछूतको अन्त्य गरी आर्थिक समानता, समृद्धि र सामाजिक न्याय सुनिश्चित गर्न समानुपातिक समावेशी र सहभागितामूलक सिद्धान्तका आधारमा समतामूलक समाजको निर्माण गर्ने संकल्प उल्लेख गरिएको छ । फलस्वरुप नेपालमा धार्मिक स्वतन्त्रता र सौहार्दता रहेको पाइन्छ ।</p></div>
+
+  <!-- ======================= एक नजरमा (visual summary) ======================= -->
+  <StatTiles
+    title="एक नजरमा — धार्मिक संरचना"
+    subtitle={`कुल जनसंख्या ${neInt(TOT)} (पुरुष ${neInt(M)} · महिला ${neInt(F)})`}
+    tiles={overviewTiles}
+    cols={4}
+  />
+
+  <Donut
+    title="गैर–हिन्दू धार्मिक संरचना"
+    subtitle={`अल्पसंख्यक ${neInt(nonMajor)} जनसंख्या (${neDec(nonMajorPct)}%) को आन्तरिक बनोट`}
+    segments={minoritySegs}
+    centerValue={neInt(nonMajor)}
+    centerLabel="गैर–हिन्दू जनसंख्या"
+  />
+
+  <div class="prose-ne reveal">
+    <p>
+      <strong>किन गैर–हिन्दूमा मात्र जुम (zoom) गरिएको ?</strong> हिन्दू धर्मावलम्बी {neDec(cr1)}% भएकाले सबै धर्म एउटै चित्रमा
+      राख्दा अल्पसंख्यकहरू देखिँदै देखिँदैनन् । त्यसैले माथिको रिङ–चार्टले गैर–हिन्दू {neInt(nonMajor)} जनसंख्याभित्रको बनोट
+      अलग्गै देखाउँछ — जहाँ {largestMin.name} ({neInt(largestMin.t)}) सबैभन्दा ठूलो अल्पसंख्यक समुदाय हो ।
+    </p>
+  </div>
+
+  <!-- Official intro #2 (festivals) — retained -->
   <div class="prose-ne reveal"><p>उप–महानगरपालिकामा विभिन्न समुदायका मानिसहरूको बसोबास रहेको हुनाले उनीहरूका आ–आफ्नै चाडपर्वहरू छन् । जस्तै: बडादशैँ, तिहार, रामनवमी, महाशिवरात्री, हरितालिका, श्रीपञ्चमी, श्रीकृष्ण जन्माष्टमी, होली, चैते दशैँ, साउने–माघे संक्रान्ति, मातातीर्थ औँसी, अक्षय तृतीया, हरिशयनी–हरिबोधनी एकादशी, नागपञ्चमी, रक्षाबन्धन (जनैपूर्णिमा), कुशे औँसी, बालाचतुर्दशी, कोजाग्रत पूर्णिमा, श्री स्वस्थानी पूर्णिमा, नयाँ वषर्, सोह्रश्राद्ध, कूल–थानी पूजा, बुद्धजयन्ती, इद, क्रिसमस डे आदि ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+
+  <!-- ======================= full table ======================= -->
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+
   <StackedBar
-    title="धार्मिक संरचना"
+    title="धार्मिक संरचना (पूर्ण)"
     subtitle="कुल जनसंख्यामा प्रत्येक धर्मको हिस्सा"
-    segments={religionSegments}
+    segments={fullSegments}
     unit="जना"
   />
+
+  <BarList
+    title="धर्मको क्रमबद्ध सूची"
+    subtitle="संख्या, प्रतिशत र लिङ्गगत वितरण सहित"
+    items={rankList}
+  />
+
+  <!-- Official post-table prose — retained -->
   <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेका कुल १,७९,७५५ जनसंख्या मध्ये १,७३,९४६ अर्थात ९६.७७ प्रतिशत जनसंख्याले हिन्दु धर्म मान्दछन् भने दोस्रोमा क्रिस्चियन धर्म मान्नेको संख्या २,०५६ अर्थात १.१४ प्रतिशत रहेका छन् । त्यसैगरी ०.८२ प्रतिशत बौद्ध मार्गी रहेका छन् भने ईस्लाम ०.६० प्रतिशत रहेका छन् र ०.६६ प्रतिशतले प्रकृति धर्म मान्ने गरेका छन् भने बहाई धर्म मान्ने ०.००२ प्रतिशत रहेको छन् । उप–महानगरपालिकामा धार्मिक विविधता रहे तापनि हिन्दु धर्मावलम्बीहरूको प्रधानता रहेको तथ्याङ्कले देखाउँछ । नेपालमा सदियौं देखि रहि आएको धार्मिक सहिष्णुता यस उप–महानगरपालिकामा पनि कायमै रहेको देखिन्छ । विभिन्न धर्मावलम्बीहरूको विस्तृत विवरण तालिकामा प्रस्तुत गरिएको छ ।</p></div>
+
+  <!-- ======================= the full measurement battery ======================= -->
+  <StatTiles
+    title="धार्मिक संरचनाका परिमाणात्मक सूचकहरू"
+    subtitle="एउटै तालिकाबाट निकालिएका — विविधता, समानता, प्रभुत्व र ध्रुवीकरणका विभिन्न मापन"
+    tiles={indexTiles}
+    cols={3}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">प्रत्येक सूचकको अर्थ — सरल व्याख्या</h3>
+    <p>
+      धार्मिक संरचना मापन गर्न आधुनिक समाजशास्त्र र तथ्याङ्कशास्त्रले फरक–फरक उद्देश्यका सूचकहरू विकास गरेका छन् । एउटै
+      तथ्याङ्कलाई विभिन्न कोणबाट हेर्दा फरक कुरा बुझिन्छ :
+    </p>
+    <p>
+      <strong>१. सिम्पसन / ब्लाउ विविधता सूचकाङ्क ({neDec(simpson, 3)}):</strong> यो “यदि दुई जना मानिस अनियमित रूपमा रोजियो भने
+      उनीहरूको धर्म फरक हुने सम्भावना कति ?” भन्ने नाप्छ । तुलसीपुरमा यो मात्र <strong>{neDec(simpson * 100)}%</strong> छ —
+      अर्थात् १०० मध्ये करिब {neDec(simpson * 100, 0)} पटक मात्र दुई व्यक्तिको धर्म फरक पर्छ । यो अत्यन्त कम अंकले समाज
+      धार्मिक रूपले अत्यन्त <em>एकरूप (homogeneous)</em> रहेको देखाउँछ ।
+    </p>
+    <p>
+      <strong>२. स्यानन एन्ट्रोपी ({neDec(shannon, 2)} न्याट) र प्रभावकारी धर्म संख्या ({neDec(effectiveN, 2)}):</strong>
+      एन्ट्रोपी सूचना–सिद्धान्त (information theory) बाट आएको — कुनै व्यक्तिको धर्म “अनुमान गर्न” कति कठिन छ भन्ने मापन ।
+      विविधता बढी भए अनुमान गाह्रो (उच्च एन्ट्रोपी), एकल–धर्म भए सजिलो (शून्य एन्ट्रोपी) । यसलाई व्यावहारिक भाषामा बदल्दा
+      “प्रभावकारी धर्म संख्या” आउँछ — तालिकामा {neInt(rels.length)} धर्म भए पनि, तौलिएर हेर्दा वास्तवमै
+      <strong>{neDec(effectiveN, 2)}</strong> धर्मजति मात्र प्रभावकारी छन्, किनभने हिन्दूले लगभग सबै हिस्सा ओगटेको छ ।
+    </p>
+    <p>
+      <strong>३. समानता सूचकाङ्क — Pielou's Evenness ({neDec(evenness * 100)}%):</strong> विविधता र <em>समानता</em> फरक कुरा हुन् ।
+      धेरै धर्म हुनु एउटा कुरा, ती सबै बराबर आकारका हुनु अर्को । यो सूचकाङ्कले हिस्सा कति समान रूपमा बाँडिएको छ भन्ने ० देखि
+      १ सम्म नाप्छ । यहाँ केवल <strong>{neDec(evenness * 100)}%</strong> हुनुले — एउटा धर्म विशाल, बाँकी अत्यन्त साना भएकाले —
+      वितरण अत्यन्त <em>असमान</em> रहेको पुष्टि गर्छ ।
+    </p>
+    <p>
+      <strong>४. धार्मिक ध्रुवीकरण सूचकाङ्क — Reynal-Querol ({neDec(rq, 3)}):</strong> यो सबैभन्दा रोचक र विविधताभन्दा फरक सूचक हो ।
+      विविधता सूचकाङ्क धेरै साना समूह हुँदा बढ्छ, तर <strong>ध्रुवीकरण</strong> भने दुई लगभग बराबर आकारका समूह आमनेसामने हुँदा
+      (जस्तै ५०%–५०%) सबैभन्दा उच्च हुन्छ — किनभने त्यस्तो अवस्थामा सामाजिक टकरावको सम्भावना सबैभन्दा बढी मानिन्छ ।
+      तुलसीपुरमा यो <strong>{neDec(rq, 3)}</strong> मात्र छ : एउटै विशाल बहुमत भएकाले समूहहरूबीच ध्रुवीकरणको जोखिम न्यून छ ।
+      यही कारण यहाँको धार्मिक सहिष्णुता संरचनागत रूपमै बलियो छ ।
+    </p>
+    <p>
+      <strong>५. बहुसंख्यक प्रभुत्व — Concentration Ratio CR1 ({neDec(cr1)}%):</strong> सबैभन्दा ठूलो समूहले एक्लै ओगटेको हिस्सा ।
+      {neDec(cr1)}% ले हिन्दू धर्मको लगभग पूर्ण प्रभुत्व देखाउँछ, र यसले शासन, चाडपर्व र साँस्कृतिक जीवनको मूल लय निर्धारण गर्छ ।
+    </p>
+  </div>
+
+  <!-- ======================= gender as a social signal ======================= -->
+  <ClusterBars
+    title="प्रमुख धर्ममा पुरुष–महिला तुलना"
+    subtitle="लिङ्गगत वितरण — सामाजिक संकेतको स्रोत"
+    items={genderCluster}
+    aLabel="पुरूष"
+    bLabel="महिला"
+    aColor="#2563eb"
+    bColor="#db2777"
+    unit="जना"
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">लिङ्ग अनुपातले के भन्छ ?</h3>
+    <p>
+      प्रत्येक धर्ममा प्रति १०० महिलामा कति पुरुष छन् (<strong>लिङ्ग अनुपात</strong>) हेर्दा सामाजिक गतिशीलताका रोचक संकेत भेटिन्छन् ।
+      {femaleSkewed.length > 0 && (
+        <>
+          {femaleSkewed.map((r, i) => `${r.name} (${neDec(sexRatio(r))})`).join(", ")} जस्ता समुदायमा <strong>महिलाको स्पष्ट बाहुल्यता</strong>
+          छ — यो प्रायः महिला–नेतृत्वमा धर्म अवलम्बन वा धर्मान्तरण (female-led adherence/conversion) हुने विश्वव्यापी प्रवृत्तिसँग मेल खान्छ ।
+        </>
+      )}
+      {maleSkewed.length > 0 && (
+        <>
+          {" "}अर्कोतर्फ {maleSkewed.map((r) => `${r.name} (${neDec(sexRatio(r))})`).join(", ")} मा <strong>पुरुषको बाहुल्यता</strong>
+          छ, जुन रोजगारी, व्यापार वा सिमानावारी बसाइँसराइ (labour/trade migration) सँग जोडिएको हुन सक्छ — किनभने यी समुदायका
+          धेरै पुरुष परिवारबिनै बसोबास गरेका हुन सक्छन् ।
+        </>
+      )}
+      {" "}यसरी धार्मिक तथ्याङ्कले आस्था मात्र होइन, जनसंख्याको चाल (mobility) र सामाजिक परिवर्तनसमेत उजागर गर्छ ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको धार्मिक संरचनाको बहुआयामिक विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>उच्च एकरूपता, न्यून ध्रुवीकरण:</strong> सिम्पसन विविधता {neDec(simpson, 3)} र ध्रुवीकरण {neDec(rq, 3)} दुवै न्यून
+        भएकाले यहाँ धार्मिक टकरावको संरचनागत जोखिम कम छ — यो सामाजिक सद्भावको बलियो आधार हो, जसलाई जोगाइराख्नुपर्ने ।
+      </li>
+      <li>
+        <strong>अल्पसंख्यक अधिकार संरक्षण:</strong> गैर–हिन्दू {neDec(nonMajorPct)}% ({neInt(nonMajor)} जना) अल्पमतमा भएकाले धर्म
+        निरपेक्ष राज्यको मर्म अनुरूप उनीहरूको पूजास्थल, चाडपर्व र पहिचानको समान संरक्षण सुनिश्चित गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>समावेशी चाडपर्व नीति:</strong> इद, क्रिसमस, बुद्धजयन्तीलगायतका अल्पसंख्यक पर्वहरूलाई सार्वजनिक मान्यता र सहभागिता
+        दिई “विविधताबीच एकता” को संवैधानिक भावना व्यवहारमा उतार्नुपर्ने ।
+      </li>
+      <li>
+        <strong>लैङ्गिक–संवेदनशील सेवा:</strong> महिला–बहुल (क्रिस्चियन, प्रकृति) र पुरुष–बहुल (ईस्लाम) समुदायको फरक सामाजिक
+        अवस्थालाई ध्यानमा राखी लक्षित सामाजिक तथा श्रम सेवा पुर्‍याउनुपर्ने ।
+      </li>
+      <li>
+        <strong>निरन्तर अभिलेखीकरण:</strong> साना धार्मिक समुदाय (किरात, बहाई आदि) को तथ्याङ्क नियमित अद्यावधिक गरी समावेशी
+        योजनाको आधार बलियो बनाउनुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुर धार्मिक रूपले अत्यन्त एकरूप (हिन्दू–प्रधान) तर सहिष्णु समाज हो । यहाँको न्यून ध्रुवीकरण र शताब्दीयौँदेखिको
+      सह–अस्तित्व नै सामाजिक स्थिरताको मूल पुँजी हो — जसलाई अल्पसंख्यक अधिकार र समावेशी मान्यताबाट थप सुदृढ बनाउनु आजको दायित्व हो ।
+    </p>
+  </div>
 </section>

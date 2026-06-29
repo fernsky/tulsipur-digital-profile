@@ -1,0 +1,161 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import Figure from "../../../components/Figure.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import Treemap from "../../../components/viz/Treemap.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import { cellStr, toNum, toNe, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-36-४-२-१-भू-उपयोग-क्षेत्रको-विव","title":"४.२.१ भू–उपयोग क्षेत्रको विवरण"};
+
+const TOTAL_POP = 179755;
+const HH = 46018;
+
+const t1 = {"caption":"","source":"","rows":[["भू–उपयोगका क्षेत्र","क्षेत्रफल (वर्ग कि.मि.)","क्षेत्रफल प्रतिशतमा"],["कृषि","१८२.१९","४७.३८"],["सार्बजनिक प्रयोग को जग्गा","०.२९","०.०८"],["धार्मिक क्षेत्र","०.०१","०.००"],["जंगल","१६७.५५","४३.५७"],["जल क्षेत्र","११.१७","२.९०"],["औधोगिक क्षेत्र","१.०४","०.२७"],["खानी तथा खनिज क्षेत्र","०.१७","०.०४"],["अन्य","०.०३","०.०१"],["सार्बजनिक स्थल","५.७५","१.४९"],["बस्ती क्षेत्र","१६.३४","४.२५"],["जम्मा","३८४.५२","१००.००"]]};
+const luPalette = ["#16a34a", "#65a30d", "#0891b2", "#2563eb", "#f59e0b", "#dc2626", "#7c3aed", "#db2777", "#ca8a04", "#a3a3a3"];
+
+// --- Parse land-use table ---------------------------------------------------
+const landRows = t1.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0]))).map((r) => ({ name: cellStr(r[0]), area: toNum(r[1]) }));
+const landTotal = toNum((t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [])[1]);
+const findA = (re) => landRows.filter((r) => re.test(r.name)).reduce((s, r) => s + r.area, 0);
+
+const agri = findA(/कृषि/);
+const forest = findA(/जंगल/);
+const water = findA(/जल/);
+const built = findA(/बस्ती|औधोगिक|सार्बजनिक|धार्मिक/);
+const otherL = findA(/खानी|अन्य/);
+const pct = (a) => (a / landTotal) * 100;
+
+const density = TOTAL_POP / landTotal;                 // persons / sq km
+const settlement = findA(/बस्ती/);
+const settlementDensity = TOTAL_POP / settlement;      // residential density
+const greenCover = agri + forest + water;
+const agriPerHHha = (agri * 100) / HH;                 // 1 sq km = 100 ha
+const builtPct = pct(built);
+
+const kpis = [
+  { label: "कुल क्षेत्रफल", value: neDec(landTotal, 2), unit: "वर्ग कि.मि." },
+  { label: "जनघनत्व", value: neDec(density, 0), unit: "प्रति वर्ग कि.मि." },
+  { label: "वन आवरण", value: neDec(pct(forest)), unit: "%" },
+  { label: "कृषि भूमि", value: neDec(pct(agri)), unit: "%" },
+];
+
+// --- Visualization datasets -------------------------------------------------
+const landItems = [...landRows].filter((r) => r.area > 0).sort((a, b) => b.area - a.area)
+  .map((r, i) => ({ label: r.name, value: r.area, color: luPalette[i % luPalette.length], badge: toNe(r.area.toFixed(2)) + " वर्ग कि.मि.", sub: neDec(pct(r.area)) + "%" }));
+
+const classSegs = [
+  { label: "कृषि भूमि", value: agri, color: "#65a30d" },
+  { label: "वन क्षेत्र", value: forest, color: "#16a34a" },
+  { label: "बस्ती/निर्मित क्षेत्र", value: built, color: "#dc2626" },
+  { label: "जल क्षेत्र", value: water, color: "#0891b2" },
+  { label: "खानी/अन्य", value: otherL, color: "#a3a3a3" },
+];
+
+const summaryTiles = [
+  { label: "जनघनत्व", value: `${neDec(density, 0)}`, sub: `Population Density · प्रति वर्ग कि.मि. व्यक्ति`, color: "#2563eb" },
+  { label: "बस्ती घनत्व", value: `${neInt(Math.round(settlementDensity))}`, sub: `बस्ती क्षेत्रभित्र वास्तविक आवासीय घनत्व (प्रति वर्ग कि.मि.)`, color: "#dc2626" },
+  { label: "वन आवरण", value: `${neDec(pct(forest))}%`, sub: `राष्ट्रिय लक्ष्य ४०% भन्दा बढी — पारिस्थितिकीय रूपमा सबल`, color: "#16a34a" },
+  { label: "हरित आवरण (कृषि+वन+जल)", value: `${neDec(pct(greenCover))}%`, sub: `खुला/प्राकृतिक भूमि · निर्मित क्षेत्र मात्र ${neDec(builtPct)}%`, color: "#0d9488" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <!-- Official intro — retained -->
+  <div class="prose-ne reveal"><p>भूमि महत्वपूर्ण प्राकृतिक साधन हो । आर्थिक विकासको लागि यसको समुचित उपयोग गर्नु पर्दछ । भूमिलाई कृषि, आवास, सडक, पिउने पानी, सिँचाई, विद्युत तथा उर्जा, सूचना तथा सञ्चार आदिको प्रवन्धको लागि प्रयोग गर्ने गरिन्छ । यस खण्डमा विशेष गरी उप–महानगरपालिकाको भू–उपयोग र भू–आवरणको वस्तुगत चित्रण गरिएको छ ।</p></div>
+
+  <!-- ======================= एक नजरमा (land use) ======================= -->
+  <StatTiles
+    title="एक नजरमा — भू–उपयोग र घनत्व"
+    subtitle={`कुल क्षेत्रफल ${neDec(landTotal, 2)} वर्ग कि.मि. · जनसंख्या ${neInt(TOTAL_POP)}`}
+    tiles={summaryTiles}
+    cols={4}
+  />
+
+  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <Treemap
+    title="भू–उपयोग क्षेत्रको संरचना"
+    subtitle="क्षेत्रफल अनुसार भू–उपयोगको हिस्सा"
+    items={landItems}
+  />
+  <div class="prose-ne reveal"><p>स्रोतः GIS तथ्याङ्कमा आधारित</p></div>
+
+  <!-- ======================= broad LULC re-aggregation ======================= -->
+  <Donut
+    title="व्यापक भू–आवरण वर्ग (LULC)"
+    subtitle="१० भू–उपयोगलाई प्रमुख वर्गमा पुनर्समूहीकरण"
+    segments={classSegs}
+    centerValue={`${neDec(landTotal, 0)}`}
+    centerLabel="वर्ग कि.मि."
+  />
+
+  <div class="prose-ne reveal">
+    <p>
+      व्यापक भू–आवरण (Land Use / Land Cover) ले देखाउँछ — तुलसीपुर अझै <strong>प्राकृतिक र कृषि–प्रधान भूदृश्य</strong> हो ।
+      कृषि ({neDec(pct(agri))}%) र वन ({neDec(pct(forest))}%) झन्डै बराबर छन्, र जल क्षेत्रसहित <strong>हरित आवरण {neDec(pct(greenCover))}%</strong>
+      पुग्छ । उप–महानगरपालिका भनिए पनि <strong>निर्मित/बस्ती क्षेत्र मात्र {neDec(builtPct)}%</strong> छ — अर्थात् सहरीकरण
+      भौगोलिक रूपमा अझै सानो खण्डमा सीमित छ, तर त्यही सानो बस्ती क्षेत्रमा जनसंख्या निकै बाक्लो छ ।
+    </p>
+  </div>
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. जनघनत्व ({neDec(density, 0)} प्रति वर्ग कि.मि.):</strong> कुल जनसंख्यालाई कुल क्षेत्रफलले भाग गरेर निकालिने यो
+      सूचकले भूमिमाथिको चाप देखाउँछ । तर यो “औसत” घनत्वले भ्रम पार्छ — किनभने आधाभन्दा बढी भूमि वन र कृषि हो ।
+    </p>
+    <p>
+      <strong>२. बस्ती घनत्व ({neInt(Math.round(settlementDensity))} प्रति वर्ग कि.मि.):</strong> जनसंख्यालाई <em>केवल बस्ती क्षेत्र</em>
+      ({neDec(settlement, 2)} वर्ग कि.मि.) ले भाग गर्दा आउने वास्तविक आवासीय घनत्व — यो औसत जनघनत्वभन्दा झन्डै
+      <strong>{neDec(settlementDensity / density, 0)} गुणा</strong> बढी छ । यसले देखाउँछ — मानिस सानो बस्ती क्षेत्रमा खचाखच बसेका छन्,
+      जसले आवास, खानेपानी र पूर्वाधारमा चाप बढाउँछ ।
+    </p>
+    <p>
+      <strong>३. वन आवरण ({neDec(pct(forest))}%):</strong> नेपालको राष्ट्रिय वन नीतिले न्यूनतम ४०% वन आवरण कायम राख्ने लक्ष्य
+      राखेको छ; तुलसीपुरले यो लक्ष्य नाघेको छ । उच्च वन आवरण कार्बन भण्डारण, जैविक विविधता र पानीको स्रोत संरक्षणका दृष्टिले
+      सकारात्मक छ — तर बढ्दो जनसंख्याले वन र कृषि भूमिमा अतिक्रमणको जोखिम पनि बढाउँछ ।
+    </p>
+    <p>
+      <strong>४. प्रति घरधुरी कृषि भूमि (~{neDec(agriPerHHha, 2)} हेक्टर):</strong> कुल कृषि भूमिलाई घरधुरीले भाग गर्दा प्रति
+      परिवार औसत {neDec(agriPerHHha, 2)} हेक्टर मात्र — यो सानो जोत आकारले निर्वाहमुखी कृषि र भूमि खण्डीकरणको चुनौती देखाउँछ ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको भू–उपयोग विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>वैज्ञानिक भू–उपयोग योजना:</strong> कृषि, वन र बस्ती क्षेत्रको स्पष्ट सीमाङ्कन गरी भू–उपयोग वर्गीकरण (Land Use
+        Zoning) लागू गरी अव्यवस्थित सहरीकरण रोक्नुपर्ने ।
+      </li>
+      <li>
+        <strong>कृषि भूमि संरक्षण:</strong> उर्वर कृषि भूमि ({neDec(pct(agri))}%) लाई आवासीय/व्यापारिक प्रयोजनमा रूपान्तरण हुनबाट
+        जोगाई खाद्य सुरक्षा सुनिश्चित गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>वन संरक्षण:</strong> {neDec(pct(forest))}% वन आवरणलाई समुदायिक वन व्यवस्थापन र अतिक्रमण नियन्त्रणमार्फत कायम
+        राख्दै पारिस्थितिकीय सेवा संरक्षण गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>सघन सहरी विकास:</strong> उच्च बस्ती घनत्व व्यवस्थापन गर्न उर्ध्वगामी (vertical) र सुनियोजित सघन विकास,
+        खुला स्थल र हरित पूर्वाधारलाई प्राथमिकता दिनुपर्ने ।
+      </li>
+      <li>
+        <strong>जल क्षेत्र संरक्षण:</strong> {neDec(pct(water))}% जल क्षेत्र (नदी, पोखरी) लाई प्रदूषण र अतिक्रमणबाट जोगाई
+        सिँचाइ र पारिस्थितिकीय स्रोतका रूपमा संरक्षण गर्नुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुरको भूदृश्य कृषि र वनको सन्तुलनमा आधारित प्राकृतिक रूपमा सम्पन्न छ — तर सानो बस्ती क्षेत्रमा बढ्दो
+      जनसंख्या चापले सुनियोजित भू–उपयोगको माग गर्छ । कृषि–वन संरक्षण र वैज्ञानिक सहरीकरणको सन्तुलनमार्फत दिगो भू–व्यवस्थापन
+      गर्नु नै भविष्यको आधार हो ।
+    </p>
+  </div>
+
+  <Figure src="/images/image12.jpeg" caption={"उप–महानगरपालिकाको मोहोडा नक्शा" || undefined} />
+</section>

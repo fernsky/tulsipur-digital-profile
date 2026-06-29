@@ -1,12 +1,5 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Kalimati";
-  src: url("/fonts/Kalimati.ttf") format("truetype");
-  font-weight: 100 900;
-  font-display: swap;
-}
-
 /*
   Design system — PencilPlaybook "Minimal / Neutral" token map, applied
   directly (the Pencil .pen tooling is not reachable in this environment, so
@@ -40,8 +33,8 @@
   --color-warning: #b45309;
   --color-error: #b91c1c;
 
-  --font-sans: "Kalimati", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Kalimati", ui-monospace, monospace;
+  --font-sans: "Noto Serif Devanagari", system-ui, -apple-system, "Segoe UI", serif;
+  --font-mono: "Noto Serif Devanagari", ui-monospace, monospace;
 
   --content-max-width: 1088px;
   --sidebar-width: 288px;
@@ -58,6 +51,17 @@
   /* Rule 1 & 3: never transform case, never widen tracking */
   text-transform: none !important;
   letter-spacing: normal !important;
+}
+
+/* Reading-view toggles (header buttons) ----------------------------------- */
+/* Hide the right "यस परिच्छेदमा" table of contents */
+html.toc-hidden #section-toc { display: none !important; }
+/* Let the middle column use the full available width */
+html.content-full main { max-width: none; }
+/* Active state for the header toggle buttons */
+.view-toggle.is-active {
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 
 html {
@@ -216,7 +220,7 @@ a, button, .sidebar-link {
   display: flex;
   flex-direction: column;
   isolation: isolate;
-  background: url("/images/chillikot.jpg") center 35% / cover no-repeat;
+  background: url("/images/chillikot.webp") center 35% / cover no-repeat;
 }
 .landing-overlay {
   position: absolute;

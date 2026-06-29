@@ -1,0 +1,191 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
+
+const vizPalette = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#65a30d", "#e11d48", "#a3a3a3"];
+
+const meta = {"id":"h-25-४-१-१-आर्थिक-कामको-औद्योगिक-","title":"४.१.१ आर्थिक कामको औद्योगिक क्षेत्र वर्गीर्करण अनुसारको जनसंख्या"};
+
+const t1 = {"caption":"तालिका नं. २४ – आर्थिक काम गरेको अवधि अनुसारको जनसंख्या विवरण","source":"स्रोत : राष्ट्रिय जनगणना, २०७८","rows":[[{"text":"आर्थिक कामको क्षेत्र वा उद्योग","colspan":1,"rowspan":2},{"text":"कामको अवधि","colspan":4,"rowspan":1}],["६ महिना वा सो भन्दा बढी","३ देखि ५ महिना","१ देखि २ महिना","जम्मा"],["कृषि वन तथा पशुपालन","२९४२८","११५९६","६१४४","४७१६८"],["खानी तथा उत्खनन्","८२","१३","२","९७"],["औद्योगिक उत्पादन","२५२६","१८५","५९","२७७०"],["विद्युत ग्याँस वाफ तथा वातानुकुलित सेवा","१५९","६","२","१६७"],["पानीको आपूर्ति ढल निकास, फोहोर व्यवस्थापन","१४२","५","२","१४९"],["निर्माण","४८२६","१७२४","१७७५","८३२५"],["थोक एवं खुद्रा व्यापार","५५२४","२९०२","३८५२","१२२७८"],["यातायात तथा भण्डारण","२८६९","८२","२०","२९७१"],["आवास तथा भोज सम्बन्धी कृयाकलाप","१०७२","४०","१४","११२६"],["सूचना तथा सञ्चार","१५८","१०","३","१७१"],["घरजग्गा कारोबारका लागि","६७८","१३","२","६९३"],["पशु चिकित्सा तथा पशु स्वास्थ्य सम्बन्धी","११३","५","०","११८"],["पेशागत, वैज्ञानिक तथा प्राविधिक कृयाकलापहरु","२५७","८","५","२७०"],["प्रशासनिक तथा सहयोगी सेवाका कृयाकलापहरु","८६","५","०","९१"],["सार्वजनिक प्रशासन र सुरक्षा सम्बन्धी कृयाकलाप","१११","१५","९","११३५"],["शिक्षा सम्बन्धी","२७५६","५२","१८","२८२६"],["मानव स्वास्थ्य तथा सामाजिक कार्य सम्बन्धी","८६६","२५","३","८९४"],["कला मनोरञ्जनसँग सम्बन्धी","९३","५","१","९९"],["अन्य","४८६","१२७८","१६४०","३४०४"],["घर परिवारका घरायसी कृयाकलाप सम्बन्धी","३६६","१२९","२१","५१६"],["बाह्य संघ संस्था तथा यसका अंगहरु सम्बन्धी","३५","३","०","३८"],["उल्लेख नभएको","७१","१४","२","८७"],["जम्मा","५३७०४","१८११५","१३५७४","८५३९३"]]};
+
+// --- Parse sector × work-duration matrix ------------------------------------
+const sectorRows = t1.rows.slice(2).filter((r) => !/जम्मा/.test(cellStr(r[0])))
+  .map((r) => ({ name: cellStr(r[0]), ge6: toNum(r[1]), mid: toNum(r[2]), low: toNum(r[3]), total: toNum(r[4]) }));
+const GRAND = sectorRows.reduce((s, x) => s + x.total, 0);
+
+// --- Three-sector (Clark-Fisher) re-aggregation -----------------------------
+const isPrimary = (n) => /कृषि|खानी/.test(n);
+const isSecondary = (n) => /औद्योगिक उत्पादन|विद्युत|पानीको आपूर्ति|निर्माण/.test(n);
+const isOther = (n) => /^अन्य$/.test(n) || /उल्लेख नभएको/.test(n);
+const sumWhere = (fn) => sectorRows.filter((r) => fn(r.name)).reduce((s, r) => s + r.total, 0);
+const primary = sumWhere(isPrimary);
+const secondary = sumWhere(isSecondary);
+const other = sumWhere(isOther);
+const tertiary = GRAND - primary - secondary - other;
+
+const pct = (n) => (n / GRAND) * 100;
+const nonAgri = GRAND - sumWhere((n) => /कृषि/.test(n));
+const largest = [...sectorRows].sort((a, b) => b.total - a.total)[0];
+
+// sectoral diversity
+const herf = sectorRows.reduce((s, x) => s + Math.pow(x.total / GRAND, 2), 0);
+const effSectors = 1 / herf;
+
+// work intensity (full-time = ≥6 months)
+const ftRate = (r) => (r.ge6 / r.total) * 100;
+const findS = (re) => sectorRows.find((r) => re.test(r.name));
+const agri = findS(/कृषि/), trade = findS(/थोक/), edu = findS(/शिक्षा/), construction = findS(/निर्माण/), manuf = findS(/औद्योगिक उत्पादन/);
+
+const kpis = [
+  { label: "कुल आर्थिक सक्रिय", value: neInt(GRAND) },
+  { label: "प्राथमिक क्षेत्र", value: neDec(pct(primary)), unit: "%" },
+  { label: "द्वितीयक क्षेत्र", value: neDec(pct(secondary)), unit: "%" },
+  { label: "तृतीयक क्षेत्र", value: neDec(pct(tertiary)), unit: "%" },
+];
+
+// --- Visualization datasets -------------------------------------------------
+const summaryTiles = [
+  { label: "प्राथमिक क्षेत्र (कृषि/खानी)", value: `${neDec(pct(primary))}%`, sub: `Primary Sector · ${neInt(primary)} जना`, color: "#16a34a" },
+  { label: "द्वितीयक क्षेत्र (उद्योग/निर्माण)", value: `${neDec(pct(secondary))}%`, sub: `Secondary Sector · ${neInt(secondary)} जना`, color: "#f59e0b" },
+  { label: "तृतीयक क्षेत्र (सेवा/व्यापार)", value: `${neDec(pct(tertiary))}%`, sub: `Tertiary Sector · ${neInt(tertiary)} जना`, color: "#2563eb" },
+  { label: "सबैभन्दा ठूलो क्षेत्र", value: `${neDec(pct(largest.total))}%`, sub: `${largest.name} · ${neInt(largest.total)} जना`, color: "#dc2626" },
+];
+
+const tierSegs = [
+  { label: "प्राथमिक (कृषि, वन, पशुपालन, खानी)", value: primary, color: "#16a34a" },
+  { label: "द्वितीयक (उद्योग, निर्माण, सेवा–पूर्वाधार)", value: secondary, color: "#f59e0b" },
+  { label: "तृतीयक (व्यापार, यातायात, सेवा)", value: tertiary, color: "#2563eb" },
+  { label: "अन्य/उल्लेख नभएको", value: other, color: "#a3a3a3" },
+];
+
+const sectorItems = sectorRows
+  .filter((r) => r.total > 0)
+  .sort((a, b) => b.total - a.total)
+  .map((o, i) => ({ label: o.name, value: o.total, color: vizPalette[i % vizPalette.length], valueText: neInt(o.total) + " · " + neDec(pct(o.total)) + "%" }));
+
+const structureTiles = [
+  { label: "गैर–कृषि रोजगारी", value: `${neDec((nonAgri / GRAND) * 100)}%`, sub: `कृषिबाहेकका क्षेत्रमा · संरचनात्मक रूपान्तरणको मापन`, color: "#2563eb" },
+  { label: "प्रभावकारी आर्थिक क्षेत्र", value: neDec(effSectors, 2), sub: `Effective Sectors · ${neInt(sectorRows.length)} मध्ये व्यवहारमा हाबी`, color: "#7c3aed" },
+  { label: "औद्योगिकीकरण स्तर", value: `${neDec(pct(secondary))}%`, sub: `द्वितीयक क्षेत्रको हिस्सा — कमजोर औद्योगिक आधार`, color: "#f59e0b" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <!-- Official intro — retained -->
+  <div class="prose-ne reveal"><p>आर्थिक सम्बृृद्धिका आधारहरू उप–महानगरपालिकामा हुने मुख्य आर्थिक क्रियाकलापहरू नै हुन््् । जति आर्थिक क्रियाकलापहरूमा तीब्रता आउँछ त्यति नै उप–महानगरपालिकाको अर्थतन्त्र चलायमान र सुदृढ हुँदै जान्छ । मुख्यतया: नेपाली अर्थतन्त्र कृषि, पर्यटन, साना तथा घरेलु उद्योग, वैदेशिक रोजगार, बैङ्किङ, व्यापार, सेवा क्षेत्र आदिमा केन्द्रीत छ । उच्च प्रविधिमा आधारित अन्तराष्ट्रियस्तरका उद्योगहरूको विकास भइर् नसकेको अवस्थामा धेरै जसो आर्थिक क्रियाकलापहरू निर्वाहमूखी नै रहेका छन् ।</p></div>
+
+  <!-- ======================= एक नजरमा (three-sector structure) ======================= -->
+  <StatTiles
+    title="एक नजरमा — आर्थिक क्षेत्रको संरचना"
+    subtitle={`कुल आर्थिक रूपमा संलग्न ${neInt(GRAND)} जना (१०+ वर्ष)`}
+    tiles={summaryTiles}
+    cols={4}
+  />
+
+  <Donut
+    title="तीन क्षेत्रीय आर्थिक संरचना"
+    subtitle="क्लार्क–फिसर मोडेलअनुसार प्राथमिक, द्वितीयक र तृतीयक क्षेत्रमा वर्गीकरण"
+    segments={tierSegs}
+    centerValue={neInt(GRAND)}
+    centerLabel="कुल श्रमशक्ति"
+  />
+
+  <div class="prose-ne reveal">
+    <p>
+      <strong>तीन क्षेत्रीय मोडेल (Three-Sector Model) ले के देखाउँछ ?</strong> अर्थशास्त्रमा कुनै पनि अर्थतन्त्रलाई तीन क्षेत्रमा
+      बाँडिन्छ — <strong>प्राथमिक</strong> (प्रकृतिबाट प्रत्यक्ष उत्पादन : कृषि, वन, खानी), <strong>द्वितीयक</strong> (कच्चा
+      पदार्थलाई वस्तुमा बदल्ने : उद्योग, निर्माण), र <strong>तृतीयक</strong> (सेवा : व्यापार, यातायात, शिक्षा, स्वास्थ्य) ।
+      अर्थतन्त्र विकसित हुँदै जाँदा श्रमशक्ति प्राथमिकबाट द्वितीयक हुँदै तृतीयकतर्फ सर्छ । तुलसीपुरमा अझै
+      <strong>{neDec(pct(primary))}%</strong> प्राथमिक क्षेत्रमै छन्, द्वितीयक मात्र {neDec(pct(secondary))}% — यो
+      <em>सङ्क्रमणको प्रारम्भिक चरण</em> मा रहेको निर्वाहमुखी अर्थतन्त्रको स्पष्ट चित्र हो ।
+    </p>
+  </div>
+
+  <!-- ======================= full table ======================= -->
+  <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
+  <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
+  <BarList title="आर्थिक क्षेत्र अनुसार जनसंख्या" subtitle="मुख्य आर्थिक कामको क्षेत्र अनुसार (ठूलोदेखि सानो)" items={sectorItems} />
+
+  <div class="prose-ne reveal"><p>उप–महानगरपालिकामा रहेका १० वर्ष उमेर समूह माथिका कुल जनसंख्या मध्ये ८५,३९३ जनाले कुनै न कुनै किसिमको आर्थिक क्रियाकलापमा आबद्ध भइर् आर्थिक आम्दानी गरिरहेका छन् । यी मध्ये सबैभन्दा बढी कृषि, वन तथा पशुपालन कार्यमा ४७,१६८ जना संलग्न रहेका छन् । यसैगरी ६ महिना वा सो भन्दा बढी आम्दानीका क्रियाकलापमा संलग्न हुनेको संख्या ५३,७०४, ३ महिना देखि ५ महिना सम्म आम्दानीका क्रियाकलापमा संलग्न हुनेको संख्या १८,११५ रहेको छ भने १ देखि २ महिना मात्र आर्थिक क्रियाकलापमा संलग्न हुनेको संख्या १३,५७४ रहेको छ । जसको विस्तृत विवरण तालिकामा प्रस्तुत गरिएको छ ।</p></div>
+
+  <!-- ======================= work-intensity (sector stability) ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">क्षेत्रगत स्थायित्व — औपचारिक बनाम मौसमी रोजगारी</h3>
+    <p>
+      तालिकाका तीन स्तम्भ (६+ महिना, ३–५ महिना, १–२ महिना) ले प्रत्येक क्षेत्रको <strong>रोजगारी स्थायित्व</strong> खोल्छन् ।
+      <em>पूर्णकालिक (६+ महिना)</em> काम गर्नेको अनुपात क्षेत्रपिच्छे निकै फरक छ : <strong>शिक्षा</strong> ({neDec(ftRate(edu))}%) र
+      <strong>औद्योगिक उत्पादन</strong> ({neDec(ftRate(manuf))}%) जस्ता तलबी/औपचारिक क्षेत्रमा झन्डै सबै पूर्णकालिक छन्, जबकि
+      <strong>कृषि</strong> ({neDec(ftRate(agri))}%), <strong>निर्माण</strong> ({neDec(ftRate(construction))}%) र विशेषतः
+      <strong>थोक–खुद्रा व्यापार</strong> ({neDec(ftRate(trade))}%) मा ठूलो हिस्सा मौसमी/आंशिक छ ।
+    </p>
+    <p>
+      यो फरकले औपचारिक (formal) र अनौपचारिक (informal) रोजगारीको खाडल देखाउँछ — तलबी क्षेत्र स्थिर र सुरक्षित, तर कृषि–व्यापार
+      मौसमी र अनिश्चित । यही कारण खण्ड ३.९ मा देखिएको उच्च <em>अल्परोजगारी</em> मुख्यतया कृषि, निर्माण र खुद्रा व्यापारको
+      मौसमी प्रकृतिबाट आएको हो ।
+    </p>
+  </div>
+
+  <!-- ======================= structural-transformation indicators ======================= -->
+  <StatTiles
+    title="संरचनात्मक रूपान्तरण सूचकहरू"
+    subtitle="अर्थतन्त्र कति विविध र औद्योगिक भएको छ"
+    tiles={structureTiles}
+    cols={3}
+  />
+
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-6 text-[1.05rem] font-semibold text-[var(--color-text)]">सूचकहरूको अर्थ — सरल व्याख्या</h3>
+    <p>
+      <strong>१. गैर–कृषि रोजगारी ({neDec((nonAgri / GRAND) * 100)}%):</strong> कृषिबाहेकका क्षेत्रमा संलग्न श्रमशक्ति । यो जति
+      बढ्छ, अर्थतन्त्र त्यति <em>रूपान्तरित (transformed)</em> मानिन्छ । तुलसीपुरमा करिब आधा ({neDec((nonAgri / GRAND) * 100)}%)
+      गैर–कृषिमा हुनु सकारात्मक संकेत हो, तर अझै कृषि नै सबैभन्दा ठूलो क्षेत्र हो ।
+    </p>
+    <p>
+      <strong>२. प्रभावकारी आर्थिक क्षेत्र ({neDec(effSectors, 2)}):</strong> तालिकामा {neInt(sectorRows.length)} क्षेत्र भए पनि,
+      तौलिएर हेर्दा वास्तवमै करिब <strong>{neDec(effSectors, 2)}</strong> क्षेत्र मात्र प्रभावकारी छन् — कृषि र व्यापारले नै
+      अधिकांश ओगटेका छन् । अर्थतन्त्र विविधीकरण भएमा यो अंक बढ्छ, जसले जोखिम घटाउँछ ।
+    </p>
+    <p>
+      <strong>३. औद्योगिकीकरण स्तर ({neDec(pct(secondary))}%):</strong> द्वितीयक (उद्योग/निर्माण) क्षेत्रको हिस्सा अझै न्यून छ ।
+      रोजगारी सिर्जना र मूल्य अभिवृद्धिका लागि कृषि–प्रशोधन, साना उद्योग र निर्माण क्षेत्रको विस्तार आवश्यक छ ।
+    </p>
+  </div>
+
+  <!-- ======================= conclusions & recommendations ======================= -->
+  <div class="prose-ne reveal">
+    <h3 class="mb-1 mt-8 text-[1.1rem] font-semibold text-[var(--color-text)]">निष्कर्ष र सिफारिसहरू</h3>
+    <p>तुलसीपुर उप–महानगरपालिकाको आर्थिक क्षेत्र संरचनाको विश्लेषणबाट निम्न निष्कर्ष र सिफारिसहरू गर्न सकिन्छ :</p>
+    <ol>
+      <li>
+        <strong>कृषिमा मूल्य अभिवृद्धि:</strong> प्राथमिक क्षेत्र {neDec(pct(primary))}% रहेकाले कृषिलाई प्रशोधन र बजारीकरणसँग
+        जोडी उत्पादनशील बनाउँदै द्वितीयक क्षेत्रतर्फको सङ्क्रमण तीव्र पार्नुपर्ने ।
+      </li>
+      <li>
+        <strong>औद्योगिकीकरण प्रवर्द्धन:</strong> द्वितीयक क्षेत्र मात्र {neDec(pct(secondary))}% भएकाले कृषि–प्रशोधन उद्योग,
+        साना तथा घरेलु उद्योग र निर्माण सामग्री उद्योगमा लगानी आकर्षित गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>सेवा क्षेत्र विस्तार:</strong> तृतीयक क्षेत्र ({neDec(pct(tertiary))}%) मा पर्यटन, व्यापार, शिक्षा र स्वास्थ्य
+        सेवालाई गुणस्तरीय रोजगारीको स्रोत बनाउनुपर्ने ।
+      </li>
+      <li>
+        <strong>मौसमी अल्परोजगारी न्यूनीकरण:</strong> कृषि, निर्माण र व्यापारको मौसमी प्रकृतिलाई सम्बोधन गर्न वर्षभरि आय
+        दिने वैकल्पिक रोजगारी सिर्जना गर्नुपर्ने ।
+      </li>
+      <li>
+        <strong>आर्थिक विविधीकरण:</strong> प्रभावकारी क्षेत्र {neDec(effSectors, 1)} मात्र भएकाले अर्थतन्त्रलाई बहुक्षेत्रीय
+        बनाई बाह्य धक्काप्रतिको जोखिम घटाउनुपर्ने ।
+      </li>
+    </ol>
+    <p>
+      समग्रमा, तुलसीपुरको अर्थतन्त्र कृषि–प्रधान निर्वाहमुखी संरचनामा छ — द्वितीयक क्षेत्र कमजोर, तृतीयक मध्यम । कृषिमा मूल्य
+      अभिवृद्धि, औद्योगिकीकरण र सेवा विस्तारमार्फत संरचनात्मक रूपान्तरण तीव्र पार्नु नै दिगो आर्थिक समृद्धिको आधार हो ।
+    </p>
+  </div>
+</section>

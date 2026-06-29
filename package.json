@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "parse": "node scripts/extract.mjs && python3 scripts/parse_docx.py",
+    "geo": "node scripts/build-geo.mjs",
     "dev": "astro dev",
     "search:index": "astro build && pagefind --site dist && rm -rf public/pagefind && cp -r dist/pagefind public/pagefind",
     "build": "astro build",
@@ -16,6 +17,9 @@
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.16.6",
     "d3": "^7.9.0",
+    "maplibre-contour": "^0.1.0",
+    "maplibre-gl": "^5.24.0",
+    "pmtiles": "^4.4.1",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {

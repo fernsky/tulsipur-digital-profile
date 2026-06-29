@@ -1,0 +1,145 @@
+{
+  "generated": "2026-06-29T22:12:13.312Z",
+  "bounds": [
+    82.18,
+    27.95,
+    82.5,
+    28.3
+  ],
+  "center": [
+    82.3,
+    28.13
+  ],
+  "parcels": {
+    "count": 112996,
+    "areas": [
+      "Duruwa",
+      "Fulbari",
+      "Halwar",
+      "Manpur",
+      "Tarigaun",
+      "Tulsipur",
+      "Urahipur"
+    ]
+  },
+  "layers": {
+    "wards": {
+      "type": "fill",
+      "count": 19
+    },
+    "municipality": {
+      "type": "line",
+      "count": 1
+    },
+    "landuse": {
+      "type": "fill",
+      "count": 21741
+    },
+    "landusezone": {
+      "type": "fill",
+      "count": 22944
+    },
+    "landcapability": {
+      "type": "fill",
+      "count": 1164
+    },
+    "roads": {
+      "type": "line",
+      "count": 0
+    },
+    "rivers": {
+      "type": "line",
+      "count": 0
+    },
+    "geology": {
+      "type": "fill",
+      "count": 27
+    },
+    "soil": {
+      "type": "fill",
+      "count": 985
+    },
+    "settlements": {
+      "type": "point",
+      "count": 405
+    },
+    "risk_flood": {
+      "type": "fill",
+      "count": 235
+    },
+    "risk_landslide": {
+      "type": "fill",
+      "count": 314
+    },
+    "risk_fire": {
+      "type": "fill",
+      "count": 1355
+    },
+    "risk_seismic": {
+      "type": "fill",
+      "count": 23
+    }
+  },
+  "mtmp": {
+    "count": 4380
+  },
+  "pois": {
+    "count": 1157,
+    "categories": {
+      "HOTELS.CAFE.RESTURANTS": 88,
+      "HOSPITALS/HEALTH INSTITUTES": 3,
+      "A. CLILIC/PHARMACY": 25,
+      "B. HOSPITALS": 11,
+      "C. HEALTHPOST": 21,
+      "D. KHOP KENDRA": 5,
+      "D. MEDICAL STORE": 10,
+      "F. SURGICAL HOUSE": 6,
+      "PETROL PUMPS": 14,
+      "SCHOOLS/COLLAGES/EDU INSTITUTE": 4,
+      "A. PRA.BI": 41,
+      "B.AA.BI": 10,
+      "C.  BOARDING SCHOOL": 68,
+      "UNIVERSITY": 2,
+      "E. COLLAGES": 12,
+      "F. MAA.BI": 23,
+      "A. GHAT": 20,
+      "B. TEMPLES/CHURCH/MASGID": 135,
+      "VOTING CENTRE": 27,
+      "AGRICULTURE FARMS/ANIMAL FARM": 13,
+      "POULTARY FARM": 42,
+      "ANIMAL FARM": 15,
+      "FISH FARM": 19,
+      "BEE FARM": 2,
+      "TARKARI TATHA FALFUL": 19,
+      "उद्योग, व्यापार, व्यवसाय तथा आपूर्ति": 81,
+      "खानेपानी तथा सरसफाई": 80,
+      "खेलकुद तथा नवप्रवर्तन": 26,
+      "शान्ति सुरक्षा": 3,
+      "Temporary police station": 5,
+      "Police station": 6,
+      "Army barack": 3,
+      "Ilaka prahari": 2,
+      "बस्ती, आवास, भवन तथा सार्वजनिक निर्माण": 1,
+      "A. SAMUDAYIK BHAWAN": 50,
+      "B.PRATIKSHAYALA/GATE/basti": 14,
+      "सडक, पुल तथा यातायात": 41,
+      "सूचना, सञ्चार तथा प्रविधि": 1,
+      "NAMESTA": 3,
+      "NCELL": 3,
+      "RADIO": 4,
+      "बन तथा जैविक विविधता": 18,
+      "Gov offices": 21,
+      "SUB-METROPOILTIAN CITY": 2,
+      "WARD OFFICES": 19,
+      "LAKES/DAMS": 38,
+      "View Tower/Danda": 9,
+      "PARK": 12,
+      "DURBAR": 1,
+      "CAVES": 2,
+      "RISK AREA": 1,
+      "A. Banks": 42,
+      "B. लघुबित्त": 9,
+      "C. SAHAKARI SANSTHA": 25
+    }
+  }
+}

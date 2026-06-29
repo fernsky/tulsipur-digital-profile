@@ -1,0 +1,68 @@
+---
+import DataTable from "../../../components/DataTable.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import { cellStr, toNum, toNe, neInt, neDec } from "../../../lib/ne";
+
+const meta = {"id":"h-77-५-२-४-प्रमुख-रोग-र-उपचार-सम्","title":"५.२.४ प्रमुख रोग र उपचार सम्बन्धी विवरण"};
+
+const t8 = {"caption":"तालिका नं. ७६ – प्रमुख १० स्वास्थ्य समस्याहरुको विवरण","source":"स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा","rows":[["क्र.सं.","प्रमुख रोगहरू","OPD (२०८१/८२)"],["१.","APO","१२०८१"],["२.","URTI","७६०३"],["३.","HYPERTENSION","७१०३"],["४.","CONDUCTIVITIES","६८०३"],["५.","LRTI","६७९८"],["६.","CATARACT","६६७८१"],["७.","COPD","६४३३"],["८.","DM","५१४८"],["९.","AGE","५०१९"],["१०.","REFRACTIVE ERROR","४६११"],[{"text":"जम्मा","colspan":2,"rowspan":1},"१,२८,३८०"]]};
+const diseasePalette=["#dc2626","#f59e0b","#7c3aed","#0891b2","#16a34a","#2563eb","#db2777","#ca8a04","#0d9488","#9333ea"];
+const diseaseItems = t8.rows.slice(1).filter((r)=>!/जम्मा/.test(cellStr(r[0]))&&r.length>=3).map((r)=>({label:cellStr(r[1]),value:toNum(r[2])})).sort((a,b)=>b.value-a.value).map((d,i)=>({label:d.label,value:d.value,color:diseasePalette[i%diseasePalette.length],valueText:toNe(d.value)}));
+
+// ── Epidemiological classification ─────────────────────────────────
+const dz = t8.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0])) && r.length >= 3)
+  .map((r) => ({ name: cellStr(r[1]), n: toNum(r[2]) }));
+const CLASS = (n) => {
+  if (/URTI|LRTI|AGE|INFECT/.test(n)) return "comm";
+  if (/CATARACT|REFRACT|CONDUCT|CONJUNCT/.test(n)) return "eye";
+  return "ncd"; // HYPERTENSION, COPD, DM, APO
+};
+const grp = { comm: 0, ncd: 0, eye: 0 };
+dz.forEach((d) => { grp[CLASS(d.name)] += d.n; });
+const totalDz = grp.comm + grp.ncd + grp.eye;
+const commPct = grp.comm / totalDz * 100, ncdPct = grp.ncd / totalDz * 100, eyePct = grp.eye / totalDz * 100;
+const classSegs = [
+  { label: "गैरसंक्रामक रोग (NCD)", value: grp.ncd, color: "#dc2626" },
+  { label: "आँखा सम्बन्धी", value: grp.eye, color: "#7c3aed" },
+  { label: "संक्रामक रोग", value: grp.comm, color: "#16a34a" },
+];
+const kpis = [
+  { label: "OPD भेट (शीर्ष १० रोग)", value: neInt(totalDz) },
+  { label: "गैरसंक्रामक (NCD) हिस्सा", value: `${neDec(ncdPct, 0)}%` },
+  { label: "संक्रामक रोग हिस्सा", value: `${neDec(commPct, 0)}%` },
+  { label: "आँखा रोगको भार", value: `${neDec(eyePct, 0)}%` },
+];
+const tiles = [
+  { label: "शीर्ष १० रोगको OPD भेट", value: neInt(totalDz), sub: "बहिरंग सेवामा", color: "#2563eb" },
+  { label: "गैरसंक्रामक रोग (NCD)", value: `${neDec(ncdPct, 0)}%`, sub: "उच्च रक्तचाप, मधुमेह, COPD, ग्यास्ट्रिक", color: "#dc2626" },
+  { label: "संक्रामक रोग", value: `${neDec(commPct, 0)}%`, sub: "श्वासप्रश्वास, झाडापखाला", color: "#16a34a" },
+  { label: "आँखा सम्बन्धी रोग", value: `${neDec(eyePct, 0)}%`, sub: "मोतीबिन्दु, दृष्टिदोष", color: "#7c3aed" },
+];
+---
+
+<section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+
+  <div class="prose-ne reveal"><p>यस उप–महानगरपालिका अन्तर्गतका स्वास्थ्य संस्थाका ओपिडीमा दर्ता भएका िबरामीको संख्या अनुसार पछिल्लो समय देखा परेका १० प्रमुख स्वास्थ्य समस्याहरुको विवरण तलको तालिकामा उल्लेख गरिएको छ ।</p></div>
+
+  <div class="mt-2">
+    <StatTiles title="एक नजरमा — रोगको प्रकृति" tiles={tiles} cols={4} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>महामारी–विज्ञान संक्रमण (epidemiological transition) — रोगको बदलिँदो चरित्र:</strong> परम्परागत रूपमा गरिब/ग्रामीण समाजमा <em>संक्रामक रोग</em> (झाडापखाला, निमोनिया, टाइफाइड) मृत्यु–रोगको मुख्य कारण हुन्थे । तर जीवनशैली बदलिँदै, आयु बढ्दै र सहरीकरण हुँदै जाँदा समाज <em>गैरसंक्रामक रोग</em> (NCD — उच्च रक्तचाप, मधुमेह, मुटु–रोग, दीर्घ श्वासरोग) तर्फ सर्छ — यसलाई “महामारी–विज्ञान संक्रमण” भनिन्छ । तुलसीपुरको OPD तथ्याङ्कले यो संक्रमण स्पष्ट देखाउँछ: शीर्ष १० रोगमध्ये <strong>गैरसंक्रामक रोग {neDec(ncdPct, 0)}%</strong> छन्, जबकि संक्रामक रोग {neDec(commPct, 0)}% मात्र । उच्च रक्तचाप ({neInt(toNum(dz.find((d)=>/HYPERTENSION/.test(d.name))?.n))}), मधुमेह र COPD सूचीमा माथि हुनु आधुनिक “जीवनशैली–रोग” को बढ्दो भार हो ।</p>
+  </div>
+
+  <div class="mt-3 grid gap-4 md:grid-cols-2">
+    <Donut title="रोगको प्रकृति–अनुसार वर्गीकरण" subtitle={`शीर्ष १० रोगको OPD भेट`} segments={classSegs} centerValue={neInt(totalDz)} centerLabel="OPD भेट" />
+    <BarList title="प्रमुख स्वास्थ्य समस्याहरू (OPD)" subtitle="बहिरंग सेवामा सबैभन्दा बढी देखिएका रोगहरू" items={diseaseItems} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण — दोहोरो भार (double burden) र आँखाको उच्च भार:</strong> NCD हावी भए पनि संक्रामक रोग (श्वासप्रश्वास URTI/LRTI, झाडापखाला AGE) अझै उल्लेख्य छन् — अर्थात् तुलसीपुरले <em>दुवै प्रकारको रोगको दोहोरो भार</em> बोकेको छ, जुन संक्रमणकालीन समाजको विशेषता हो । श्वासप्रश्वास रोग (URTI, LRTI, COPD) को बाहुल्यले घरभित्रको धुवाँ–प्रदूषण (दाउरा–चुलो) र बाह्य वायु–प्रदूषणतर्फ सङ्केत गर्छ (हे. <a href="/chapters/4/5">खाना पकाउने इन्धन</a>) । साथै मोतीबिन्दु र दृष्टिदोषसहित <strong>आँखा सम्बन्धी रोग {neDec(eyePct, 0)}%</strong> को ठूलो भारले विशेष नेत्र–सेवा (आँखा अस्पताल/शिविर) को आवश्यकता देखाउँछ — यो दाङको क्षेत्रीय नेत्र–उपचार केन्द्रको माग पुष्टि गर्छ ।</p>
+    <p class="text-sm text-[var(--color-text-secondary)]"><em>(टिप्पणी: स्रोत तालिकामा मोतीबिन्दुको OPD संख्या असामान्य रूपमा उच्च देखिएकाले आँखा रोगको हिस्सा बढी देखिन सक्छ; वर्गीकरण स्रोत–अंक अनुसारकै हो ।)</em></p>
+  </div>
+</section>
