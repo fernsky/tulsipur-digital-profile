@@ -161,6 +161,15 @@ const title = `भू-नक्सा पोर्टल — ${meta.title}`;
       .geo-panel-body { padding: 6px 12px 14px; overflow-y: auto; }
       .geo-boot { padding: 18px 4px; color: var(--color-text-secondary); font-size: .88rem; }
 
+      .geo-toolbar { display: flex; gap: 8px; padding: 10px 2px 4px; }
+      .geo-tool-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--color-border);
+        background: #fff; font: inherit; font-size: .82rem; color: #1d1d1f; cursor: pointer; transition: background .15s; }
+      .geo-tool-btn:hover { background: #f1f5f9; }
+      #geo-reset { color: var(--color-error); border-color: #fca5a5; }
+      #geo-reset:hover { background: #fef2f2; }
+      #geo-legend-toggle.is-on { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
       .geo-sec { padding: 12px 2px; border-bottom: 1px solid var(--color-border); }
       .geo-sec:last-child { border-bottom: 0; }
       .geo-sec-h { display: flex; align-items: center; gap: 7px; margin-bottom: 9px;

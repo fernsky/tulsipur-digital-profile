@@ -3,7 +3,6 @@
 // search, inspection popups), the animated fly-in, and a download/loading HUD
 // so the map never looks frozen or empty.
 import maplibregl from "maplibre-gl";
-import { Protocol } from "pmtiles";
 import mlcontour from "maplibre-contour";
 import { buildStyle } from "./style";
 import {
@@ -90,10 +89,6 @@ export async function initPortal() {
   const hideHud = () => { if (hud) hud.style.display = "none"; };
 
   setHud("नक्सा सुरु हुँदैछ…", -1);
-
-  // pmtiles protocol
-  const protocol = new Protocol();
-  maplibregl.addProtocol("pmtiles", protocol.tile);
 
   // meta + pois (with progress)
   setHud("विवरण डाउनलोड हुँदैछ…", 0);
@@ -373,6 +368,10 @@ function wirePanel(map: maplibregl.Map, meta: Meta, pois: any) {
   ).join("");
 
   panel.innerHTML = `
+    <div class="geo-toolbar">
+      <button id="geo-reset" class="geo-tool-btn">सबै हटाउनुहोस् / रिसेट</button>
+      <button id="geo-legend-toggle" class="geo-tool-btn is-on" aria-pressed="true">${icon("compass", 14)}<span>रङ्ग-सूची</span></button>
+    </div>
     <section class="geo-sec">
       <div class="geo-sec-h">${icon("layers", 15)}<span>आधार नक्सा</span></div>
       <div class="geo-chips">${basemapHtml}</div>
@@ -480,6 +479,45 @@ function wirePanel(map: maplibregl.Map, meta: Meta, pois: any) {
   });
 
   wireTerrain(map, panel);
+
+  // ── legend show / hide ──
+  const legendEl = document.getElementById("geo-legend");
+  const legendBtn = panel.querySelector("#geo-legend-toggle") as HTMLElement;
+  legendBtn?.addEventListener("click", () => {
+    const on = legendBtn.classList.toggle("is-on");
+    legendBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    if (legendEl) legendEl.style.display = on ? "" : "none";
+  });
+
+  // ── clear all selections / reset ──
+  const resetAll = () => {
+    (panel.querySelector("[data-basemap]") as HTMLElement)?.click();
+    const ward = panel.querySelector("#geo-ward") as HTMLSelectElement;
+    if (ward) { ward.value = ""; ward.dispatchEvent(new Event("change")); }
+    panel.querySelectorAll("[data-layer]").forEach((el) => {
+      const cb = el as HTMLInputElement;
+      const def = !!LAYERS.find((l) => l.id === cb.dataset.layer)?.defaultOn;
+      cb.checked = def; setVis(cb.dataset.layer!, def);
+    });
+    panel.querySelectorAll("[data-lu]").forEach((el) => ((el as HTMLInputElement).checked = true));
+    applyLu();
+    riskState.clear(); ["H", "M", "L"].forEach((k) => riskState.add(k));
+    panel.querySelectorAll("[data-risk]").forEach((el) => el.classList.add("is-on"));
+    applyRisk();
+    panel.querySelectorAll("[data-poi]").forEach((el) => ((el as HTMLInputElement).checked = true));
+    applyPois();
+    const pa = panel.querySelector("[data-poi-all]") as HTMLElement;
+    if (pa) { pa.dataset.poiAll = "off"; pa.textContent = "सबै हटाउने"; }
+    panel.querySelectorAll("[data-tlayer]").forEach((el) => {
+      const cb = el as HTMLInputElement;
+      if (cb.checked) { cb.checked = false; cb.dispatchEvent(new Event("change")); }
+    });
+    panel.querySelectorAll("[data-cls]").forEach((el) => ((el as HTMLInputElement).checked = true));
+    toggleConditional(panel, map);
+    buildLegend(map);
+  };
+  panel.querySelector("#geo-reset")?.addEventListener("click", resetAll);
+
   toggleConditional(panel, map);
   buildLegend(map);
   buildSearch(map, pois);

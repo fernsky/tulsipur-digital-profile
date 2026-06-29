@@ -1,6 +1,9 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import AutoViz from "../../../components/viz/AutoViz.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
 
 const meta = {"id":"h-93-५-३-७-ज्येष्ठ-नागरिक-परिचय-प","title":"५.३.७ ज्येष्ठ नागरिक परिचय पत्र विवरण"};
 
@@ -9,7 +12,31 @@ const t3 = {"caption":"तालिका नं. ८७ – ज्येष्�
 
 <section id={meta.id} class="scroll-mt-24">
   <div class="prose-ne reveal"><p>उप–महानगरपालिकाले आ.व. २०७४/०७५ देखि हाल सम्म ७,१०७ जनालाई परिचय पत्र वितरण गरेको छ । जसको विस्तृत विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
+  {(() => {
+    const jam = t3.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+    const men = toNum(jam[1]), women = toNum(jam[2]), total = toNum(jam[3]);
+    const yrs = t3.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0])));
+    const first = yrs[0];
+    const yrItems = yrs.map((r, i) => ({ label: cellStr(r[0]), value: toNum(r[3]), valueText: neInt(toNum(r[3])), color: i === 0 ? "#7c3aed" : "#2563eb" }));
+    const kpis = [
+      { label: "जम्मा परिचय पत्र वितरित", value: neInt(total), unit: "जना" },
+      { label: "पुरुष", value: neInt(men) },
+      { label: "महिला", value: neInt(women) },
+      { label: "पहिलो वर्षको हिस्सा", value: `${neDec(toNum(first[3]) / total * 100, 0)}%` },
+    ];
+    return (
+      <>
+        <div class="mt-2"><SectionKpis items={kpis} /></div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>ज्येष्ठ नागरिक परिचयपत्र — सामाजिक सुरक्षाको प्रवेशद्वार:</strong> यो परिचयपत्र केवल पहिचान होइन — वृद्ध–भत्ता (सामाजिक पेन्सन), निःशुल्क/सहुलियत स्वास्थ्य सेवा, यातायात छुट लगायतका राज्य–सुविधा पाउने आधिकारिक आधार हो । बढ्दो आयु र <a href="/chapters/5/2/5">वृद्ध–जनसंख्याको दीर्घ–रोग भार</a> सँगै यसको महत्त्व बढ्दै छ ।</p>
+        </div>
+        <div class="mt-3"><BarList title="वार्षिक परिचयपत्र वितरण" subtitle={`जम्मा ${neInt(total)} · पहिलो वर्ष (२०७४/७५) मा ब्याकलग सफा`} items={yrItems} /></div>
+        <div class="prose-ne reveal mt-2">
+          <p><strong>विश्लेषण:</strong> वितरणको ढाँचाले देखाउँछ — आ.व. २०७४/७५ मा एक्लै {neInt(toNum(first[3]))} ({neDec(toNum(first[3]) / total * 100, 0)}%) परिचयपत्र वितरण भयो, किनकि कार्यक्रम सुरु हुँदा वर्षौंदेखि जम्मा भएको <em>ब्याकलग</em> एकैचोटि सफा भयो; त्यसपछिका वर्षमा नयाँ ६० वर्ष पुग्नेहरूका लागि वार्षिक वितरण स्थिर (करिब ३००–३५०/वर्ष) भएको छ । लिङ्ग अनुपात झन्डै सन्तुलित ({neInt(men)} पुरुष, {neInt(women)} महिला) छ; तर महिला सामान्यतया लामो बाँच्ने हुनाले महिला ज्येष्ठ नागरिकको दर्ता र पहुँच अझ बढाउने अवसर छ । सबै योग्य ज्येष्ठ नागरिकलाई दर्ता–दायरामा ल्याउने सक्रिय अभियान आवश्यक छ ।</p>
+        </div>
+      </>
+    );
+  })()}
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
-  <AutoViz table={t3} title={t3.caption} />
 </section>

@@ -1,7 +1,9 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import StackedBar from "../../../components/viz/StackedBar.astro";
-import { cellStr, toNum } from "../../../lib/ne";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
 
 const vizPalette = ["#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed","#0891b2","#db2777","#ca8a04","#0d9488","#9333ea","#a3a3a3"];
 const segsFromTotals = (table) => { const names=table.rows[0].slice(1,-1).map(cellStr); const tot=(table.rows.find((r)=>/जम्मा/.test(cellStr(r[0])))||[]).slice(1,-1); return names.map((n,i)=>({label:n,value:toNum(tot[i]),color:vizPalette[i%vizPalette.length]})).filter((x)=>x.value>0); };
@@ -10,9 +12,43 @@ const meta = {"id":"h-86-५-३-२-शौचालयको-प्रयोग
 
 const t2 = {"caption":"तालिका नं. ८६ – परिवारले प्रयोग गर्ने चर्पीको प्रकारका आधारमा परिवारको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["वडा नं.","फ्लस भएको (सार्वजनिक ढल)","फ्लस भएको (सेप्टिक ट्याङ्क)","खाल्डे चर्पी","सामुदायिक चर्पी","चर्पी नभएको","जम्मा"],["१","१६","८९८","२८२","०","३६","१२३२"],["२","२८","६९४","४५८","१","१","११८२"],["३","२१२","१६२४","११९","२","४६","२००३"],["४","१३९","१५५३","५७३","३५","३८","२३३८"],["५","३५","३३७२","१८५","२","१४","३६०८"],["६","८७","५१५४","८०७","५","२०","६०७३"],["७","१३५","२७९५","५५३","१२","३१","३५२६"],["८","११९","१३०८","७५१","१७","१३","२२०८"],["९","५१","३४८६","२२८","१","७","३७७३"],["१०","१७९","७२६","६८२","८","५","१६००"],["११","१८३","११८७","७२७","१२","४१","२१५०"],["१२","१५२","१९५५","५३२","८","२६","२६७३"],["१३","२२","६४८","७१६","१","९३","१४८०"],["१४","११३","१००३","४७९","२","३०","१६२७"],["१५","७६","१३०७","५१७","०","२८","१९२८"],["१६","२३","१६६८","२००","१","१५","१९०७"],["१७","४७","१९६९","२३३","८","३५","२२९२"],["१८","८५","२०६८","२०९","५","१७","२३८४"],["१९","९७","७८८","११२३","४","२२","२०३४"],["जम्मा","१७९९","३४२०३","९३७४","१२४","५१८","४६०१८"],["प्रतिशत","३.९१","७४.३३","२०.३७","०.२७","१.१३","१००"]]};
 const toiletSeg = segsFromTotals(t2);
+
+// ── Live computation ───────────────────────────────────────────────
+const jam = t2.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const flushSewer = toNum(jam[1]), flushSeptic = toNum(jam[2]), pit = toNum(jam[3]), community = toNum(jam[4]), none = toNum(jam[5]), totalHH = toNum(jam[6]);
+const improved = flushSewer + flushSeptic;
+const improvedPct = improved / totalHH * 100;
+const pitPct = pit / totalHH * 100;
+const odPct = none / totalHH * 100;
+const wardRows = t2.rows.slice(1).filter((r) => !/जम्मा|प्रतिशत/.test(cellStr(r[0])));
+const worstOD = [...wardRows].sort((a, b) => toNum(b[5]) - toNum(a[5]))[0];
+const mostPit = [...wardRows].map((r) => ({ ward: cellStr(r[0]), share: toNum(r[3]) / toNum(r[6]) * 100 })).sort((a, b) => b.share - a.share)[0];
+
+const kpis = [
+  { label: "जम्मा घरपरिवार", value: neInt(totalHH) },
+  { label: "सुधारिएको शौचालय", value: `${neDec(improvedPct, 1)}%` },
+  { label: "खाल्डे चर्पी", value: `${neDec(pitPct, 1)}%` },
+  { label: "शौचालयविहीन", value: `${neDec(odPct, 2)}%` },
+];
+const tiles = [
+  { label: "सुधारिएको शौचालय (flush)", value: `${neDec(improvedPct, 0)}%`, sub: `${neInt(improved)} घरधुरी — सेप्टिक/ढल`, color: "#16a34a" },
+  { label: "खाल्डे चर्पी", value: `${neDec(pitPct, 0)}%`, sub: `${neInt(pit)} घरधुरी — आधारभूत/असुधारिएको`, color: "#f59e0b" },
+  { label: "खुला दिसा (शौचालयविहीन)", value: `${neDec(odPct, 1)}%`, sub: `${neInt(none)} घरधुरी — ODF अधुरो`, color: "#dc2626" },
+  { label: "सर्वाधिक खुला–दिसा वडा", value: `वडा ${cellStr(worstOD[0])}`, sub: `${neInt(toNum(worstOD[5]))} घरधुरीसँग शौचालय छैन`, color: "#7c3aed" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24">
+  <SectionKpis items={kpis} />
+  <div class="mt-2"><StatTiles title="एक नजरमा — सरसफाइको अवस्था" tiles={tiles} cols={4} /></div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>सरसफाइको सिँढी (sanitation ladder) के हो?</strong> विश्व स्वास्थ्य संगठन/युनिसेफको JMP वर्गीकरणअनुसार शौचालयलाई गुणस्तरका आधारमा सिँढीजसरी हेरिन्छ — सबैभन्दा माथि <em>सुरक्षित–व्यवस्थित</em> (सेप्टिक ट्याङ्क/ढलमा जोडिएको फ्लस), त्यसपछि <em>आधारभूत</em> (खाल्डे चर्पी — मल छुट्याउने तर असुधारिएको), अनि <em>सीमित/साझा</em>, र सबैभन्दा तल <em>खुला दिसा</em> (शौचालयै नभएको) । जति माथिल्लो सिँढी, उति कम मल–मुख (fecal-oral) रोग — किनकि असुरक्षित मलले पानी–खाना दूषित गरी झाडापखाला, टाइफाइड, हैजा फैलाउँछ (हे. <a href="/chapters/5/2/4">झाडापखाला/AGE को OPD भार</a>) ।</p>
+  </div>
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण:</strong> {neInt(totalHH)} घरपरिवारमध्ये <strong>{neDec(improvedPct, 0)}% सुधारिएको</strong> शौचालय (सेप्टिक/ढल) प्रयोग गर्छन् — सहरी क्षेत्रको राम्रो उपलब्धि । तर <strong>{neDec(pitPct, 0)}% अझै खाल्डे चर्पी</strong> मा निर्भर छन् (खास गरी ग्रामीण/थारू वडा — वडा {mostPit.ward} मा झन्डै {neDec(mostPit.share, 0)}%), र <strong>{neDec(odPct, 1)}% ({neInt(none)} घरधुरी) सँग शौचालयै छैन</strong> — अर्थात् नगर पूर्ण रूपमा खुला–दिसामुक्त (ODF) भइसकेको छैन । खुला दिसा सबैभन्दा बढी वडा {cellStr(worstOD[0])} मा देखिन्छ । सानो प्रतिशत भए पनि बाँकी शौचालयविहीन घरधुरीलाई अनुदान/निर्माण–सहयोगबाट पूर्ण ODF बनाउनु, र खाल्डे चर्पीलाई सुधारिएको शौचालयमा स्तरोन्नति गर्नु सार्वजनिक स्वास्थ्यको प्राथमिकता हुनुपर्छ ।</p>
+  </div>
+
   <div class="prose-ne reveal"><p>कतिपय दुर्गम नगरबस्तीमा अहिले पनि मानिसहरू पानीका स्रोत तथा खुला ठाउँमा दिसा पिसाब गर्ने गर्दछन् । सभ्य समाजको निम्ति यो अभ्यास असभ्यताको प्रतीक हो । खुला क्षेत्रमा गरिने मलमुत्र विर्सजनले मानिसको शरीरमा खाना, पानी र श्वासप्रश्वास मार्फत किटाणुको प्रवेश हुन्छ । त्यसकारण प्रत्येक घरमा शौचालयको निर्माण अनिवार्य आवश्यकता हो । सरकार तथा विभिन्न गैरसरकारी संस्थाहरूले हाल आएर शौचालय निर्माणलाई प्राथमिकता दिएको पाईन्छ । निजी घर तथा सार्वजनिक स्थलहरूमा हातधुने पानी सहित शौचालय हुनुपर्दछ । विपन्न समुदायका परिवारहरूले आफै शौचालय निर्माण गर्न नसकेको अवस्थामा सरकार विशेष गरी स्थानीय सरकारले शौचालय निर्माणमा अनुदान दिनुपर्ने हुन्छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />

@@ -25,6 +25,9 @@ const riskMatch = (opacity = false) => {
 
 export function buildStyle(basemapId: string): StyleSpecification {
   const bm = BASEMAPS.find((b) => b.id === basemapId) || BASEMAPS[0];
+  // Tile requests are built inside a web worker (no document base URL), so
+  // root-relative paths fail to parse — use absolute URLs against the origin.
+  const origin = typeof location !== "undefined" ? location.origin : "";
 
   const riskLayer = (id: string) => ({
     id, type: "fill" as const, source: BASE_SRC, "source-layer": id,
@@ -44,8 +47,8 @@ export function buildStyle(basemapId: string): StyleSpecification {
         type: "raster", tiles: bm.url ? [bm.url] : [], tileSize: 256,
         maxzoom: bm.maxzoom ?? 19, attribution: bm.attribution, bounds: MUNI_BOUNDS,
       },
-      [BASE_SRC]: { type: "vector", url: "pmtiles:///geo/base.pmtiles" },
-      [PARCEL_SRC]: { type: "vector", url: "pmtiles:///geo/parcels.pmtiles" },
+      [BASE_SRC]: { type: "vector", tiles: [`${origin}/geo/base/{z}/{x}/{y}.pbf`], minzoom: 6, maxzoom: 15 },
+      [PARCEL_SRC]: { type: "vector", tiles: [`${origin}/geo/parcels/{z}/{x}/{y}.pbf`], minzoom: 12, maxzoom: 16 },
     },
     layers: [
       { id: "basemap", type: "raster", source: "basemap" },

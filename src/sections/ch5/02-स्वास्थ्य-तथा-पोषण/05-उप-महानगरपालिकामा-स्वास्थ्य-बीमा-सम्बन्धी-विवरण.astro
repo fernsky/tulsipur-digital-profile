@@ -14,21 +14,63 @@ const t10 = {"caption":"तालिका नं. ७८ – विगत ३ �
 const t11 = {"caption":"तालिका नं. ७९ – ८० वर्ष माथिका ज्येष्ठ नागरिकहरुको उपचार कार्यक्रम सम्बन्धी विवरण","source":"","rows":[["आ.व.","महिला","पुरुष","जम्मा","मुख्य रोगहरुको विवरण"],["२०८०/०८१","३१०","३१५","६२५","मुटु, दम, उच्च रक्तचाप, हाडजोर्नी, निद्रा नपर्ने, कमजोरी, मधुमेह, ग्याष्ट्रिक (APD) दृष्टि कमजोर"],["२०७९/०८०","६५६२","५८८६","१२५४८","मुटु, दम, उच्च रक्तचाप, हाडजोर्नी, निद्रा नपर्ने, कमजोरी, मधुमेह, ग्याष्ट्रिक (APD) दृष्टि कमजोर (७० वर्ष भन्दा माथि)"],["२०७८/०७९","८९४","९३९","१८३३","मुटु, दम, उच्च रक्तचाप, हाडजोर्नी, निद्रा नपर्ने, कमजोरी, मधुमेह, ग्याष्ट्रिक (APD) दृष्टि कमजोर"]]};
 const insWardItems = t9.rows.slice(1).filter((r) => r.length >= 3 && !/जम्मा/.test(cellStr(r[0]))).map((r) => ({ ward: toNum(r[2]), value: toNum(r[1]) })).filter((x) => x.ward > 0).sort((a, b) => a.ward - b.ward).map((x) => ({ label: "वडा " + toNe(String(x.ward)), value: x.value, valueText: toNe(x.value) }));
 const insYearItems = t10.rows.slice(1).filter((r) => r.length >= 5 && !/जम्मा|जममा/.test(cellStr(r[4]))).map((r) => ({ label: cellStr(r[4]), a: toNum(r[1]), b: toNum(r[2]) }));
+
+// ── Live computation ───────────────────────────────────────────────
+const POP = 179755;
+const yr = t10.rows.slice(1).map((r) => ({ fy: cellStr(r[4]), total: toNum(r[0]), women: toNum(r[1]), men: toNum(r[2]), elderly: toNum(r[3]) }));
+const cur = yr[0], prev = yr[1], first = yr[2]; // 2081/82, 2080/81, 2079/80
+const renewDrop = (prev.total - cur.total) / prev.total * 100;
+const growth = (prev.total - first.total) / first.total * 100;
+const womenShare = cur.women / cur.total * 100;
+const coverage = cur.total / POP * 100;
+const wardVals = t9.rows.slice(1).map((r) => ({ ward: toNum(r[2]), v: toNum(r[1]) }));
+const topW = [...wardVals].sort((a, b) => b.v - a.v)[0];
+const lowW = [...wardVals].sort((a, b) => a.v - b.v)[0];
+
+const kpis = [
+  { label: "विमित (२०८१/८२)", value: neInt(cur.total), unit: "जना" },
+  { label: "जनसंख्या कभरेज", value: `~${neDec(coverage, 1)}%` },
+  { label: "महिला विमित हिस्सा", value: `${neDec(womenShare, 0)}%` },
+  { label: "नवीकरणमा गिरावट", value: `−${neDec(renewDrop, 1)}%` },
+];
+const tiles = [
+  { label: "विमित संख्या (पछिल्लो)", value: neInt(cur.total), sub: `कुल जनसंख्याको ~${neDec(coverage, 1)}%`, color: "#2563eb" },
+  { label: "नवीकरण–गिरावट", value: `−${neDec(renewDrop, 1)}%`, sub: `${neInt(prev.total)} → ${neInt(cur.total)} (नविकरण समस्या)`, color: "#dc2626" },
+  { label: "महिला विमित आधिक्य", value: `${neDec(womenShare, 0)}%`, sub: "पुरुष वैदेशिक रोजगारीमा", color: "#db2777" },
+  { label: "वडागत असमानता", value: `${neInt(topW.v)} ⟷ ${neInt(lowW.v)}`, sub: `वडा ${neInt(topW.ward)} सर्वाधिक · वडा ${neInt(lowW.ward)} न्यून`, color: "#f59e0b" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24">
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
+  <SectionKpis items={kpis} />
+  <div class="mt-2"><StatTiles title="एक नजरमा — स्वास्थ्य बीमाको अवस्था" tiles={tiles} cols={4} /></div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>स्वास्थ्य बीमा र जोखिम–पूलिङ (risk pooling) के हो?</strong> स्वास्थ्य बीमामा धेरै मानिसले थोरै–थोरै प्रिमियम जम्मा गर्छन्, र बिरामी पर्नेको ठूलो उपचार खर्च त्यही साझा कोषबाट तिरिन्छ — स्वस्थको योगदानले बिरामीलाई जोगाउने यो “जोखिम–बाँडफाँड” नै बीमाको मर्म हो । यसले <a href="/chapters/5/2/6">विपत्तिजन्य स्वास्थ्य खर्च</a> बाट परिवारलाई जोगाउँछ । तर बीमा प्रभावकारी हुन <em>ठूलो र स्वस्थ–सहित मिश्रित जनसंख्या</em> सहभागी हुनुपर्छ; नत्र बिरामी मात्र भर्ना भए (adverse selection / विपरीत चयन) कोष टिक्दैन ।</p>
+  </div>
+  <div class="prose-ne reveal mt-3">
+    <p><strong>मुख्य चिन्ता — नवीकरणको समस्या:</strong> विमित संख्या २०७९/८० मा {neInt(first.total)} बाट {neDec(growth, 0)}% बढेर २०८०/८१ मा {neInt(prev.total)} पुग्यो, तर २०८१/८२ मा <strong>{neDec(renewDrop, 1)}% घटेर {neInt(cur.total)}</strong> मा झर्‍यो । यो “एकपटक भर्ना भएर नवीकरण नगर्ने” प्रवृत्ति नेपालको स्वास्थ्य बीमाको सबैभन्दा ठूलो संरचनागत समस्या हो — सेवाको गुणस्तर, औषधि उपलब्धता वा दाबी–भुक्तानीमा असन्तुष्टि भए मानिस अर्को वर्ष नवीकरण गर्दैनन् । कुल कभरेज <strong>~{neDec(coverage, 1)}%</strong> मात्र हुनु (जनसंख्याको ठूलो हिस्सा बीमाविहीन) ले जोखिम–पूल सानो र कमजोर रहेको देखाउँछ ।</p>
+  </div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
   <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
   <BarList title="वडागत स्वास्थ्य बीमा" subtitle="वडा अनुसार विमित संख्या" items={insWardItems} />
-  <AutoViz table={t9} title={t9.caption} />
+  <div class="prose-ne reveal mt-2"><p><strong>विश्लेषण:</strong> वडागत वितरण असमान छ — वडा {neInt(topW.ward)} ({neInt(topW.v)} विमित) सर्वाधिक भने वडा {neInt(lowW.ward)} ({neInt(lowW.v)}) न्यून । सहरी/सघन वडामा बीमा–जागरण र पहुँच बढी देखिन्छ; कम कभरेज भएका वडामा लक्षित भर्ना अभियान चाहिन्छ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t10.caption}</h3>
   <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
   <ClusterBars title="स्वास्थ्य बीमा — लिङ्ग अनुसार वार्षिक" subtitle="आर्थिक वर्ष अनुसार महिला र पुरुष विमित" items={insYearItems} aLabel="महिला" bLabel="पुरुष" />
-  <AutoViz table={t10} title={t10.caption} />
+  <div class="prose-ne reveal mt-2"><p><strong>विश्लेषण:</strong> तीनै वर्ष <strong>महिला विमित पुरुषभन्दा बढी</strong> (पछिल्लो वर्ष {neDec(womenShare, 0)}% महिला) छन् — यो आंशिक रूपमा पुरुषको <a href="/chapters/4/1/5">वैदेशिक रोजगारी</a> ले घरमा महिला नै बीमा गर्ने भएकाले हो, र महिलाको स्वास्थ्य–सेवा प्रयोग (प्रसूति, बाल–स्याहार) बढी हुने भएकाले पनि । ज्येष्ठ नागरिक विमित संख्या वर्षैपिच्छे उतारचढाव हुनुले वृद्ध–लक्षित नवीकरण–सहयोग आवश्यक देखाउँछ ।</p></div>
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
   <DataTable caption={t11.caption} rows={t11.rows} source={t11.source} />
-  <AutoViz table={t11} title={t11.caption} />
-  <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
+  <div class="prose-ne reveal mt-2"><p><strong>विश्लेषण — ८०+ ज्येष्ठ नागरिक उपचार कार्यक्रम:</strong> असी वर्षमाथिका वृद्धवृद्धाका मुख्य रोग — मुटु, दम, उच्च रक्तचाप, हाडजोर्नी, मधुमेह, ग्यास्ट्रिक — सबै <a href="/chapters/5/2/4">गैरसंक्रामक/दीर्घ रोग (NCD)</a> हुन्, जसले निरन्तर औषधि र निगरानी माग्छन् । बढ्दो आयु र वृद्ध–जनसंख्यासँगै यो भार बढ्दै जान्छ; घरनजिकैको दीर्घ–रोग व्यवस्थापन (geriatric/NCD clinic) र निःशुल्क नियमित औषधि सेवा वृद्ध–स्वास्थ्यको प्राथमिकता हुनुपर्छ ।</p></div>
+  <div class="prose-ne reveal mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-brand)]">निष्कर्ष र सिफारिसहरू</h3>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>नवीकरण दर बढाउने:</strong> सेवा–गुणस्तर, औषधि उपलब्धता र दाबी–भुक्तानी सुधारेर “एकपटक भर्ना” लाई निरन्तर नवीकरणमा बदल्नु — बीमाको दिगोपनको कुञ्जी यही हो ।</li>
+      <li><strong>कभरेज विस्तार:</strong> ~{neDec(coverage, 1)}% कभरेजलाई बढाउन विपन्न/सीमान्त परिवारको प्रिमियम अनुदान र वडागत भर्ना अभियान चलाउनुपर्छ; ठूलो जोखिम–पूलले मात्र <a href="/chapters/5/2/6">जटिल रोगको खर्च</a> धान्न सक्छ ।</li>
+      <li><strong>कृषि–सहकारीसँग जोड्ने:</strong> <a href="/chapters/4/8/6">सहकारी सञ्जाल</a> मार्फत बीमा भर्ना र प्रिमियम संकलन गरे ग्रामीण पहुँच बढ्छ ।</li>
+    </ul>
+  </div>
 </section>

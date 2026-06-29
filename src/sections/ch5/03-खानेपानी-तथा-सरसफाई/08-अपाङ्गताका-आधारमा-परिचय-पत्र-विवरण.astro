@@ -1,6 +1,11 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import AutoViz from "../../../components/viz/AutoViz.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
 
 const meta = {"id":"h-94-५-३-८-अपाङ्गताका-आधारमा-परिच","title":"५.३.८ अपाङ्गताका आधारमा परिचय पत्र विवरण"};
 
@@ -10,26 +15,119 @@ const t6 = {"caption":"तालिका नं. ९० – उप–महा�
 const t7 = {"caption":"तालिका नं. ९१ – उप–महानगरपालिकाभित्र न्यायिक समितिमा उजुरी परेका घटनाहरुको विवरणहरुको विवरण","source":"स्रोतः नगर कार्यपालिकाको कार्यालय","rows":[["घटना विवरण","आ.व.२०७९/८०","आ.व.२०८०/८१","आ.व.२०८१/८२"],["घरेलु हिंसा","१०","१९","०"],["यौन हिंसा","९","५","२"],["सामाजिक हिंसा","३","२","२"],["अन्य हिंसा","१२","९","५"],["साथमा आएका बालबालिका संख्या","२","७","("],["जम्मा","३६","४२","९"]]};
 const t8 = {"caption":"तालिका नं. ९२ – अस्पतालमा आधारित एकद्वार संकट व्यवस्थापन केन्द्रमा आएका घटना विवरणहरुको विवरण","source":"स्रोतः नगर कार्यपालिकाको कार्यालय","rows":[["घटना विवरण","२०७९/०८०","२०८०/०८१"],["जवर जस्ती करणी","५०","७६"],["यौन हिंसा","१०","१४"],["शारिरीक हिंसा","४१","६३"],["मनोसामाजिक तथा मानसिक हिंसा","४२","७०"],["बाल विवाह","११","७"],["आर्थिक हिंसा","२","२४"],["जम्मा","१५६","२५४"]]};
 const t9 = {"caption":"तालिका नं. ९३ – महिला पुनर्स्थापना केन्द्र (ओरेक) बाट सेवा लिनेहरुको विवरण","source":"स्रोतः नगर कार्यपालिकाको कार्यालय","rows":[["घटना विवरण","सन् २०२२","सन् २०२३","सन् २०२४ को हालसम्म"],["घरेलु हिंसा","५३","७४","२३"],["यौन हिंसा","२","४","३"],["सामाजिक संजालबाट हिंसा","०","१","२"],["लिभिंग टुगेदर","०","२","३"],["सामाजिक हिंसा","५","७","४"],["बहु–विवाह","०","३","३"],["आत्महत्या","०","३","२"],["बाल विवाह","०","२","२"],["मानव अधिकार हनन","०","१","२"],["जजक उद्योग","०","१","२"],["जजक","०","२","४"],["बैवाहिक बलात्कार","०","२","२"],["बोक्सीको आरोप","२","०","०"],["बलात्कार","३","०","०"],["सामुहिक बलात्कार","१","१","२"],["अन्य हिंसा","२","०","०"],["जम्मा","६८","१०३","५४"]]};
+
+// ── Disability computation (t4 type, t5 severity) ──────────────────
+const j = t4.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const pair = (a, b) => toNum(j[a]) + toNum(j[b]);
+const dPhys = pair(1, 2);
+const dVision = pair(3, 4) + pair(5, 6) + pair(7, 8);
+const dHearing = pair(9, 10) + pair(11, 12);
+const dSpeech = pair(15, 16);
+const dMental = pair(17, 18);
+const dIntel = pair(19, 20);
+const dGenetic = pair(21, 22);
+const dAutism = pair(23, 24);
+const dMulti = pair(25, 26);
+const dFem = toNum(j[27]), dMale = toNum(j[28]), dTotal = toNum(j[29]);
+const dMalePct = dMale / dTotal * 100;
+const typeItems = [
+  { label: "शारीरिक", value: dPhys, color: "#2563eb" },
+  { label: "बहु–अपाङ्गता", value: dMulti, color: "#dc2626" },
+  { label: "सुनाई (श्रवण)", value: dHearing, color: "#f59e0b" },
+  { label: "दृष्टि सम्बन्धी", value: dVision, color: "#7c3aed" },
+  { label: "बौद्धिक", value: dIntel, color: "#16a34a" },
+  { label: "स्वर/बोलाई", value: dSpeech, color: "#0891b2" },
+  { label: "मानसिक/मनोसामाजिक", value: dMental, color: "#db2777" },
+  { label: "अटिजम", value: dAutism, color: "#ca8a04" },
+  { label: "अनुवंशिय/रक्तश्राव", value: dGenetic, color: "#0d9488" },
+].sort((a, b) => b.value - a.value).map((x) => ({ ...x, valueText: neInt(x.value) }));
+// severity (t5)
+const js = t5.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const sevA = toNum(js[1]) + toNum(js[2]), sevB = toNum(js[3]) + toNum(js[4]), sevC = toNum(js[5]) + toNum(js[6]), sevD = toNum(js[7]) + toNum(js[8]);
+const sevSegs = [
+  { label: "ख वर्ग (अति अशक्त — नीलो)", value: sevB, color: "#2563eb" },
+  { label: "ग वर्ग (मध्यम — पहेँलो)", value: sevC, color: "#f59e0b" },
+  { label: "क वर्ग (पूर्ण अशक्त — रातो)", value: sevA, color: "#dc2626" },
+  { label: "घ वर्ग (सामान्य — सेतो)", value: sevD, color: "#94a3b8" },
+];
+const profoundPct = (sevA + sevB) / dTotal * 100;
+
+const dKpis = [
+  { label: "अपाङ्गता परिचयपत्र", value: neInt(dTotal), unit: "जना" },
+  { label: "शारीरिक अपाङ्गता", value: neInt(dPhys) },
+  { label: "पुरुष हिस्सा", value: `${neDec(dMalePct, 0)}%` },
+  { label: "क+ख वर्ग (गम्भीर)", value: `${neDec(profoundPct, 0)}%` },
+];
+const dTiles = [
+  { label: "जम्मा परिचयपत्र", value: neInt(dTotal), sub: `${neInt(dFem)} महिला · ${neInt(dMale)} पुरुष`, color: "#2563eb" },
+  { label: "शारीरिक अपाङ्गता", value: `${neDec(dPhys / dTotal * 100, 0)}%`, sub: `${neInt(dPhys)} जना — सबैभन्दा बढी`, color: "#16a34a" },
+  { label: "लैङ्गिक अन्तर", value: `${neDec(dMalePct, 0)}% पुरुष`, sub: "महिला अपाङ्गता कम–दर्ता हुने जोखिम", color: "#db2777" },
+  { label: "गम्भीर (क+ख वर्ग)", value: `${neDec(profoundPct, 0)}%`, sub: "उच्च–सहयोग आवश्यक", color: "#dc2626" },
+];
+
+// ── GBV computation (t6) ───────────────────────────────────────────
+const gbvCol = (idx) => { const r = t6.rows.find((x) => /^जम्मा/.test(cellStr(x[0]))) || []; return toNum(r[idx]); };
+const gbvY1 = gbvCol(1), gbvY2 = gbvCol(2), gbvY3 = gbvCol(3);
+const gbvItems = [
+  { label: "२०७९/८०", value: gbvY1, valueText: neInt(gbvY1), color: "#2563eb" },
+  { label: "२०८०/८१", value: gbvY2, valueText: neInt(gbvY2), color: "#dc2626" },
+  { label: "२०८१/८२ (आंशिक)", value: gbvY3, valueText: neInt(gbvY3), color: "#f59e0b" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24">
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t4.caption}</h3>
+  <SectionKpis items={dKpis} />
+  <div class="mt-2"><StatTiles title="एक नजरमा — अपाङ्गताको चित्र" tiles={dTiles} cols={4} /></div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>अपाङ्गता परिचयपत्र र वर्गीकरण कसरी बुझ्ने?</strong> नेपालमा अपाङ्गतालाई <em>प्रकार</em> (शारीरिक, दृष्टि, श्रवण, बौद्धिक, मानसिक, बहु–अपाङ्गता आदि) र <em>गाम्भीर्य</em> (गम्भीरताका आधारमा क/ख/ग/घ वर्ग — क=पूर्ण अशक्त रातो कार्ड, ख=अति अशक्त नीलो, ग=मध्यम पहेँलो, घ=सामान्य सेतो) गरी दुई तरिकाले वर्गीकृत गरिन्छ । परिचयपत्रको वर्गले नै सामाजिक सुरक्षा भत्ता, छात्रवृत्ति, सहुलियत र सेवाको स्तर निर्धारण गर्छ — त्यसैले सही वर्गीकरण न्यायपूर्ण सेवाको आधार हो ।</p>
+  </div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t4.caption}</h3>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
-  <AutoViz table={t4} title={t4.caption} />
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t5.caption}</h3>
+  <div class="mt-3 grid gap-4 md:grid-cols-2">
+    <BarList title="अपाङ्गताको प्रकार" subtitle={`${neInt(dTotal)} परिचयपत्र`} items={typeItems} />
+    <Donut title="गाम्भीर्य वर्गअनुसार" subtitle={`क+ख (गम्भीर) ${neDec(profoundPct, 0)}%`} segments={sevSegs} centerValue={neInt(dTotal)} centerLabel="जना" />
+  </div>
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण:</strong> <strong>शारीरिक अपाङ्गता ({neInt(dPhys)}, {neDec(dPhys / dTotal * 100, 0)}%)</strong> सबैभन्दा बढी छ, त्यसपछि बहु–अपाङ्गता ({neInt(dMulti)}), श्रवण ({neInt(dHearing)}) र बौद्धिक ({neInt(dIntel)}) । गाम्भीर्यमा <strong>ख वर्ग (अति अशक्त) सबैभन्दा ठूलो</strong> समूह हो, र क+ख वर्ग मिलेर {neDec(profoundPct, 0)}% गम्भीर अपाङ्गता भएकाहरू छन् — यिनलाई निरन्तर हेरचाह, सहायक–सामग्री र उच्च भत्ता चाहिन्छ । <strong>लैङ्गिक रूपमा पुरुष ({neDec(dMalePct, 0)}%) महिलाभन्दा निकै बढी दर्ता</strong> छन् — यो वास्तविक अपाङ्गता–दर भन्दा पनि महिला अपाङ्गता भएकाहरूको <em>कम–दर्ता</em> (पहुँच, जानकारी र सामाजिक बाधाका कारण) तर्फ इङ्गित गर्छ, जुन लैङ्गिक–समावेशी दर्ता अभियानको आवश्यकता देखाउँछ ।</p>
+  </div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t5.caption}</h3>
   <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
-  <AutoViz table={t5} title={t5.caption} />
   <div class="prose-ne reveal"><p>स्रोतः नगर कार्यपालिकाको कार्यालय</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t6.caption}</h3>
+
+  <h4 class="reveal scroll-mt-24 mt-6 mb-2 text-[1rem] font-bold text-[var(--color-text)]">लैङ्गिक तथा सामाजिक हिंसाको अवस्था</h4>
+  <div class="prose-ne reveal">
+    <p><strong>लैङ्गिक हिंसा (GBV) र संस्थागत प्रतिकार्य:</strong> तलका तालिकाहरू उप–महानगरपालिकाभित्रका हिंसाजन्य घटना र तिनको संस्थागत प्रतिकार्य (न्यायिक समिति, अस्पताल–आधारित एकद्वार संकट व्यवस्थापन केन्द्र/OCMC, महिला पुनर्स्थापना केन्द्र/OREC) देखाउँछन् । <em>दर्ता भएका घटना बढ्नु</em> सधैं नराम्रो होइन — यो प्रायः बढ्दो जनचेतना र पीडितको रिपोर्ट गर्ने आँट (पहिले लुकाइने घटना अब बाहिर आउने) को सङ्केत पनि हुन्छ; तर समग्र भार चिन्ताजनक छ ।</p>
+  </div>
+  <div class="mt-2"><BarList title="कुल हिंसाजन्य घटना — वार्षिक" subtitle="दर्ता भएका घटनाको प्रवृत्ति (तालिका ९०)" items={gbvItems} /></div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t6.caption}</h3>
   <DataTable caption={t6.caption} rows={t6.rows} source={t6.source} />
-  <AutoViz table={t6} title={t6.caption} />
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t7.caption}</h3>
+  <div class="prose-ne reveal mt-2">
+    <p><strong>विश्लेषण — दुई गम्भीर सङ्केत:</strong> पहिलो, <strong>सामाजिक हिंसा</strong> को विस्फोट (६६ → ४४८ → १३२) समग्र घटनाको ठूलो हिस्सा हो; घरेलु हिंसा भने कागजमा घट्दै देखिए पनि (१२५ → ५० → ८) यो प्रायः <em>कम–रिपोर्टिङ</em> को परिणाम हुन सक्छ, किनकि घरेलु हिंसा सबैभन्दा बढी लुकाइने अपराध हो । दोस्रो, सबैभन्दा गम्भीर — <strong>हराएका मानिसहरू</strong>: हरेक वर्ष करिब ३०० व्यक्ति बेपत्ता, जसमध्ये अत्यधिक बहुमत <em>महिला र बालिका</em> छन् (जस्तै, एक वर्ष १७१ महिला + ६५ बालिका) । भारतसँग जोडिएको यो क्षेत्रमा यो आँकडा <strong>मानव बेचबिखन/ओसारपसारको गम्भीर जोखिम</strong> तर्फ औँल्याउँछ — यो तत्काल अनुसन्धान, सीमा–निगरानी र संरक्षण माग्ने रातो झन्डा हो ।</p>
+  </div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t7.caption}</h3>
   <DataTable caption={t7.caption} rows={t7.rows} source={t7.source} />
-  <AutoViz table={t7} title={t7.caption} />
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t8.caption}</h3>
+  <div class="prose-ne reveal mt-2"><p><strong>विश्लेषण:</strong> स्थानीय <em>न्यायिक समिति</em> (उपप्रमुखको संयोजकत्वमा) ले घरेलु, यौन र सामाजिक हिंसाका मेलमिलापयोग्य उजुरी हेर्छ — यो पीडितका लागि अदालत नजाई स्थानीयस्तरमै न्याय पाउने सुलभ संयन्त्र हो । उजुरी संख्या वार्षिक घटबढ हुनुले जनचेतना र समितिको सक्रियतामा भर पर्छ ।</p></div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t8.caption}</h3>
   <DataTable caption={t8.caption} rows={t8.rows} source={t8.source} />
-  <AutoViz table={t8} title={t8.caption} />
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
+  <div class="prose-ne reveal mt-2"><p><strong>विश्लेषण:</strong> अस्पताल–आधारित <em>एकद्वार संकट व्यवस्थापन केन्द्र (OCMC)</em> ले हिंसापीडितलाई एकै ठाउँमा उपचार, मनोसामाजिक परामर्श, कानुनी र सुरक्षा सेवा दिन्छ । यहाँ जवरजस्ती करणी (५० → ७६) र शारीरिक हिंसाका घटना बढ्दो देखिनु — सेवा–पहुँच बढेको सकारात्मक पक्ष भए पनि — हिंसाको गम्भीर भार पुष्टि गर्छ ।</p></div>
+
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
   <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
-  <AutoViz table={t9} title={t9.caption} />
+  <div class="prose-ne reveal mt-2"><p><strong>विश्लेषण:</strong> महिला पुनर्स्थापना केन्द्र (OREC) ले हिंसापीडित महिलालाई आश्रय, सीप–तालिम र पुनर्स्थापना दिन्छ — घरेलु हिंसा यहाँ पनि प्रमुख घटना हो । OCMC, OREC, न्यायिक समिति र महिला हेल्पलाइनलाई एकीकृत <em>रेफरल–सञ्जाल</em> मा बाँधे पीडितले उपचारदेखि न्याय र पुनर्स्थापनासम्म निरन्तर सहयोग पाउँछन् ।</p></div>
+
+  <div class="prose-ne reveal mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-brand)]">निष्कर्ष र सिफारिसहरू</h3>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>समावेशी अपाङ्गता दर्ता:</strong> महिला अपाङ्गताको कम–दर्ता हटाउन घरदैलो शिविर र सरल पहुँच चाहिन्छ; गम्भीर (क/ख) वर्गलाई सहायक–सामग्री र पुनर्स्थापना प्राथमिकता ।</li>
+      <li><strong>बेपत्ता व्यक्ति — बेचबिखन जोखिम:</strong> वर्षेनि ~३०० बेपत्ता (अधिकांश महिला/बालिका) लाई मानव बेचबिखनको कोणबाट गम्भीर अनुसन्धान, सीमा–निगरानी र किशोरी–जागरण आवश्यक ।</li>
+      <li><strong>एकीकृत GBV प्रतिकार्य:</strong> OCMC + OREC + न्यायिक समिति + हेल्पलाइनलाई एकल रेफरल–प्रणालीमा जोडी पीडित–केन्द्रित निरन्तर सेवा दिनुपर्छ ।</li>
+      <li><strong>घरेलु हिंसा कम–रिपोर्टिङ:</strong> घट्दो आँकडालाई सफलता नठानी सुरक्षित रिपोर्टिङ संयन्त्र र सामुदायिक जनचेतना बढाउनुपर्छ ।</li>
+    </ul>
+  </div>
 </section>

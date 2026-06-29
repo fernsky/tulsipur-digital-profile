@@ -14,10 +14,12 @@ const t17 = {"caption":"तालिका नं. ८४ – विवाहि
 
 <section id={meta.id} class="scroll-mt-24">
   {(() => {
-    const find = (re) => t17.rows.find((r) => re.test(cellStr(r[1]))) || [];
-    const unm = find(/अविवाहित/), mar = find(/^विवाहित|विवाहित$/), wid = find(/एकल|विधुर|विधवा/), div = find(/पारपाचुके/), sep = find(/छुट्टिएको/);
+    // search data rows only (skip header / जम्मा / प्रतिशत) so labels don't collide
+    const find = (re) => t17.rows.slice(1).find((r) => re.test(cellStr(r[1])) && !/जम्मा|प्रतिशत/.test(cellStr(r[1]))) || [];
+    const unm = find(/^अविवाहित/), mar = find(/^विवाहित/), wid = find(/एकल|विधुर|विधवा/), div = find(/पारपाचुके/), sep = find(/छुट्टिएको/);
+    // जम्मा row: r[0] is a colspan-2 cell, so columns shift left by one → [obj, पुरुष, महिला, जम्मा, %]
     const jam = t17.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
-    const totMen = toNum(jam[2]), totWomen = toNum(jam[3]), totAll = toNum(jam[4]);
+    const totMen = toNum(jam[1]), totWomen = toNum(jam[2]), totAll = toNum(jam[3]);
     const widowers = toNum(wid[2]), widows = toNum(wid[3]);
     const widowRatio = widows / widowers;
     const marMen = toNum(mar[2]), marWomen = toNum(mar[3]);

@@ -224,26 +224,33 @@ function buildMask(gdb) {
   ok(`  municipality mask written (${holes.length} hole)`);
 }
 
-// ── 6. tippecanoe → pmtiles ───────────────────────────────────────────────
+// ── 6. tippecanoe → exploded {z}/{x}/{y}.pbf directories ──────────────────
+// Single-file pmtiles needs HTTP range serving, which Cloudflare Workers
+// static-assets does NOT provide — so we emit plain tile directories
+// (uncompressed, served as normal GETs and reachable on any static host).
 const CLIP = "82.10,27.92,82.55,28.35"; // Tulsipur envelope — drops reprojection strays
 function packBase(gdb, mtmp) {
-  const args = ["-o", join(OUT, "base.pmtiles"), "--force",
+  const dir = join(OUT, "base");
+  rmSync(dir, { recursive: true, force: true });
+  const args = ["-e", dir, "--force",
     "-Z6", "-z15", "--simplification=4", `--clip-bounding-box=${CLIP}`,
     "--drop-densest-as-needed", "--extend-zooms-if-still-dropping",
-    "--no-tile-size-limit"];
+    "--no-tile-size-limit", "--no-tile-compression"];
   for (const [id, info] of Object.entries(gdb)) args.push("-L", `${id}:${info.file}`);
   if (mtmp) args.push("-L", `mtmp:${mtmp.file}`);
   execFileSync("tippecanoe", args, { stdio: "pipe" });
-  ok("base.pmtiles written");
+  ok("base/ tiles written");
 }
 
 function packParcels(files) {
-  const args = ["-o", join(OUT, "parcels.pmtiles"), "--force",
+  const dir = join(OUT, "parcels");
+  rmSync(dir, { recursive: true, force: true });
+  const args = ["-e", dir, "--force",
     "-Z12", "-z16", "-l", "parcels", `--clip-bounding-box=${CLIP}`,
     "--drop-densest-as-needed", "--extend-zooms-if-still-dropping",
-    "--no-tile-size-limit", "--simplification=2", ...files];
+    "--no-tile-size-limit", "--no-tile-compression", "--simplification=2", ...files];
   execFileSync("tippecanoe", args, { stdio: "pipe" });
-  ok("parcels.pmtiles written");
+  ok("parcels/ tiles written");
 }
 
 // ── main ──────────────────────────────────────────────────────────────────
