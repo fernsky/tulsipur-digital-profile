@@ -5,6 +5,9 @@ import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
 import BarList from "../../components/viz/BarList.astro";
+import Heatmap from "../../components/viz/Heatmap.astro";
+import ClusterBars from "../../components/viz/ClusterBars.astro";
+
 import { cellStr, toNum, toNe } from "../../lib/ne";
 import { chartFromRows } from "../../lib/chart";
 
@@ -49,6 +52,12 @@ const t16 = {"caption":"तालिका नं. ८३ – १५–४९ �
 const t16Chart = chartFromRows(t16.rows);
 const t17 = {"caption":"तालिका नं. ८४ – विवाहित तथा अविवाहित महिला तथा पुरुषको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["क्र.सं.","विवाहित तथा अविवाहित","पुरुषको संख्या","महिलाको संख्या","जम्मा","प्रतिशत"],["१.","अविवाहित","२५३२३","२१,९३४","४७२५७","३१.६६"],["२.","विवाहित","४१५१७","५३,५९५","९५११२","६३.७२"],["३.","एकल (विधुर/विधवा)","१३७१","४,६५६","६०२७","४.०४"],["४.","पारपाचुके","१०७","१७३","२८०","०.१९"],["५.","छुट्टिएको","१७५","४०५","५८०","०.३९"],[{"text":"जम्मा","colspan":2,"rowspan":1},"६८४९३","८०७६३","१४९२५६","१००"]]};
 const t17Chart = chartFromRows(t17.rows);
+const khop4Cols = t4.rows[0].slice(2).map(cellStr);
+const khop4Rows = t4.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0]))).map((r) => ({ label: cellStr(r[1]), values: r.slice(2).map(toNum) }));
+const khop5Cols = t5.rows[0].slice(2).map(cellStr);
+const khop5Rows = t5.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0]))).map((r) => ({ label: cellStr(r[1]), values: r.slice(2).map(toNum) }));
+const insWardItems = t9.rows.slice(1).filter((r) => r.length >= 3 && !/जम्मा/.test(cellStr(r[0]))).map((r) => ({ ward: toNum(r[2]), value: toNum(r[1]) })).filter((x) => x.ward > 0).sort((a, b) => a.ward - b.ward).map((x) => ({ label: "वडा " + toNe(String(x.ward)), value: x.value, valueText: toNe(x.value) }));
+const insYearItems = t10.rows.slice(1).filter((r) => r.length >= 5 && !/जम्मा|जममा/.test(cellStr(r[4]))).map((r) => ({ label: cellStr(r[4]), a: toNum(r[1]), b: toNum(r[2]) }));
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
@@ -74,9 +83,9 @@ const t17Chart = chartFromRows(t17.rows);
   <div class="prose-ne reveal"><p>बाल्यकाल तथा उमेर पुगेपछि लाग्न सक्ने प्राणघातक रोगहरू जस्तैः क्षयरोग, भ्यागुते रोग, लहरे खोकी, धनुष्टंकार, हेपाटाइटिस बी, इन्फुल्युन्जा टाइप बी, पोलियो, न्यूमोनिया, दादुरा, रुबेला र जापानीज इन्सफ्लाइटिस् विरुद्ध चरणबद्ध रुपमा समयमै खोपहरू अनिवार्य रुपमा लगाउनु पर्दछ । ती खोपहरू क्रमशः BCG, DPT, OPV, PCV, IPV, MR, JE / ID हुन् । यसरी खोपहरू समयमै लगाउँदा सिमित लगानीमा ठूला रोगहरूको जोखिमबाट मुक्त भई बाल मृत्युदर नियन्त्रण गर्ने प्रभावकारी उपाय हुन्छ ।</p></div>
   <div class="prose-ne reveal"><p>खोप सम्बन्धी विवरण</p></div>
   <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
-  <AutoViz table={t4} title={t4.caption} />
+  <Heatmap title="खोप सेवाको वार्षिक तुलना" subtitle="आर्थिक वर्ष अनुसार खोप सूचकहरूको कभरेज (%)" columns={khop4Cols} rows={khop4Rows} />
   <DataTable caption={t5.caption} rows={t5.rows} source={t5.source} />
-  <AutoViz table={t5} title={t5.caption} />
+  <Heatmap title="खोपको विस्तृत वार्षिक तुलना" subtitle="आर्थिक वर्ष अनुसार खोप सूचकहरूको कभरेज (%)" columns={khop5Cols} rows={khop5Rows} />
   <h4 id="h-75-ख-सुरक्षित-मातृत्वको-अवस्थाक" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">ख) सुरक्षित मातृत्वको अवस्थाको विवरण</h4>
   <div class="prose-ne reveal"><p>बालबालिकालाई गर्भमा रहँदा देखि र जन्मेपछि स्याहार तथा रेखदेख गर्न सकिएन भने उनीहरू विभिन्न रोगबाट संक्रमित हुने जोखिम हुन्छ । गर्भमा रहँदा मूलतः आमाको उमेर, पोषण, आराम, मादक तथा सुर्तिजन्य पदार्थको सेवन लगायतका अवस्थाले बालबालिकाको स्वास्थ्य निर्भर रहन्छ । बालबालिका स्वस्थ जन्मनका लागि गर्भवती महिलाले कम्तीमा पनि चारपटक नियमित स्वास्थ्य जाँच गराउनुपर्दछ र आवश्यक खोप (टि.टि.) तथा आइरन, भिटामिन चक्कीहरू नियमित सेवन गर्नुपर्दछ । कम उमेरमै गर्भवती हुँदा आमा र शिशु दुवैको स्वास्थ्यमा हानी नोक्सानी पुग्ने भएकाले सरकारले कानूनी रुपमा विवाह गर्ने न्यूनतम उमेर २० वर्ष तोकेको छ । तर, १७ प्रतिशत किशोरीहरू १५ देखि १९ वर्ष उमेरमा गर्भवती भएका वा आमा भइसकेका हुन्छन् (नेपाल जनसांख्यिक तथा स्वास्थ्य सर्वेक्षण, २०११) । सरकारले स्वास्थ्य सेवा विभाग मार्फत सुरक्षित मातृत्व तथा नव शिशु स्वास्थ्यका लागि समुदायमा आधारित कार्यक्रम सञ्चालन गरिरहेको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t6.caption}</h3>
@@ -95,10 +104,12 @@ const t17Chart = chartFromRows(t17.rows);
   <h3 id="h-78-५-२-५-उप-महानगरपालिकामा-स्वा" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.५ उप–महानगरपालिकामा स्वास्थ्य बीमा सम्बन्धी विवरण</h3>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t9.caption}</h3>
   <DataTable caption={t9.caption} rows={t9.rows} source={t9.source} />
+  <BarList title="वडागत स्वास्थ्य बीमा" subtitle="वडा अनुसार विमित संख्या" items={insWardItems} />
   <AutoViz table={t9} title={t9.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t10.caption}</h3>
   <DataTable caption={t10.caption} rows={t10.rows} source={t10.source} />
+  <ClusterBars title="स्वास्थ्य बीमा — लिङ्ग अनुसार वार्षिक" subtitle="आर्थिक वर्ष अनुसार महिला र पुरुष विमित" items={insYearItems} aLabel="महिला" bLabel="पुरुष" />
   <AutoViz table={t10} title={t10.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t11.caption}</h3>
@@ -109,7 +120,6 @@ const t17Chart = chartFromRows(t17.rows);
   <div class="prose-ne reveal"><p>उप–महानगरपालिका भित्र मृगौला डाईलासिस, प्रत्यारोपण गरेका, क्यान्सर पिडित र मेरुदण्डमा समस्या भएका विपन्न समुदायका िबरामीहरु मध्ये पालिकाबाट उपचार खर्च बापतको रकम प्राप्त गर्नेहरुको विवरण तलको तालिकामा समावेश गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t12.caption}</h3>
   <DataTable caption={t12.caption} rows={t12.rows} source={t12.source} />
-  <AutoViz table={t12} title={t12.caption} />
   <div class="prose-ne reveal"><p>स्रोतः उप–महानगरपालिका स्वास्थ्य शाखा</p></div>
   <h3 id="h-80-५-२-५-सुरक्षित-मातृत्व" class="reveal scroll-mt-24 mt-7 mb-2 text-[1.15rem] font-bold text-[var(--color-text)]">५.२.५ सुरक्षित मातृत्व</h3>
   <h4 id="h-81-क-परिवार-नियोजन" class="reveal scroll-mt-24 mt-5 mb-2 text-[1rem] font-bold text-[var(--color-text)]">क) परिवार नियोजन</h4>

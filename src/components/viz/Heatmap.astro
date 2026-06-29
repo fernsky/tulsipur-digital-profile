@@ -1,0 +1,103 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe } from "../../lib/ne";
+
+// Trend heatmap — rows (indicators) × columns (years/periods), each cell
+// shaded by its value. Ideal for many indicators compared across few periods.
+export interface HeatRow { label: string; values: number[]; }
+interface Props {
+  title?: string;
+  subtitle?: string;
+  columns: string[];
+  rows: HeatRow[];
+}
+const { title, subtitle, columns, rows } = Astro.props;
+
+const all = rows.flatMap((r) => r.values).filter((v) => Number.isFinite(v));
+const min = Math.min(...all, 0);
+const max = Math.max(...all, 1);
+// light -> deep brand ramp
+const shade = (v: number) => {
+  if (!Number.isFinite(v)) return { bg: "var(--color-background)", fg: "var(--color-text-secondary)" };
+  const t = max === min ? 0.5 : (v - min) / (max - min);
+  // interpolate #eff6ff -> #1d4ed8
+  const lerp = (a: number, b: number) => Math.round(a + (b - a) * t);
+  const r = lerp(0xef, 0x1d), g = lerp(0xf6, 0x4e), b = lerp(0xff, 0xd8);
+  return { bg: `rgb(${r},${g},${b})`, fg: t > 0.55 ? "#fff" : "#1e293b" };
+};
+// per-row trend direction (first -> last finite value)
+const trend = (vals: number[]) => {
+  const f = vals.find((v) => Number.isFinite(v));
+  const l = [...vals].reverse().find((v) => Number.isFinite(v));
+  if (f === undefined || l === undefined || f === l) return "→";
+  return l > f ? "↑" : "↓";
+};
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div class="hm-scroll reveal">
+    <div class="hm" style={`--cols:${columns.length}`}>
+      <div class="hm-corner"></div>
+      {columns.map((c) => <div class="hm-colhead" title={c}>{toNe(c)}</div>)}
+      <div class="hm-colhead hm-trend-head">रुझान</div>
+      {rows.map((row) => (
+        <>
+          <div class="hm-rowhead" title={row.label}>{row.label}</div>
+          {row.values.map((v) => {
+            const s = shade(v);
+            return <div class="hm-cell" style={`background:${s.bg};color:${s.fg}`}>{Number.isFinite(v) ? toNe(v) : "–"}</div>;
+          })}
+          <div class="hm-trend">{trend(row.values)}</div>
+        </>
+      ))}
+    </div>
+  </div>
+</VizCard>
+
+<style>
+  .hm-scroll { overflow-x: auto; }
+  .hm {
+    display: grid;
+    grid-template-columns: minmax(11rem, 22rem) repeat(var(--cols), minmax(4.5rem, 1fr)) 3rem;
+    gap: 3px;
+    min-width: max-content;
+  }
+  .hm-corner { position: sticky; left: 0; background: var(--color-surface); z-index: 2; }
+  .hm-colhead {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-align: center;
+    padding: 0.4rem 0.3rem;
+    line-height: 1.2;
+    align-self: end;
+  }
+  .hm-trend-head { font-size: 0.7rem; }
+  .hm-rowhead {
+    position: sticky;
+    left: 0;
+    background: var(--color-surface);
+    z-index: 1;
+    font-size: 0.8rem;
+    color: var(--color-text);
+    padding: 0.5rem 0.6rem 0.5rem 0;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .hm-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding: 0.5rem 0.2rem;
+    min-height: 2.1rem;
+  }
+  .hm-trend { display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 700; color: var(--color-text-secondary); }
+</style>
