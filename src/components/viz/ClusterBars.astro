@@ -1,0 +1,61 @@
+---
+import VizCard from "./VizCard.astro";
+import { toNe } from "../../lib/ne";
+
+// Clustered two-series horizontal bars — each item shows two metrics (a, b)
+// side by side on a shared scale. Good for comparing paired quantities.
+export interface ClusterItem { label: string; a: number; b: number; }
+interface Props {
+  title?: string;
+  subtitle?: string;
+  items: ClusterItem[];
+  aLabel: string;
+  bLabel: string;
+  aColor?: string;
+  bColor?: string;
+  unit?: string;
+}
+const { title, subtitle, items, aLabel, bLabel, aColor = "#2563eb", bColor = "#db2777", unit } = Astro.props;
+const peak = Math.max(...items.flatMap((i) => [i.a, i.b]), 1);
+---
+
+<VizCard title={title} subtitle={subtitle}>
+  <div slot="head-extra" class="cb-legend">
+    <span class="cb-leg"><span class="cb-dot" style={`background:${aColor}`}></span>{aLabel}</span>
+    <span class="cb-leg"><span class="cb-dot" style={`background:${bColor}`}></span>{bLabel}</span>
+  </div>
+  <div class="cb reveal-stagger">
+    {items.map((it) => (
+      <div class="cb-row">
+        <span class="cb-name">{it.label}</span>
+        <div class="cb-bars">
+          <div class="cb-line">
+            <div class="cb-fill" style={`--w:${(it.a / peak) * 100}%;width:${(it.a / peak) * 100}%;background:${aColor}`}></div>
+            <span class="cb-val">{toNe(it.a)}{unit ? " " + unit : ""}</span>
+          </div>
+          <div class="cb-line">
+            <div class="cb-fill" style={`--w:${(it.b / peak) * 100}%;width:${(it.b / peak) * 100}%;background:${bColor}`}></div>
+            <span class="cb-val">{toNe(it.b)}{unit ? " " + unit : ""}</span>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</VizCard>
+
+<style>
+  .cb-legend { display: flex; gap: 1rem; font-size: 0.84rem; }
+  .cb-leg { display: flex; align-items: center; gap: 0.4rem; }
+  .cb-dot { width: 0.65rem; height: 0.65rem; border-radius: 9999px; }
+  .cb { display: flex; flex-direction: column; gap: 0.85rem; }
+  .cb-row { display: grid; grid-template-columns: minmax(7rem, 12rem) 1fr; gap: 0.75rem; align-items: center; }
+  .cb-name { font-size: 0.86rem; font-weight: 600; color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cb-bars { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+  .cb-line { display: flex; align-items: center; gap: 0.5rem; }
+  .cb-fill { height: 13px; border-radius: 0 6px 6px 0; min-width: 2px; }
+  .cb-val { font-size: 0.76rem; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); white-space: nowrap; }
+  @media (prefers-reduced-motion: no-preference) {
+    .cb-fill { width: 0 !important; transition: width 800ms cubic-bezier(0.2, 0, 0.2, 1); }
+    :global(.reveal-stagger.is-visible) .cb-fill { width: var(--w, 0) !important; }
+  }
+</style>

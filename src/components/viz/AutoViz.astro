@@ -1,23 +1,25 @@
 ---
-import VizCard from "./VizCard.astro";
 import StackedBar from "./StackedBar.astro";
 import Donut from "./Donut.astro";
 import BarList from "./BarList.astro";
 import { cellStr, toNum, toNe } from "../../lib/ne";
 
 // Auto-pick a chart from a table's shape:
-//  - simple header + a totals (जम्मा) row + many category columns -> StackedBar
-//    (or Donut when there are exactly 2 categories)
-//  - otherwise rank rows by their last numeric column -> BarList
-//  - non-numeric / inventory tables -> renders nothing
+//  - 2 categories + totals row            -> Donut
+//  - many categories + totals row         -> StackedBar
+//  - inventory list with a वडा column but
+//    no numeric value column              -> BarList of COUNT per ward
+//  - rows with a real numeric value column -> BarList ranked by it
+//  - otherwise (pure text list)           -> renders nothing
 interface Props { table: any; title?: string; }
 const { table, title } = Astro.props;
 const rows: any[] = table?.rows ?? [];
 const caption = title ?? table?.caption ?? "";
 
-const PAL = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#65a30d", "#e11d48", "#a3a3a3", "#0284c7", "#ea580c"];
+const PAL = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#ca8a04", "#0d9488", "#9333ea", "#65a30d", "#e11d48", "#a3a3a3", "#0284c7", "#ea580c", "#0d9488", "#7e22ce", "#b91c1c", "#15803d"];
 const isTotal = (s: string) => /^(जम्मा|कुल|योग|प्रतिशत)/.test(s.trim());
 const numericCell = (c: any) => { const t = cellStr(c).trim(); return t !== "" && /^[०-९0-9][०-९0-9,.\s]*$/.test(t); };
+const isSerial = (c: any) => /क्र|सि\.?\s*नं|क्रम|सं\./.test(cellStr(c));
 
 let mode: "stacked" | "donut" | "bar" | "none" = "none";
 let segments: any[] = [];
@@ -27,8 +29,30 @@ if (rows.length >= 2) {
   const header = rows[0];
   const headerSimple = header.every((c: any) => typeof c === "string");
   const totalsRow = rows.find((r) => isTotal(cellStr(r[0])));
+  const body = rows.filter((r, i) => i > 0 && !isTotal(cellStr(r[0])) && cellStr(r[0]).trim() !== "");
 
-  // STACKED / DONUT: aligned simple header + totals row + >=3 columns
+  const wardCol = header.findIndex((c: any) => /वडा/.test(cellStr(c)));
+  const addrCol = wardCol < 0 ? header.findIndex((c: any) => /ठेगाना|स्थान|अवस्थित|रहेको स्थान/.test(cellStr(c))) : -1;
+  const extractWard = (s: string): string => {
+    let m = s.match(/वडा\s*(?:नं)?[.\s–\-:]*([०-९0-9]+)/);
+    if (!m) m = s.match(/(?:तुलसीपुर|उ\.?म\.?न\.?पा\.?)[^०-९0-9]*([०-९0-9]+)/);
+    if (!m) m = s.match(/([०-९0-9]+)/);
+    return m ? m[1] : "";
+  };
+  const colNumeric = (ci: number) => {
+    let n = 0, t = 0;
+    for (const r of body) { if (ci < r.length && cellStr(r[ci]).trim() !== "") { t++; if (numericCell(r[ci])) n++; } }
+    return t > 0 && n / t > 0.6;
+  };
+  // real value columns: numeric, not ward/serial/contact-phone columns
+  const isContact = (c: any) => /सम्पर्क|सर्म्पक|फोन|मोबाइल|नम्बर|दूरभाष|नं\.?$/.test(cellStr(c).trim());
+  const valueCols: number[] = [];
+  for (let ci = 1; ci < header.length; ci++) {
+    if (ci === wardCol || isSerial(header[ci]) || isContact(header[ci])) continue;
+    if (colNumeric(ci)) valueCols.push(ci);
+  }
+
+  // STACKED / DONUT — aligned simple header + totals row
   if (headerSimple && totalsRow && header.length >= 4 && header.length === totalsRow.length) {
     const names = header.slice(1, -1).map(cellStr);
     const vals = totalsRow.slice(1, -1).map(toNum);
@@ -38,15 +62,36 @@ if (rows.length >= 2) {
     if (segments.length >= 2) mode = segments.length === 2 ? "donut" : "stacked";
   }
 
-  // BARLIST fallback: rank data rows by last numeric column
-  if (mode === "none") {
-    // label column: skip a serial-number first column
-    const serial = /क्र|सि\.?\s*नं|क्रम|सं\./.test(cellStr(header[0]));
-    const labelCol = serial && header.length > 2 ? 1 : 0;
-    // value column: last column (usually the row total)
-    const valueCol = header.length - 1;
-    const valid = rows.filter((r, i) => i > 0 && !isTotal(cellStr(r[0])) && cellStr(r[labelCol]).trim() !== "" && numericCell(r[valueCol]));
-    items = valid
+  // COUNT-PER-WARD — inventory list with a ward/address column, no value column
+  if (mode === "none" && (wardCol >= 0 || addrCol >= 0) && valueCols.length === 0) {
+    const counts: Record<string, number> = {};
+    let lastWard = "";
+    for (const r of body) {
+      let w = "";
+      if (wardCol >= 0) {
+        // full row -> read ward + remember it; short (vMerge continuation) row -> carry forward
+        if (r.length === header.length) { w = cellStr(r[wardCol]).trim(); if (w) lastWard = w; }
+        else { w = lastWard; }
+      } else {
+        // merge-safe: find the address-like cell anywhere in the row
+        const addr = r.map(cellStr).find((c: string) => /तुलसीपुर|वडा/.test(c)) || cellStr(r[addrCol]);
+        w = extractWard(addr || "");
+      }
+      if (!w || w === "–" || w === "-" || !/[०-९0-9]/.test(w)) continue;
+      counts[w] = (counts[w] || 0) + 1;
+    }
+    items = Object.entries(counts)
+      .sort((a, b) => toNum(a[0]) - toNum(b[0]))
+      .map(([w, c], i) => ({ label: "वडा " + toNe(w), value: c, color: PAL[i % PAL.length], valueText: toNe(c) }));
+    if (items.length >= 2) mode = "bar";
+  }
+
+  // BARLIST — rank rows by a real numeric value column
+  if (mode === "none" && valueCols.length >= 1) {
+    const valueCol = valueCols[valueCols.length - 1];
+    const labelCol = isSerial(header[0]) && header.length > 2 ? 1 : 0;
+    items = body
+      .filter((r) => cellStr(r[labelCol]).trim() !== "" && numericCell(r[valueCol]) && !numericCell(r[labelCol]))
       .map((r) => ({ label: cellStr(r[labelCol]), value: toNum(r[valueCol]) }))
       .filter((x) => x.value > 0)
       .sort((a, b) => b.value - a.value)
@@ -54,12 +99,12 @@ if (rows.length >= 2) {
       .map((x, i) => ({ label: x.label, value: x.value, color: PAL[i % PAL.length], valueText: toNe(x.value) }));
     if (items.length >= 2) mode = "bar";
   }
-
-  // donut center value
 }
 const donutTotal = segments.reduce((s, x) => s + x.value, 0);
+const countByWard = mode === "bar" && items.length > 0 && /वडा/.test(items[0]?.label ?? "");
+const barSubtitle = countByWard ? "वडा अनुसार संख्या" : undefined;
 ---
 
 {mode === "stacked" && <StackedBar title={caption} segments={segments} />}
 {mode === "donut" && <Donut title={caption} segments={segments} centerValue={toNe(donutTotal.toLocaleString("en-US"))} centerLabel="जम्मा" />}
-{mode === "bar" && <BarList title={caption} items={items} />}
+{mode === "bar" && <BarList title={caption} subtitle={barSubtitle} items={items} />}
