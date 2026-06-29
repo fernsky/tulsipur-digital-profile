@@ -1,6 +1,10 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import AutoViz from "../../../components/viz/AutoViz.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import Donut from "../../../components/viz/Donut.astro";
+import { neInt } from "../../../lib/ne";
 
 const meta = {"id":"h-120-६-४-२-विपद्को-किसिम-अनुसार-ज","title":"६.४.२ विपद्को किसिम अनुसार जोखिमको समय"};
 
@@ -8,7 +12,48 @@ const t2 = {"caption":"तालिका नं. १०५ – उप–मह�
 ---
 
 <section id={meta.id} class="scroll-mt-24">
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
+  {(() => {
+    const hazards = t2.rows.slice(1);
+    const total = hazards.length;
+    // hazard families
+    const fam = { hydro: 3, bio: 4, geo: 1, fire: 1 }; // flood/landslide/lightning; epidemic/flu/wildlife/pest; quake; wildfire
+    const famSegs = [
+      { label: "जैविक (महामारी/फ्लु/जनावर/कीट)", value: fam.bio, color: "#16a34a" },
+      { label: "जल–मौसमजन्य (बाढी/पहिरो/चट्याङ)", value: fam.hydro, color: "#2563eb" },
+      { label: "भूकम्पीय", value: fam.geo, color: "#dc2626" },
+      { label: "आगलागी/डढेलो", value: fam.fire, color: "#f59e0b" },
+    ];
+    const kpis = [
+      { label: "सम्भावित प्रकोप", value: neInt(total), unit: "किसिम" },
+      { label: "मनसुनजन्य (बाढी/पहिरो)", value: neInt(fam.hydro), unit: "किसिम" },
+      { label: "जैविक प्रकोप", value: neInt(fam.bio), unit: "किसिम" },
+      { label: "वर्षभरि जोखिम", value: neInt(4) },
+    ];
+    const tiles = [
+      { label: "पहिचान भएका प्रकोप", value: neInt(total), sub: "बहु–प्रकोप (multi-hazard) क्षेत्र", color: "#2563eb" },
+      { label: "मनसुन–केन्द्रित", value: `${neInt(fam.hydro)} किसिम`, sub: "जेष्ठ–असोज: बाढी, पहिरो, चट्याङ", color: "#0891b2" },
+      { label: "पूर्व–मनसुन (सुक्खा)", value: "डढेलो", sub: "चैत्र–जेष्ठ: आगलागी/वन–डढेलो", color: "#f59e0b" },
+      { label: "वर्षभरि", value: "भूकम्प + फ्लु", sub: "जुनसुकै बेला आउन सक्ने", color: "#dc2626" },
+    ];
+    return (
+      <>
+        <SectionKpis items={kpis} />
+        <div class="mt-2"><StatTiles title="एक नजरमा — विपद् जोखिमको चित्र" tiles={tiles} cols={4} /></div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>विपद् कसरी बन्छ — जोखिमको समीकरण:</strong> विपद् व्यवस्थापनमा <em>जोखिम = प्रकोप (hazard) × सम्पर्क (exposure) × सम्भेद्यता (vulnerability)</em> भन्ने सूत्र प्रयोग गरिन्छ । अर्थात् भूकम्प वा बाढी आफैंमा विपद् होइन — त्यो जब मानिस, घर र पूर्वाधार त्यसको चपेटामा (exposure) पर्छन् र तिनीहरू कमजोर (vulnerable — जस्तै भूकम्प–प्रतिरोधी नभएका भवन, बाढी–क्षेत्रका विपन्न बस्ती) हुन्छन्, तब मात्र क्षति हुन्छ । त्यसैले विपद् घटाउने उपाय प्रकोप रोक्नु होइन (त्यो असम्भव), बरु <em>सम्भेद्यता घटाउनु</em> हो — बलियो भवन, सुरक्षित बस्ती र पूर्व–तयारी ।</p>
+        </div>
+        <div class="mt-3 grid gap-4 md:grid-cols-2">
+          <Donut title="प्रकोपको परिवार–अनुसार वर्गीकरण" subtitle={`${neInt(total)} सम्भावित प्रकोप`} segments={famSegs} centerValue={neInt(total)} centerLabel="प्रकोप" />
+          <div class="prose-ne reveal self-center">
+            <p><strong>मौसमी जोखिम पात्रो (hazard calendar):</strong> तुलसीपुर <em>बहु–प्रकोप क्षेत्र</em> हो, र अधिकांश जोखिम मौसमसँग बाँधिएका छन् — <strong>मनसुन (जेष्ठ–असोज)</strong> मा बाढी, पहिरो र चट्याङ–असिना चुलिन्छन्; <strong>सुक्खा पूर्व–मनसुन (चैत्र–जेष्ठ)</strong> मा डढेलो र आगलागी; भूकम्प र फ्लु भने <em>वर्षभरि</em> जुनसुकै बेला आउन सक्छन् । यो पात्रोले कुन ऋतुमा कुन तयारी (मनसुन–पूर्व बाँध–सफाइ, सुक्खायाम–पूर्व अग्नि–सचेतना) चाहिन्छ भन्ने योजना बनाउन सघाउँछ ।</p>
+          </div>
+        </div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>विश्लेषण — मुख्य जोखिम:</strong> <a href="/chapters/4/8/3">चुरे–सिवालिकको भङ्गुर भूगोल</a> र खहरे खोलाहरूका कारण <strong>बाढी–पहिरो</strong> सबैभन्दा बारम्बार र विनाशकारी छन् — वर्षेनि खेतीयोग्य जमिन कटान/डुबान र परिवार विस्थापन हुन्छ (हे. <a href="/chapters/4/1/6">सुकुम्बासी/विस्थापित</a>) । <strong>भूकम्प</strong> कम बारम्बार भए पनि नेपाल विश्वको ११औँ भूकम्पीय जोखिमयुक्त देश हुँदा र भवन–आचारसंहिता पूर्ण लागू नभएकाले विनाशकारी हुन सक्छ । <strong>डढेलो/आगलागी</strong> विपन्न घना बस्तीमा (मट्टीतेल चुल्हो, अग्नि–यन्त्र अभाव) उच्च छ — यो <a href="/chapters/6/4/4">अग्नि–नियन्त्रण (दमकल) क्षमता</a> सँग सिधा जोडिएको छ । जलवायु परिवर्तनले बाढी, कीट–प्रकोप र महामारीको ढाँचा झन् अनिश्चित बनाउँदै छ ।</p>
+        </div>
+      </>
+    );
+  })()}
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
-  <AutoViz table={t2} title={t2.caption} />
 </section>

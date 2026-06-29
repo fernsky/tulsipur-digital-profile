@@ -1,25 +1,90 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
 import StackedBar from "../../../components/viz/StackedBar.astro";
-import { cellStr, toNum } from "../../../lib/ne";
+import BarList from "../../../components/viz/BarList.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
 
 const roofPalette=["#64748b","#2563eb","#f59e0b","#dc2626","#7c3aed","#16a34a","#a3a3a3"];
 const segsFromTotals=(t)=>{const n=t.rows[0].slice(1,-1).map(cellStr);const tot=(t.rows.find((r)=>/जम्मा/.test(cellStr(r[0])))||[]).slice(1,-1);return n.map((x,i)=>({label:x,value:toNum(tot[i]),color:roofPalette[i%roofPalette.length]})).filter((z)=>z.value>0);};
 
 const meta = {"id":"h-131-७-४-१-छानोको-प्रकारका-आधारमा","title":"७.४.१ छानोको प्रकारका आधारमा घरधुरी"};
 
-const kpis = [{"label":"जस्ता/टिन","value":"२५६७१"},{"label":"सिमेन्ट/ ढलान","value":"१८९३५"},{"label":"खर/पराल/ छ्वाली","value":"७१६"},{"label":"टायल","value":"४५५"}];
-
 const t1 = {"caption":"तालिका नं. ११२ – छानोको आधारमा घुरधुरीको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["वडा","जस्ता/टिन","सिमेन्ट/ ढलान","खर/पराल/ छ्वाली","टायल","ढुङ्गा/स्लेट","काठ/फल्याक","अन्य","जम्मा"],["१","९७८","१५५","६४","३३","२","०","०","१२३२"],["२","८८२","१७८","३४","८५","३","०","०","११८२"],["३","१६०१","३३४","६६","१","०","१","०","२००३"],["४","१८८३","३३९","११०","२","४","०","०","२३३८"],["५","४५३","३१०७","११","९","२८","०","०","३६०८"],["६","९४८","५०६०","११","११","४१","०","२","६०७३"],["७","१७९०","१६७०","६","९","५१","०","०","३५२६"],["८","१०३५","११४८","५","१४","५","०","१","२२०८"],["९","६६१","३०७८","४","१","२९","०","०","३७७३"],["१०","११८९","३५३","४","५२","२","०","०","१६००"],["११","१६४१","३८९","१२","९५","८","४","१","२१५०"],["१२","१७३९","८१८","९","८०","२५","१","१","२६७३"],["१३","१२०७","१३७","१२५","१०","१","०","०","१४८०"],["१४","१३९९","१३५","८१","१२","०","०","०","१६२७"],["१५","१६७६","१८३","३२","२७","९","१","०","१९२८"],["१६","१६०९","२८०","८","३","७","०","०","१९०७"],["१७","१७३७","५३४","११","५","३","१","१","२२९२"],["१८","१७२६","६३८","८","४","८","०","०","२३८४"],["१९","१५१७","३९९","११५","२","१","०","०","२०३४"],["जम्मा","२५६७१","१८९३५","७१६","४५५","२२७","८","६","४६०१८"],["प्रतिशत","५५.७८","४१.१५","१.५६","०.९९","०.४९","०.०२","०.०१","१००"]]};
 const roofSeg=segsFromTotals(t1);
+
+// ── Live ward-wise housing-quality computation ─────────────────────
+// cols: 1=metal(जस्ता) 2=RCC(सिमेन्ट) 3=thatch(खर) 4=tile 5=stone/slate 6=wood 7=other 8=total
+const jam = t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const metal = toNum(jam[1]), rcc = toNum(jam[2]), thatch = toNum(jam[3]), tile = toNum(jam[4]), stone = toNum(jam[5]);
+const total = toNum(jam[8]);
+const pakki = rcc + tile + stone;            // durable/permanent
+const kachcha = thatch + toNum(jam[6]) + toNum(jam[7]); // thatch/wood/other
+const pakkiPct = pakki / total * 100, metalPct = metal / total * 100, kachchaPct = kachcha / total * 100;
+
+const wards = t1.rows.slice(1).filter((r) => !/जम्मा|प्रतिशत/.test(cellStr(r[0]))).map((r) => {
+  const tot = toNum(r[8]);
+  return { ward: cellStr(r[0]), tot, rcc: toNum(r[2]), thatch: toNum(r[3]),
+    pakkiPct: (toNum(r[2]) + toNum(r[4]) + toNum(r[5])) / tot * 100, rccPct: toNum(r[2]) / tot * 100 };
+});
+const byPakki = [...wards].sort((a, b) => b.pakkiPct - a.pakkiPct);
+const topPakki = byPakki[0], lowPakki = byPakki[byPakki.length - 1];
+const thatchPocket = [...wards].sort((a, b) => b.thatch - a.thatch)[0];
+const pakkiMajorityWards = wards.filter((w) => w.pakkiPct >= 50).length;
+
+const wardItems = byPakki.map((w) => ({
+  label: `वडा ${w.ward}`,
+  value: +w.pakkiPct.toFixed(1),
+  valueText: `${neDec(w.pakkiPct, 0)}%`,
+  color: w.pakkiPct >= 60 ? "#2563eb" : w.pakkiPct >= 25 ? "#f59e0b" : "#64748b",
+  sub: `RCC ढलान ${neInt(w.rcc)}${w.thatch > 30 ? ` · खर–छानो ${neInt(w.thatch)} (कच्ची)` : ""}`,
+}));
+
+const kpis = [
+  { label: "पक्की (RCC/टायल/ढुङ्गा)", value: `${neDec(pakkiPct, 1)}%` },
+  { label: "अर्ध–पक्की (जस्ता/टिन)", value: `${neDec(metalPct, 1)}%` },
+  { label: "कच्ची (खर/पराल)", value: `${neDec(kachchaPct, 1)}%` },
+  { label: "जम्मा घरधुरी", value: neInt(total) },
+];
+const tiles = [
+  { label: "पक्की छानो (RCC ढलान)", value: `${neDec(pakkiPct, 1)}%`, sub: `${neInt(pakki)} घरधुरी — स्थायी/भूकम्प–तुलनात्मक सुरक्षित`, color: "#2563eb" },
+  { label: "अर्ध–पक्की (जस्ता/टिन)", value: `${neDec(metalPct, 1)}%`, sub: `${neInt(metal)} घरधुरी — बहुसंख्यक`, color: "#64748b" },
+  { label: "कच्ची छानो (खर/पराल)", value: `${neDec(kachchaPct, 1)}%`, sub: `${neInt(kachcha)} घरधुरी — आगो/बाढी जोखिम`, color: "#dc2626" },
+  { label: "पक्की–प्रधान वडा", value: `${neInt(pakkiMajorityWards)}/१९`, sub: `वडा ${topPakki.ward} सर्वाधिक (${neDec(topPakki.pakkiPct, 0)}%)`, color: "#16a34a" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24">
   <SectionKpis items={kpis} />
+  <div class="mt-2"><StatTiles title="एक नजरमा — आवासको गुणस्तर" tiles={tiles} cols={4} /></div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>छानोको प्रकार किन सम्पन्नता र सुरक्षाको सूचक हो?</strong> घरको छानो भौतिक आश्रय मात्र होइन — यो परिवारको <em>आर्थिक अवस्था र विपद्–सुरक्षाको प्रत्यक्ष मापदण्ड</em> हो । आवास–गुणस्तरलाई तीन वर्गमा बाँडिन्छ: <strong>पक्की</strong> (सिमेन्ट/RCC ढलान, टायल, ढुङ्गा — टिकाउ, भूकम्प र आगो–प्रतिरोधी, उच्च लगानी), <strong>अर्ध–पक्की</strong> (जस्ता/टिन — सस्तो, टिकाउ छानो तर प्रायः कमजोर संरचनामा), र <strong>कच्ची</strong> (खर/पराल/छ्वाली — सबैभन्दा सस्तो तर आगलागी, बाढी र भूकम्पमा अति जोखिमपूर्ण; विपन्नताको लक्षण) । जनगणनामा छानोको प्रकार नै गरिबी–नक्साङ्कनको भरपर्दो प्रतिनिधि–सूचक (proxy) मानिन्छ ।</p>
+  </div>
+  <div class="prose-ne reveal mt-3">
+    <p><strong>समग्र चित्र:</strong> {neInt(total)} घरधुरीमध्ये बहुसंख्यक <strong>{neDec(metalPct, 1)}% जस्ता/टिन</strong> (अर्ध–पक्की) छानोमा बस्छन्, <strong>{neDec(pakkiPct, 1)}% पक्की</strong> (RCC ढलान मुख्यतः) र जम्मा <strong>{neDec(kachchaPct, 1)}% ({neInt(kachcha)} घरधुरी) कच्ची</strong> (खर–पराल) मा । कच्ची घर थोरै हुनु सकारात्मक भए पनि — आधिकारिक प्रस्तावनाले नै औँल्याएझैँ — जस्ता–छानोका अर्ध–पक्की घर र पुराना संरचना <a href="/chapters/6/4/2">भूकम्पीय जोखिम</a> बाट मुक्त छैनन्, किनकि छानो टिकाउ भए पनि पर्खाल/जग कमजोर हुन सक्छ ।</p>
+  </div>
+
   <div class="prose-ne reveal"><p>उप–महानगरपालिकामा मिश्रित जनघनत्व भएका बस्तीहरु छन् । यहाँ बस्ती बसाल्ने सन्दर्भमा बजारको सम्भाव्य क्षेत्र, पानीको सुविधा, खेतीयोग्य क्षेत्र, पशुपालनलाई पायक र अन्न उत्पादनका लागि उपयुक्त जमिन भएको स्थानमा यत्रतत्र छरिएर बस्ने प्रचलन भएकाले पायक पर्ने स्थान अनुसार सबै वडाहरूमा कतै बाक्लो तथा कतै पातलो बस्तीहरु रहेका छन् । यहाँका अधिकांश घरहरू अर्धपक्की तथा पक्की अवस्थाका छन् भने न्यून घरहरु मात्र कच्ची अवस्थामा रहनुले यस क्षेत्रका घरहरू भूकम्पीय तथा अन्य प्रकोप सुरक्षाको दृष्टिकोणले जोखिममुक्त अवस्थामा भने छैनन् ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
   <StackedBar title="छानोको आधारमा घरधुरी संरचना" subtitle="घरपरिवारमा छानोको प्रकारको हिस्सा" segments={roofSeg} unit="घरधुरी" />
-  <div class="prose-ne reveal"><p>यहाँका जम्मा घरधुरी ४६,०१८ मध्ये जस्तापाता/टिनकाे छानो भएको घरमा बसोबास गर्ने परिवार संख्या सबैभन्दा बढी अर्थात २५,६७१ अर्थात ५५.७८ प्रतिशत रहेको छ । सिमेन्ट ढलानकाे छानो भएको घरमा बसोबास गर्ने परिवार संख्या १८,९३५ अर्थात ४१.१५ प्रतिशत, खर/पराल/छवालीको छानो भएको घरमा बसोबास गर्नेको संख्या ७१६ अर्थात १.५६ प्रतिशत, टायलको छानो भएको घरमा बसोबास गर्ने परिवार संख्या ४५५ अर्थात ०.९९ प्रतिशत, ढुङ्गा/स्लेटको छानो भएको घरमा बसोबास गर्ने परिवार संख्या २७७ अर्थात ०.४९ प्रतिशत रहेका छन् । यसैगरी काठ/फल्याक र माटो लगायतको छानो भएको घरमा बसोबास गर्नेको संख्या नगण्य रहेको पाइन्छ ।</p></div>
+
+  <div class="mt-3">
+    <BarList title="वडागत पक्की–आवास दर (RCC/टायल/ढुङ्गा %)" subtitle="नीलो ≥६०% पक्की · पहेँलो मिश्रित · खैरो जस्ता–प्रधान" items={wardItems} />
+  </div>
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण — वडागत आवास खाडल (फेरि उही “दुई तुलसीपुर”):</strong> पक्की–आवास दरले अरू सबै सूचक (<a href="/chapters/5/1/1">साक्षरता</a>, <a href="/chapters/7/2/1">स्वच्छ इन्धन</a>) सँगै मिल्ने उही सहरी–ग्रामीण विभाजन देखाउँछ । <strong>सहरी कोर — वडा {topPakki.ward} ({neDec(topPakki.pakkiPct, 0)}% पक्की), वडा ६, ९</strong> मा अधिकांश घर RCC ढलानका छन् — यी सम्पन्न, सघन सहरी बस्ती हुन् जहाँ क्रयशक्ति र पक्की निर्माण–प्रवृत्ति उच्च छ । ठीक उल्टो, <strong>ग्रामीण वडा — वडा {lowPakki.ward} (पक्की मात्र {neDec(lowPakki.pakkiPct, 0)}%)</strong> सहित अधिकांश बाहिरी वडामा जस्ता–छानो हावी छ । १९ मध्ये जम्मा <strong>{neInt(pakkiMajorityWards)} वडा पक्की–प्रधान</strong> छन् — अर्थात् भौगोलिक रूपमा अधिकांश नगर अझै अर्ध–पक्की आवासमा छ ।</p>
+    <p><strong>कच्ची–आवासको पकेट:</strong> कच्ची (खर–पराल) छानो विशेष गरी <strong>वडा {thatchPocket.ward} ({neInt(thatchPocket.thatch)} घरधुरी)</strong> जस्ता तराई/थारू ग्रामीण वडामा केन्द्रित छ — यी सबैभन्दा विपन्न र विपद्–जोखिमयुक्त घरधुरी हुन् (आगलागी, बाढी, भूकम्प) । यिनै घरधुरी <a href="/chapters/5/3/8">सामाजिक सुरक्षा</a> र आवास–अनुदानका प्राथमिक लक्षित समूह हुनुपर्छ ।</p>
+  </div>
+  <div class="prose-ne reveal mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-brand)]">निष्कर्ष र सिफारिसहरू</h3>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>कच्ची–आवास उन्मूलन:</strong> {neInt(kachcha)} कच्ची घरधुरी (विशेष वडा {thatchPocket.ward}) लाई जनता आवास/अनुदान कार्यक्रमबाट सुरक्षित आवासमा स्तरोन्नति गर्नुपर्छ ।</li>
+      <li><strong>भूकम्प–सुरक्षा:</strong> छानो टिकाउ भए पनि संरचना कमजोर हुन सक्ने हुँदा <a href="/chapters/6/4/2">भवन–आचारसंहिता</a> कडाइका साथ लागू गरी अर्ध–पक्की घरलाई भूकम्प–प्रतिरोधी बनाउनुपर्छ ।</li>
+      <li><strong>वडागत असमानता:</strong> कम पक्की–दर भएका ग्रामीण वडामा सुरक्षित निर्माण–प्रविधि तालिम र सहुलियत आवास–ऋण लक्षित गर्नुपर्छ ।</li>
+    </ul>
+  </div>
+  <div class="prose-ne reveal mt-2"><p>यहाँका जम्मा घरधुरी ४६,०१८ मध्ये जस्तापाता/टिनकाे छानो भएको घरमा बसोबास गर्ने परिवार संख्या सबैभन्दा बढी अर्थात २५,६७१ अर्थात ५५.७८ प्रतिशत रहेको छ । सिमेन्ट ढलानकाे छानो भएको घरमा बसोबास गर्ने परिवार संख्या १८,९३५ अर्थात ४१.१५ प्रतिशत, खर/पराल/छवालीको छानो भएको घरमा बसोबास गर्नेको संख्या ७१६ अर्थात १.५६ प्रतिशत, टायलको छानो भएको घरमा बसोबास गर्ने परिवार संख्या ४५५ अर्थात ०.९९ प्रतिशत, ढुङ्गा/स्लेटको छानो भएको घरमा बसोबास गर्ने परिवार संख्या २७७ अर्थात ०.४९ प्रतिशत रहेका छन् । यसैगरी काठ/फल्याक र माटो लगायतको छानो भएको घरमा बसोबास गर्नेको संख्या नगण्य रहेको पाइन्छ ।</p></div>
 </section>

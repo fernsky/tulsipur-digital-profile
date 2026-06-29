@@ -21,11 +21,11 @@ const femPct = (femTotal / allTotal) * 100;
 const rows = t9.rows.slice(1).filter((r) => !/जम्मा/.test(cellStr(r[0])));
 const comm = rows.find((r) => /सामुदायिक/.test(cellStr(r[1]))) || [];
 const instit = rows.find((r) => /संस्थागत/.test(cellStr(r[1]))) || [];
-const commFemPct = toNum(comm[3]) ? (toNum(comm[1]) / toNum(comm[3])) * 100 : 0;
-const instFemPct = toNum(instit[3]) ? (toNum(instit[1]) / toNum(instit[3])) * 100 : 0;
-const higherFem = toNum((rows.find((r)=>/विश्व विद्यालय/.test(cellStr(r[1]))) || [])[1]) + toNum((rows.find((r)=>/क्याम्पस/.test(cellStr(r[1])) && !/प्राइभेट/.test(cellStr(r[1]))) || [])[1]);
+// columns: [क्र.स(0), विवरण(1), शिक्षिका(2), शिक्षक(3), जम्मा(4)]
+const commFemPct = toNum(comm[4]) ? (toNum(comm[2]) / toNum(comm[4])) * 100 : 0;
+const instFemPct = toNum(instit[4]) ? (toNum(instit[2]) / toNum(instit[4])) * 100 : 0;
 
-const genderByType = rows.map((r) => ({ label: cellStr(r[1]).replace(" विद्यालय", "").replace("तथा कलेज", ""), a: toNum(r[1]), b: toNum(r[2]) }));
+const genderByType = rows.map((r) => ({ label: cellStr(r[1]).replace(" विद्यालय", "").replace("तथा कलेज", ""), a: toNum(r[2]), b: toNum(r[3]) }));
 
 const kpis = [
   { label: "जम्मा शिक्षक/शिक्षिका", value: neInt(allTotal), unit: "जना" },

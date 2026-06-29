@@ -1,7 +1,9 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import StackedBar from "../../../components/viz/StackedBar.astro";
-import { cellStr, toNum } from "../../../lib/ne";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
 
 const fuelPalette=["#dc2626","#f59e0b","#2563eb","#a16207","#16a34a","#7c3aed","#a3a3a3"];
 const segsFromTotals=(t)=>{const n=t.rows[0].slice(1,-1).map(cellStr);const tot=(t.rows.find((r)=>/जम्मा/.test(cellStr(r[0])))||[]).slice(1,-1);return n.map((x,i)=>({label:x,value:toNum(tot[i]),color:fuelPalette[i%fuelPalette.length]})).filter((z)=>z.value>0);};
@@ -14,8 +16,40 @@ const lightSeg=segsFromTotals(t2);
 
 <section id={meta.id} class="scroll-mt-24">
   <div class="prose-ne reveal"><p>यस नगरपालिकाका सबै वडाहरूमा विद्युत मर्मतसम्भार, महशुल असुली तथा विद्युतीकरण योजनाको कार्यान्वयन नेपाल विद्युत प्राधिकरणले गर्दै आएको छ । राष्ट्रिय जनगणना, २०७८ को तथ्याङ्क अनुसार दैनिक बत्ती बाल्न प्रयोग गरिने इन्धनमा विद्युत प्रमुख स्रोतको रुपमा रहेको देखिन्छ ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
-  <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+  {(() => {
+    const jam = t2.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+    const elec = toNum(jam[1]), solar = toNum(jam[2]), kero = toNum(jam[3]), biogas = toNum(jam[4]), other = toNum(jam[5]), total = toNum(jam[6]);
+    const elecPct = elec / total * 100, solarPct = solar / total * 100, keroPct = kero / total * 100;
+    const offGrid = solar; // solar = off-grid
+    const wards = t2.rows.slice(1).filter((r) => !/जम्मा|प्रतिशत/.test(cellStr(r[0])));
+    const topSolar = [...wards].map((r) => ({ w: cellStr(r[0]), share: toNum(r[2]) / toNum(r[6]) * 100 })).sort((a, b) => b.share - a.share)[0];
+    const kpis = [
+      { label: "विद्युतीकरण (बत्ती)", value: `${neDec(elecPct, 1)}%` },
+      { label: "सोलार (अफ–ग्रिड)", value: `${neDec(solarPct, 1)}%` },
+      { label: "मट्टितेल (अवशेष)", value: `${neDec(keroPct, 2)}%` },
+      { label: "जम्मा घरपरिवार", value: neInt(total) },
+    ];
+    const tiles = [
+      { label: "विद्युतमा पहुँच", value: `${neDec(elecPct, 1)}%`, sub: `${neInt(elec)} घरधुरी — झन्डै सर्वव्यापी`, color: "#16a34a" },
+      { label: "सौर्य ऊर्जा (अफ–ग्रिड)", value: `${neDec(solarPct, 1)}%`, sub: `${neInt(solar)} घरधुरी — ग्रिड नपुगेका क्षेत्र`, color: "#f59e0b" },
+      { label: "मट्टितेल निर्भरता", value: `${neDec(keroPct, 2)}%`, sub: `${neInt(kero)} घरधुरी — ऊर्जा–गरिबीको अवशेष`, color: "#dc2626" },
+      { label: "सर्वाधिक सौर्य वडा", value: `वडा ${topSolar.w}`, sub: `${neDec(topSolar.share, 0)}% घरमा सोलार`, color: "#7c3aed" },
+    ];
+    return (
+      <>
+        <div class="mt-2"><SectionKpis items={kpis} /></div>
+        <div class="mt-2"><StatTiles title="एक नजरमा — उज्यालोको स्रोत" tiles={tiles} cols={4} /></div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>ऊर्जा–पहुँच र दिगो विकास लक्ष्य (SDG 7):</strong> “सबैलाई सुलभ, भरपर्दो र आधुनिक ऊर्जा” दिगो विकासको ७औँ लक्ष्य हो । बत्तीको स्रोत कुनै समाजको ऊर्जा–आधुनिकीकरणको प्रत्यक्ष सूचक हो — मट्टितेलको टुकी (धुवाँ, आगो र स्वास्थ्य जोखिम) बाट विद्युततर्फको संक्रमण विकासको ठूलो फड्को हो । तुलसीपुरमा <strong>{neDec(elecPct, 1)}% घरपरिवारमा विद्युतीय उज्यालो</strong> पुग्नु झन्डै–सर्वव्यापी विद्युतीकरणको उल्लेखनीय उपलब्धि हो — मट्टितेल मात्र {neDec(keroPct, 2)}% मा सीमित भइसकेको छ ।</p>
+        </div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>विश्लेषण — सौर्य ऊर्जाको अफ–ग्रिड भूमिका:</strong> <strong>सोलार {neDec(solarPct, 1)}% ({neInt(solar)} घरधुरी)</strong> ले राष्ट्रिय ग्रिड नपुगेका वा अनियमित बिजुली भएका दुर्गम/बाहिरी वडामा उज्यालो दिएको छ — सबैभन्दा बढी सौर्य–निर्भरता वडा {topSolar.w} ({neDec(topSolar.share, 0)}%) मा छ, जुन ग्रिड–विस्तारको खाडल औँल्याउँछ । बाँकी {neDec(keroPct, 2)}% मट्टितेल–निर्भर घरधुरी <em>ऊर्जा–गरिबी</em> को अवशेष हुन्, जसलाई ग्रिड–विस्तार वा सौर्य–अनुदानबाट पूर्ण विद्युतीकरणमा ल्याउनु बाँकी काम हो । बढ्दो विद्युत–पहुँचले <a href="/chapters/5/1/5">डिजिटल शिक्षा</a> र <a href="/chapters/4/6/2">सिँचाइ–पम्प</a> जस्ता उत्पादनशील प्रयोगको ढोका पनि खोल्छ ।</p>
+        </div>
+        <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
+        <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
+      </>
+    );
+  })()}
   <StackedBar title="बत्ती बाल्ने इन्धन संरचना" subtitle="घरपरिवारमा बत्तीको इन्धनको हिस्सा" segments={lightSeg} unit="घरधुरी" />
   <div class="prose-ne reveal"><p>उप–महानगरपालिकामा घरपरिवारहरूले दैनिक बत्ती बाल्न प्रयोग गर्ने इन्धनको स्रोत विश्लेषण गर्दा नगरपालिकाका कुल ४६,०१८ घरपरिवारहरू मध्ये ४३,९५३ अर्थात ९५.५१ प्रतिशतले विद्युत, १,५४४ अर्थात ३.३६ प्रतिशतले सोलार, २२३ अर्थात ०.४८ प्रतिशतले मट्टितेल, २० अर्थात ०.०४ प्रतिशतले बायाे ग्याँस र २७८ अर्थात ०.६० प्रतिशतले अन्य इन्धनको स्रोत प्रयोग गर्ने गरेको पाईयो । जसको वडागत विस्तृत विवरण तालिकामा प्रस्तुत गरिएको छ ।</p></div>
 </section>

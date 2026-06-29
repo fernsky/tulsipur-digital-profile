@@ -1,6 +1,8 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import AutoViz from "../../../components/viz/AutoViz.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import { cellStr, neInt, neDec } from "../../../lib/ne";
 
 const meta = {"id":"h-122-६-४-४-आपतकालिन-यातायात-साधन-","title":"६.४.४ आपतकालिन यातायात साधन सम्बन्धी विवरण"};
 
@@ -9,7 +11,33 @@ const t3 = {"caption":"तालिका नं. १०६ – उप–मह�
 
 <section id={meta.id} class="scroll-mt-24">
   <div class="prose-ne reveal"><p>उप–महानगरपालिकाको केन्द्रमा स्वास्थ्य सेवाहरुकाे पहुँच भएतापनि सबै वडाहरुको स्वास्थ्य संस्थाहरुबाट आपतकालीन स्वास्थ्य सेवाहरु प्रुयाउन सकिरहेको अवस्था छैन । आपतकालिन अवस्थामा बिरामीहरुलाई स्वास्थ्य सेवा उपलब्ध गराउनका लागि पालिका भित्र २४ घण्टा सेवा सहित २६ वटा एम्बुलेन्स र एक दमकल सञ्चालनमा रहेका छन् । अनियन्त्रित डढेलोको प्रभावबाट यस नगरपालिका पनि अछुतो रहन सकेकाे छैन । त्यसकारण यस नगरपालिकामा बारुण यन्त्रको आवश्यकता रहेको छ भने विभिन्न समुदायमा आपतकालिन अवस्थामा सेवा प्रवाह गर्नका लागि पालिकाका विभिन्न वडाहरुमा आवश्यक एम्बुलेन्सको व्यवस्था गर्नुपर्ने देखिन्छ ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
+  {(() => {
+    const data = t3.rows.slice(1).filter((r) => cellStr(r[1]));
+    const providers = data.length;
+    const fire = data.filter((r) => /दमकल/.test(cellStr(r[1]))).length;
+    const ambulances = 26; // प्रस्तावनाअनुसार
+    const muni = data.filter((r) => /उप–महानगरपालिका/.test(cellStr(r[1]))).length;
+    const ngo = providers - muni;
+    const POP = 179755;
+    const perAmb = Math.round(POP / ambulances);
+    const kpis = [
+      { label: "एम्बुलेन्स (२४ घण्टा)", value: neInt(ambulances), unit: "वटा" },
+      { label: "दमकल (वारुणयन्त्र)", value: neInt(fire), unit: "वटा" },
+      { label: "सेवा–प्रदायक संस्था", value: neInt(providers), unit: "वटा" },
+      { label: "प्रति एम्बुलेन्स जनसंख्या", value: `~${neInt(perAmb)}` },
+    ];
+    return (
+      <>
+        <div class="mt-2"><SectionKpis items={kpis} /></div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>आपत्कालीन सेवा र “स्वर्णिम घडी” (golden hour):</strong> दुर्घटना, हृदयाघात वा प्रसूति–जटिलतापछिको पहिलो एक घण्टा — “स्वर्णिम घडी” — मा बिरामी अस्पताल पुग्न सके बाँच्ने सम्भावना धेरै गुणा बढ्छ । त्यसैले एम्बुलेन्सको पहुँच जीवन–मरणको प्रश्न हो । यहाँ <strong>{neInt(ambulances)} एम्बुलेन्स</strong> २४ घण्टा सञ्चालनमा छन् — प्रति एम्बुलेन्स करिब {neInt(perAmb)} जनसंख्या, जुन तराई–पहाड मिश्रित भूगोलका लागि स्वीकार्य भए पनि वडागत वितरण असमान छ (केन्द्रमा केन्द्रित, बाहिरी वडामा पातलो) ।</p>
+        </div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>विश्लेषण — नागरिक समाजको भूमिका र अग्नि–प्रतिकार्यको खाडल:</strong> उल्लेखनीय कुरा — एम्बुलेन्स सेवा अधिकांश <em>गैरसरकारी</em> संस्थाले (अस्पताल, लायन्स/रोटरी क्लब, सहकारी, उद्योग वाणिज्य संघ, परोपकार संस्था) चलाएका छन्; उप–महानगरपालिकाले आफैं केही सञ्चालन गर्छ । यो <a href="/chapters/4/6/7">सामाजिक पुँजी</a> को आपत्कालीन सेवामा प्रत्यक्ष योगदान हो । तर सबैभन्दा ठूलो कमजोरी — पूरै नगरमा <strong>जम्मा {neInt(fire)} दमकल (वारुणयन्त्र)</strong> मात्र छ, जबकि <a href="/chapters/6/4/2">डढेलो/आगलागी</a> विपन्न घना बस्तीमा बारम्बार हुने प्रमुख जोखिम हो । एउटै दमकलले १९ वडा ढाक्न असम्भव छ — थप वारुणयन्त्र र वडागत एम्बुलेन्स विस्तार तत्काल आवश्यक छ ।</p>
+        </div>
+      </>
+    );
+  })()}
+  <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
-  <AutoViz table={t3} title={t3.caption} />
 </section>

@@ -1,6 +1,9 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import AutoViz from "../../../components/viz/AutoViz.astro";
+import SectionKpis from "../../../components/SectionKpis.astro";
+import BarList from "../../../components/viz/BarList.astro";
+import { cellStr, neInt } from "../../../lib/ne";
 
 const meta = {"id":"h-135-७-४-२-उप-महानगरपालिका-अन्तर्","title":"७.४.२ उप–महानगरपालिका अन्तर्गतका सरकारी भवन सम्बन्धी विवरण"};
 
@@ -10,7 +13,34 @@ const t4 = {"caption":"तालिका नं. ११५ – उप–मह�
 <section id={meta.id} class="scroll-mt-24">
   <div class="prose-ne reveal"><p>स्थानीय तहले पालिका कार्यालय भवन, वडा कार्यालय भवनहरू तथा अत्यावश्यक अन्य सरकारी भवनहरू आफ्नै जग्गामा अथवा नेपाल सरकारबाट प्राप्त जग्गामा निर्माण गरी कार्यसम्पादनलाई चुस्तदुरुस्त र प्रभावकारी बनाई जनतालाई सरकारको उपस्थितिको आभास दिलाउनु आवश्यक हुन्छ । यस्ता प्रकारका स्थायी संरचनाहरूको निर्माण भएपछि संघीयताले संस्थागत रूप धारण गर्दै जान्छ ।</p></div>
   <div class="prose-ne reveal"><p>संघीय शासन प्रणाली अन्तर्गत निर्माण भएका स्थानीय तहमा आवश्यक भौतिक संरचनाहरू निर्माण गरी स्थानीय सरकारको कार्यक्रमहरू सञ्चालन हुनुपर्ने मान्यता अनुरुप गाउँपालिका/नगरपालिकाको आफ्नै सामुदायिक भवन तथा सभाहल हुनु आवश्यक छ । हाल उप–महानगरपालिका भित्र रहेका सामुदायिक भवनहरु तथा सभाहल सम्बन्धी विवरण तालिकामा प्रस्तुत गरिएको छ ।</p></div>
-  <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t4.caption}</h3>
-  <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
-  <AutoViz table={t4} title={t4.caption} />
+  {(() => {
+    const NEDIG = "०१२३४५६७८९";
+    const wardOf = (s) => { const m = cellStr(s).match(/[०-९]+/); return m ? parseInt([...m[0]].map((c) => NEDIG.indexOf(c)).join(""), 10) : null; };
+    const data = t4.rows.slice(1);
+    const total = data.length;
+    const wc = {};
+    data.forEach((r) => { const w = wardOf(r[2]); if (w) wc[w] = (wc[w] || 0) + 1; });
+    const covered = Object.keys(wc).length;
+    const items = Array.from({ length: 19 }, (_, i) => i + 1).map((w) => ({ label: `वडा ${w}`, value: wc[w] || 0, valueText: neInt(wc[w] || 0), color: (wc[w] || 0) ? "#2563eb" : "#d1d5db" }));
+    const top = Object.entries(wc).sort((a, b) => b[1] - a[1])[0];
+    const kpis = [
+      { label: "सामुदायिक भवन/सभाहल", value: neInt(total), unit: "वटा" },
+      { label: "उपस्थिति भएका वडा", value: `${neInt(covered)}/१९` },
+      { label: "सर्वाधिक वडा", value: `वडा ${top[0]} (${neInt(top[1])})` },
+    ];
+    return (
+      <>
+        <div class="mt-2"><SectionKpis items={kpis} /></div>
+        <div class="prose-ne reveal mt-3">
+          <p><strong>सामुदायिक भवन — स्थानीय लोकतन्त्रको भौतिक आधार:</strong> सामुदायिक भवन र सभाहल केवल ढुङ्गा–इँटाका संरचना होइनन् — यी <em>सामाजिक पुँजी</em> का भौतिक केन्द्र हुन्, जहाँ टोल–विकास समिति, सहकारी, ज्येष्ठ नागरिक र समुदाय भेला भएर सामूहिक निर्णय गर्छन्, तालिम–कार्यक्रम चलाउँछन् र संकटमा आश्रय लिन्छन् । {neInt(total)} यस्ता भवनको उपस्थितिले नगरको बलियो नागरिक–पूर्वाधार देखाउँछ — टोल विकास समिति भवन (विशेष गरी वडा ६), सामुदायिक वन भवन, ज्येष्ठ नागरिक भवन र उल्लेखनीय रूपमा <strong>थारू सांस्कृतिक भवन</strong> (आदिवासी पहिचानको केन्द्र) समेटिएका छन् ।</p>
+        </div>
+        <div class="mt-3"><BarList title="वडागत सामुदायिक भवन वितरण" subtitle={`${neInt(total)} भवन · ${neInt(covered)} वडामा`} items={items} /></div>
+        <div class="prose-ne reveal mt-2">
+          <p><strong>विश्लेषण:</strong> भवनहरू केही वडामा (वडा ६, १४, १६ मा बाक्लो — टोल–विकास समिति र सामुदायिक संस्थाको सक्रियता झल्काउँदै) केन्द्रित छन् भने केही वडामा पातलो । यो वितरणले सामुदायिक संगठनको असमान घनत्व देखाउँछ; कम भवन भएका वडामा बहुउद्देश्यीय सामुदायिक भवन निर्माण गरी सबै वडामा समान नागरिक–स्थल सुनिश्चित गर्नुपर्छ । भवनलाई <a href="/chapters/6/4/3">विपद् आश्रयस्थल</a>, तालिम–केन्द्र र सार्वजनिक सेवा–विन्दुका रूपमा बहुउपयोग गर्न सकिन्छ ।</p>
+        </div>
+        <h3 class="mb-1 mt-4 text-[1.05rem] font-semibold text-[var(--color-text)]">{t4.caption}</h3>
+        <DataTable caption={t4.caption} rows={t4.rows} source={t4.source} />
+      </>
+    );
+  })()}
 </section>

@@ -4,12 +4,12 @@ import AutoViz from "../../components/viz/AutoViz.astro";
 import Chart from "../../components/Chart.astro";
 import Figure from "../../components/Figure.astro";
 import SectionKpis from "../../components/SectionKpis.astro";
+import StatTiles from "../../components/viz/StatTiles.astro";
+import BarList from "../../components/viz/BarList.astro";
 import { chartFromRows } from "../../lib/chart";
+import { cellStr, toNum, neInt } from "../../lib/ne";
 
 const meta = {"chapter":6,"order":2,"id":"s-6-2-६-२-जलश्रोत-तथा-जलाधार-क्षेत्र","title":"६.२ जलश्रोत तथा जलाधार क्षेत्र","subsections":[{"id":"h-111-६-२-१-प्रमुख-नदी-तथा-खोलाहरू","title":"६.२.१ प्रमुख नदी तथा खोलाहरू"}]};
-
-// Section KPIs — auto-seeded from the main table. Edit freely.
-const kpis = [];
 
 const t1 = {"caption":"तालिका नं. १०१ – तुलसीपुर उप–महानगरपालिका क्षेत्रमा रहेका जलाधार क्षेत्रहरु","source":"","rows":[["वडा नं.","जलाधार क्षेत्रहरुको नाम"],["१.","जम्मुचिरा, धारापानी ड्याम, भमके खोला, कोजेखोला, काठीखोली झरना, धारापानी खानेपानी मुहान"],["२.","मनिकापुर कुइरेपानी जलासय, भमके खोला"],["३.","राम्री मुल, ठुला सम्म मुल, कात्तिके पानी टयाङ्की, कात्तिकेमा रहेको ड्याम"],["४.","मुलकोट, हात्तिलोटे मुहान, बसन्त धारी मुहान"],["७.","घुसौरी सिमतारा"],["८.","चामेखोला तटबन्ध, पातुखोला तटबन्ध, गहतेखोला, भमके खोला तटबन्ध"],["९.","पातुखोला तटबन्ध, बबई (केही भाग), गौरी ताल, पढा ताल"],["११.","बबई, कन्जरुवा ताल"],["१३.","चिसापानी भुतिया ताल, आमखोली लेक साइड, तुई खोला"],["१४.","खौसापुर ड्याम, बबई नदी"],["१५.","खैरेनी ड्याम"],["१६.","बुलबुले जलाधार क्षेत्र"],["१७.","बनकट्टी भुत ताल"],["१८.","मैखा चौवा खोला भू–संरक्षण, गुहार खोला भू–संरक्षण, संक्राम खोला भू–संरक्षण"]]};
 const t1Chart = chartFromRows(t1.rows);
@@ -17,10 +17,45 @@ const t2 = {"caption":"तालिका नं. १०२ – उप–मह�
 const t2Chart = chartFromRows(t2.rows);
 const t3 = {"caption":"तालिका नं. १०३ – उप–महानगरपालिकामा भएका, ताल, पोखरी, सिमसार क्षेत्रहरूको विवरण","source":"स्रोतः उप–महानगरकार्यपालिकाको कार्यालय","rows":[["क्र.सं.","तालतलैया, पोखरी, सिमसार क्षेत्र र झरनाको नाम","(पोखरीहरुको संख्या )","वडा नं."],["१.","गौरीगाउँ ताल","१","१०"],["२.","पढा ताल","१","१०"],["३.","कमल पोखरी ताल","१","६"],["४.","सुकीदह ताल","१","४"],["५.","जोगीडाँडा ताल","१","१६"],["६.","खल्वा लहलौरा","१","१६"],["७.","बैरागी ताल","१","१६"],["८.","भुतिया ताल","१","१३"],["९.","बराउखुट्टी भुत्ति ताल","१","१३"],["१०.","मजवढुवा ताल","१","१३"],["११.","सिमरुवा ताल","१","११"],["१२.","कन्जरुवा ताल","१","११"],["१३.","सुकौरा ताल","१","११"],["१५.","कपासेडाँडा जलाशय","१","८"],["१६.","टिकरी गाउँ पोखरी","१","८"],["१७.","जम्मुचिरा ड्याम","१","१"],["१८.","धारापानी ड्याम","१","१"]]};
 const t3Chart = chartFromRows(t3.rows);
+
+// ── Live computation ───────────────────────────────────────────────
+const NEDIG = "०१२३४५६७८९";
+const wardsIn = (s) => (cellStr(s).match(/[०-९]+/g) || []).map((m) => parseInt([...m].map((c) => NEDIG.indexOf(c)).join(""), 10)).filter((n) => n >= 1 && n <= 19);
+const watershedWards = t1.rows.slice(1).length;          // wards with watershed areas listed
+const riverEntries = t2.rows.slice(1).length;            // river/stream entries
+const ponds = t3.rows.slice(1);
+const pondCount = ponds.length;                          // lakes/ponds/wetlands
+// rivers touch which wards (union)
+const riverWardSet = new Set(t2.rows.slice(1).flatMap((r) => wardsIn(r[2])));
+// ponds per ward
+const pondWard = {};
+ponds.forEach((r) => { wardsIn(r[3]).forEach((w) => { pondWard[w] = (pondWard[w] || 0) + 1; }); });
+const pondWards = Object.keys(pondWard).length;
+const pondItems = Object.entries(pondWard).sort((a, b) => b[1] - a[1])
+  .map(([w, n], i) => ({ label: `वडा ${w}`, value: n, valueText: `${neInt(n)} वटा`, color: ["#0891b2", "#2563eb", "#16a34a", "#f59e0b", "#7c3aed"][i % 5] }));
+
+const kpis = [
+  { label: "नदी/खोला (प्रमुख)", value: neInt(riverEntries), unit: "वटा" },
+  { label: "ताल/पोखरी/सिमसार", value: neInt(pondCount), unit: "वटा" },
+  { label: "जलाधार क्षेत्र भएका वडा", value: `${neInt(watershedWards)}` },
+  { label: "नदीले छोएका वडा", value: `${neInt(riverWardSet.size)}/१९` },
+];
+const tiles = [
+  { label: "प्रमुख नदी/खोला", value: neInt(riverEntries), sub: "बबई मुख्य — पूरै नगरको जल–धमनी", color: "#2563eb" },
+  { label: "ताल/पोखरी/सिमसार", value: neInt(pondCount), sub: `${neInt(pondWards)} वडामा फैलिएको`, color: "#0891b2" },
+  { label: "नदी–सञ्जालको पहुँच", value: `${neInt(riverWardSet.size)}/१९`, sub: "वडामा खोला/नदी पुगेको", color: "#16a34a" },
+  { label: "जलाधार संरक्षण क्षेत्र", value: neInt(watershedWards), sub: "तटबन्ध/भू–संरक्षण भएका वडा", color: "#7c3aed" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24 pt-9">
   <SectionKpis items={kpis} />
+  <div class="mt-2"><StatTiles title="एक नजरमा — जलस्रोतको चित्र" tiles={tiles} cols={4} /></div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>जलाधार (watershed) भनेको के, र किन एकाइ हो?</strong> जलाधार भनेको कुनै नदी/खोलामा पानी बगेर जम्मा हुने पूरै भू–क्षेत्र हो — डाँडाको टाकुरादेखि खोलासम्मको सम्पूर्ण ढलान । पानी–व्यवस्थापनको प्राकृतिक एकाइ वडा होइन, जलाधार हो: माथिल्लो भागको वन–विनाश वा भू–क्षयले तल्लो भागमा बाढी, गेग्रान र खानेपानी–स्रोत सुक्ने समस्या ल्याउँछ । तुलसीपुर <strong>बबई नदी</strong> को जलाधारमा पर्छ, र यहाँका {neInt(riverEntries)} प्रमुख खोला–नदीले {neInt(riverWardSet.size)} वडालाई छुन्छन् — अर्थात् जल–सञ्जाल पूरै नगरभरि फैलिएको छ ।</p>
+  </div>
+
   <div class="prose-ne reveal"><p>यस उप–महानगरपालिकामा रहेका बबई नदी लगायतका नदी तथा खोलाहरु यहाँका जलाधारका मुख्य स्रोतको रुपमा रहेका छन् । यो उप–महानगरपालिकामा रहेका बबई नदी, काला खोला, पत्रे खोला, संक्राम खोला, हापुर खोला, पातु खोला, ग्वार खोला, भमके खोला, तुई खोला, गहते खोला, चौवा खोला, क्वांग खोला लगायतका खोलाहरू जलाधारका आधार क्षेत्र हुन यसका साथै यहाँ रहेका ताल तथा पोखरीहरु, गौरीगाउँ ताल, पढा ताल, कमल पोखरी ताल, सुकीदह लगायतका ताल जलस्रोतको रुपमा रहेका छन् भने उक्त तालमा माछापालनका साथै आंशिक रुपमा सिँचाईको लागि पानीको प्रयोग गरेको देखिन्छ । यस उप–महानगरपालिका भित्र रहेका जलाधार क्षेत्रहरु तालिकामा समावेश गरिएको छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t1.caption}</h3>
   <DataTable caption={t1.caption} rows={t1.rows} source={t1.source} />
@@ -30,8 +65,20 @@ const t3Chart = chartFromRows(t3.rows);
   <div class="prose-ne reveal"><p>उप–महानगरपालिकाका विभिन्न भौगोलिक क्षेत्र तथा वडाहरूमा फैलिएर रहेका खोलानालाहरूले प्रशस्त जलभण्डार गर्नुका साथै विभिन्न किसिमका जलचरहरू र पन्छीहरूलाई सुरक्षित बासस्थानको रुपमा आश्रय दिइरहेको पाइन्छ । साथै यस्ता खोलाहरूबाट पशुहरूले पानी पिउने र किसानहरूले समेत बेलाबखत आंशिक रुपमा सिँचाईको लागि पानीको प्रयोग गरेको देखिन्छ । मानव बस्तीको विकास र बसाइँसराईको चापका साथै अनुत्पादक पशुहरूको अत्याधिक चरीचराउ र उपयोगले प्राकृतिक नदी/खोलामा भू–क्षय भई पुरिने क्रम जारी छ ।</p></div>
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t2.caption}</h3>
   <DataTable caption={t2.caption} rows={t2.rows} source={t2.source} />
-  <AutoViz table={t2} title={t2.caption} />
+  <div class="prose-ne reveal mt-2"><p><strong>विश्लेषण — नदी–सञ्जाल:</strong> {neInt(riverEntries)} प्रमुख खोला–नदीमध्ये <strong>बबई</strong> सबैभन्दा ठूलो (वडा ११–१४ हुँदै बग्ने) हो भने पातु खोला (८ वडा) र गुहार खोला (६ वडा) ले व्यापक क्षेत्र ओगट्छन् — यी सबै मिलेर {neInt(riverWardSet.size)} वडालाई जल–सञ्जालमा जोड्छन् । तर आधिकारिक प्रस्तावनाले औँल्याएझैँ, बस्ती–विस्तार, अतिक्रमण र अनियन्त्रित चरीचराउले खोला–किनार <em>भू–क्षय भई पुरिने</em> क्रम जारी छ — यसले एकातिर बाढी–जोखिम, अर्कोतिर जल–भण्डारण क्षमता घटाउँछ । खोला–किनार <a href="/chapters/6/1/2">तटीय बृक्षारोपण</a> र अतिक्रमण नियन्त्रण आवश्यक छ ।</p></div>
+
   <h3 class="mb-1 mt-2 text-[1.05rem] font-semibold text-[var(--color-text)]">{t3.caption}</h3>
   <DataTable caption={t3.caption} rows={t3.rows} source={t3.source} />
-  <AutoViz table={t3} title={t3.caption} />
+  <div class="mt-3"><BarList title="वडागत ताल/पोखरी/सिमसार वितरण" subtitle={`${neInt(pondCount)} जलाशय · ${neInt(pondWards)} वडामा`} items={pondItems} /></div>
+  <div class="prose-ne reveal mt-3"><p><strong>विश्लेषण — सिमसार (wetland) सम्पदा:</strong> {neInt(pondCount)} ताल/पोखरी/सिमसार {neInt(pondWards)} वडामा छरिएका छन् — वडा १६ (जोगीडाँडा, खल्वा, बैरागी), वडा १३ (भुतिया, बराउखुट्टी, मजवढुवा) र वडा ११ (सिमरुवा, कन्जरुवा, सुकौरा) ताल–बहुल छन् । यी सिमसारले भूमिगत जल–पुनर्भरण, जैविक विविधता र <a href="/chapters/4/6/1">माछापालन</a> मा महत्त्वपूर्ण भूमिका खेल्छन् (यही डेटा <a href="/chapters/4/6/1">सार्वजनिक पोखरी खण्ड</a> सँग आंशिक मेल खान्छ) । तर <a href="/chapters/4/6/1">साझा–सम्पदाको ह्रास</a> को कथा यहाँ पनि लागू हुन्छ — हेरचाहको अभावमा ताल पुरिँदै/मासिँदै छन् । रामसार–मापदण्ड अनुरूप सिमसार संरक्षण, अतिक्रमण रोकथाम र बहुउपयोग (माछा + सिँचाइ + पर्यटन) योजना आवश्यक छ ।</p></div>
+
+  <div class="prose-ne reveal mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-brand)]">निष्कर्ष र सिफारिसहरू</h3>
+    <ul class="ml-4 list-disc space-y-1">
+      <li><strong>जलाधार–आधारित व्यवस्थापन:</strong> वडा होइन, जलाधारलाई एकाइ मानेर माथिल्लो भागको वन/भू–संरक्षण र तल्लो भागको बाढी–नियन्त्रण एकीकृत गर्नुपर्छ ।</li>
+      <li><strong>खोला–किनार संरक्षण:</strong> भू–क्षय र अतिक्रमण रोक्न तटबन्ध, तटीय बृक्षारोपण र सेटब्याक नियम लागू गर्नुपर्छ ।</li>
+      <li><strong>सिमसार पुनर्जीवन:</strong> मासिँदै गएका ताल–पोखरीलाई उपभोक्ता समिति मार्फत संरक्षण गरी माछा–सिँचाइ–पर्यटनमा बहुउपयोग गर्नुपर्छ ।</li>
+      <li><strong>मुहान संरक्षण:</strong> खानेपानीका प्राकृतिक मुहानलाई जलाधार संरक्षणसँग जोडेर <a href="/chapters/5/3/1">खानेपानी सुरक्षा</a> सुनिश्चित गर्नुपर्छ ।</li>
+    </ul>
+  </div>
 </section>

@@ -1,23 +1,87 @@
 ---
 import DataTable from "../../../components/DataTable.astro";
 import SectionKpis from "../../../components/SectionKpis.astro";
+import StatTiles from "../../../components/viz/StatTiles.astro";
 import StackedBar from "../../../components/viz/StackedBar.astro";
-import { cellStr, toNum } from "../../../lib/ne";
+import BarList from "../../../components/viz/BarList.astro";
+import { cellStr, toNum, neInt, neDec } from "../../../lib/ne";
 
 const fuelPalette=["#dc2626","#f59e0b","#2563eb","#a16207","#16a34a","#7c3aed","#a3a3a3"];
 const segsFromTotals=(t)=>{const n=t.rows[0].slice(1,-1).map(cellStr);const tot=(t.rows.find((r)=>/जम्मा/.test(cellStr(r[0])))||[]).slice(1,-1);return n.map((x,i)=>({label:x,value:toNum(tot[i]),color:fuelPalette[i%fuelPalette.length]})).filter((z)=>z.value>0);};
 
 const meta = {"id":"h-127-७-२-१-इन्धन-उपयोग-विवरण-खाना","title":"७.२.१ इन्धन उपयोग विवरण (खाना पकाउने इन्धनको आधारमा घरपरिवार)"};
 
-// Section KPIs — auto-seeded from the main table. Edit freely.
-const kpis = [{"label":"काठ, दाउरा, कोइला","value":"२०६१७"},{"label":"एलपी ग्याँस","value":"२३८२४"},{"label":"विद्युत","value":"११०"},{"label":"गुईठा","value":"६५८"}];
-
 const t1 = {"caption":"तालिका नं. १०९ – खाना पकाउने मुख्य इन्धनको आधारमा घरपरिवारको विवरण","source":"स्रोतः राष्ट्रिय जनगणना, २०७८","rows":[["वडा","काठ, दाउरा, कोइला","एलपी ग्याँस","विद्युत","गुईठा","बायो ग्याँस","मट्टितेल","अन्य","जम्मा"],["१","९०६","३११","१","०","१४","०","०","१२३२"],["२","८२३","३४४","०","४","११","०","०","११८२"],["३","१४०८","५८५","२","१","४","३","०","२००३"],["४","१७८१","५२६","५","३","१९","२","२","२३३८"],["५","२६५","३२१६","७","१","११९","०","०","३६०८"],["६","४२४","५३९१","१५","१","२४०","१","१","६०७३"],["७","१०४३","२४२६","१४","२६","१५","१","१","३५२६"],["८","७७०","१४०१","६","५","२१","४","१","२२०८"],["९","४७०","३२८३","५","६","९","०","०","३७७३"],["१०","११६३","३५०","०","८०","६","१","०","१६००"],["११","१३६३","७०६","५","३","१९","५३","१","२१५०"],["१२","१४१३","११४३","१९","३७","५९","२","०","२६७३"],["१३","१३२०","१४६","१","२","११","०","०","१४८०"],["१४","१४६६","१४७","२","५","६","०","१","१६२७"],["१५","१४२७","४५२","७","११","३०","१","०","१९२८"],["१६","१११८","४०१","३","३६३","२२","०","०","१९०७"],["१७","१०४८","१०८२","३","८३","७३","१","२","२२९२"],["१८","११४१","१२०८","८","१३","१४","०","०","२३८४"],["१९","१२६८","७०६","७","१४","२६","६","७","२०३४"],["जम्मा","२०६१७","२३८२४","११०","६५८","७१८","७५","१६","४६०१८"],["प्रतिशत","४४.८०","५१.७७","०.२४","१.४३","१.५६","०.१६","०.०३","१००"]]};
 const cookSeg=segsFromTotals(t1);
+
+// ── Live ward-wise computation ─────────────────────────────────────
+// cols: 1=firewood/coal 2=LPG 3=electricity 4=dung(गुईठा) 5=biogas 6=kerosene 7=other 8=total
+const jam = t1.rows.find((r) => /जम्मा/.test(cellStr(r[0]))) || [];
+const T = { firewood: toNum(jam[1]), lpg: toNum(jam[2]), elec: toNum(jam[3]), dung: toNum(jam[4]), biogas: toNum(jam[5]), kero: toNum(jam[6]), other: toNum(jam[7]), total: toNum(jam[8]) };
+const cleanTotal = T.lpg + T.elec + T.biogas;
+const solidTotal = T.firewood + T.dung;
+const cleanPct = cleanTotal / T.total * 100;
+const solidPct = solidTotal / T.total * 100;
+const lpgPct = T.lpg / T.total * 100;
+
+const wards = t1.rows.slice(1).filter((r) => !/जम्मा|प्रतिशत/.test(cellStr(r[0]))).map((r) => {
+  const tot = toNum(r[8]);
+  const solid = toNum(r[1]) + toNum(r[4]);
+  const clean = toNum(r[2]) + toNum(r[3]) + toNum(r[5]);
+  return { ward: cellStr(r[0]), tot, firewood: toNum(r[1]), lpg: toNum(r[2]), dung: toNum(r[4]), biogas: toNum(r[5]),
+    solidPct: solid / tot * 100, lpgPct: toNum(r[2]) / tot * 100, cleanPct: clean / tot * 100 };
+});
+const solidMajority = wards.filter((w) => w.solidPct >= 50).length;
+const lpgMajority = wards.filter((w) => w.lpgPct >= 50).length;
+const cleanestWards = [...wards].sort((a, b) => a.solidPct - b.solidPct).slice(0, 3);
+const dirtiestWards = [...wards].sort((a, b) => b.solidPct - a.solidPct).slice(0, 3);
+const dungPocket = [...wards].sort((a, b) => b.dung - a.dung)[0];
+const biogasPocket = [...wards].sort((a, b) => b.biogas - a.biogas)[0];
+
+const wardSolidItems = [...wards].sort((a, b) => b.solidPct - a.solidPct).map((w) => ({
+  label: `वडा ${w.ward}`,
+  value: +w.solidPct.toFixed(1),
+  valueText: `${neDec(w.solidPct, 0)}%`,
+  color: w.solidPct >= 50 ? "#dc2626" : w.solidPct >= 25 ? "#f59e0b" : "#16a34a",
+  sub: `एलपी ${neDec(w.lpgPct, 0)}%${w.biogas > 30 ? ` · बायोग्याँस ${neInt(w.biogas)}` : ""}${w.dung > 30 ? ` · गुईठा ${neInt(w.dung)}` : ""}`,
+}));
+
+const kpis = [
+  { label: "स्वच्छ इन्धन (LPG/विद्युत/बायोग्याँस)", value: `${neDec(cleanPct, 1)}%` },
+  { label: "ठोस इन्धन (दाउरा/गुईठा)", value: `${neDec(solidPct, 1)}%` },
+  { label: "एलपी ग्याँस", value: neInt(T.lpg), unit: "घरधुरी" },
+  { label: "दाउरा/कोइला", value: neInt(T.firewood), unit: "घरधुरी" },
+];
+const tiles = [
+  { label: "स्वच्छ इन्धनमा पहुँच", value: `${neDec(cleanPct, 1)}%`, sub: `${neInt(cleanTotal)} घरधुरी — LPG+विद्युत+बायोग्याँस`, color: "#16a34a" },
+  { label: "ठोस इन्धन निर्भरता", value: `${neDec(solidPct, 1)}%`, sub: `${neInt(solidTotal)} घरधुरी — दाउरा+गुईठा`, color: "#dc2626" },
+  { label: "दाउरा–बहुल वडा", value: `${neInt(solidMajority)}/१९`, sub: `LPG–बहुल वडा भने ${neInt(lpgMajority)} मात्र`, color: "#f59e0b" },
+  { label: "बायोग्याँस केन्द्र", value: `वडा ${biogasPocket.ward}`, sub: `${neInt(biogasPocket.biogas)} घरमा गोबरग्याँस`, color: "#0891b2" },
+];
 ---
 
 <section id={meta.id} class="scroll-mt-24">
   <SectionKpis items={kpis} />
+  <div class="mt-2"><StatTiles title="एक नजरमा — खाना पकाउने इन्धनको चित्र" tiles={tiles} cols={4} /></div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>“ऊर्जाको भर्‍याङ” (energy ladder) — खाना पकाउने इन्धन किन विकासको सूचक हो?</strong> समाज विकास हुँदै जाँदा खाना पकाउने इन्धन तल्लो खुड्किलाबाट माथिल्लोतर्फ चढ्छ — सबैभन्दा तल <em>ठोस/परम्परागत इन्धन</em> (दाउरा, गुईठा, कोइला — धुवाँले भरिएको, श्रमसाध्य), बीचमा <em>संक्रमणकालीन</em> (एलपी ग्याँस), र माथि <em>आधुनिक स्वच्छ इन्धन</em> (विद्युत, बायोग्याँस) । यो “भर्‍याङ” केवल सुविधा होइन — विश्व स्वास्थ्य संगठनका अनुसार घरभित्रको <em>ठोस–इन्धन धुवाँ (household air pollution)</em> ले विश्वभर वर्षेनि लाखौंको मृत्यु गराउँछ, र यो भार मुख्यतः खाना पकाउने महिला र बालबालिकामा पर्छ — श्वासप्रश्वास रोग, आँखा र मुटुमा असर (हे. <a href="/chapters/5/2/4">श्वासप्रश्वास रोगको OPD भार</a>) । साथै दाउरा संकलनले वन विनाश गर्छ र महिलाको दैनिक घण्टौं समय खेर फाल्छ ।</p>
+  </div>
+  <div class="prose-ne reveal mt-3">
+    <p><strong>तुलसीपुरको समग्र चित्र — ठीक बीचको संक्रमण:</strong> नगर अहिले ऊर्जा–संक्रमणको <em>ठीक बीचमा</em> छ — <strong>{neDec(cleanPct, 1)}% घरपरिवार स्वच्छ इन्धन</strong> (मुख्यतः एलपी ग्याँस {neDec(lpgPct, 0)}%) मा पुगिसके, तर अझै <strong>{neDec(solidPct, 1)}% ({neInt(solidTotal)} घरधुरी) ठोस इन्धन</strong> (दाउरा/गुईठा) मै निर्भर छन् । LPG ले दाउरालाई थोरै उछिने पनि यो “आधा–आधा” अवस्थाले देखाउँछ — संक्रमण सुरु भएको छ तर अधुरो छ । नेपालको SDG–7 लक्ष्य (२०३० सम्म ठोस इन्धन ३०% मा झार्ने) पुग्न अझै {neDec(solidPct - 30, 0)} प्रतिशत–बिन्दु घटाउनुपर्ने देखिन्छ ।</p>
+  </div>
+
+  <div class="mt-3">
+    <BarList title="वडागत ठोस–इन्धन निर्भरता (दाउरा + गुईठा %)" subtitle="रातो = दाउरा–बहुल (≥५०%) · पहेँलो = मिश्रित · हरियो = स्वच्छ–बहुल (<२५%)" items={wardSolidItems} />
+  </div>
+
+  <div class="prose-ne reveal mt-3">
+    <p><strong>विश्लेषण — वडागत “दुई तुलसीपुर” को कथा:</strong> इन्धनको नक्साले नगरभित्रको स्पष्ट <em>सहरी–ग्रामीण ऊर्जा खाडल</em> देखाउँछ । <strong>सहरी कोर वडा — विशेष गरी वडा {cleanestWards[0].ward} (ठोस इन्धन मात्र {neDec(cleanestWards[0].solidPct, 0)}%), वडा {cleanestWards[1].ward} ({neDec(cleanestWards[1].solidPct, 0)}%) र वडा {cleanestWards[2].ward} ({neDec(cleanestWards[2].solidPct, 0)}%)</strong> — झन्डै पूर्ण रूपमा एलपी ग्याँसमा संक्रमण भइसके; यी <a href="/chapters/4/8/4">बजार–केन्द्र</a> र राजमार्ग वरिपरिका सघन बस्ती हुन्, जहाँ ग्यासको आपूर्ति, क्रयशक्ति र सानो घर–स्थानले दाउरा भण्डारण असहज बनाउँछ ।</p>
+    <p>ठीक उल्टो, <strong>बाहिरी ग्रामीण/कृषि वडा — वडा {dirtiestWards[0].ward} ({neDec(dirtiestWards[0].solidPct, 0)}% ठोस इन्धन), वडा {dirtiestWards[1].ward} ({neDec(dirtiestWards[1].solidPct, 0)}%) र वडा {dirtiestWards[2].ward} ({neDec(dirtiestWards[2].solidPct, 0)}%)</strong> — अझै बहुसंख्यक घरमा दाउरा बल्छ । १९ मध्ये <strong>{neInt(solidMajority)} वडा दाउरा–बहुल</strong> छन् भने एलपी–बहुल जम्मा {neInt(lpgMajority)} वडा — यसले देखाउँछ कि संख्यात्मक रूपमा LPG अगाडि भए पनि <em>भौगोलिक रूपमा अधिकांश नगर अझै दाउरामै निर्भर</em> छ ।</p>
+    <p><strong>दुई रोचक “पकेट”:</strong> (१) <em>गुईठा (गोबरको गुइँठा)</em> को प्रयोग वडा {dungPocket.ward} ({neInt(dungPocket.dung)} घरधुरी) मा उल्लेख्य छ — यो तराई/थारू बस्तीको परम्परागत अभ्यास हो, जहाँ पशुधनको गोबर सिधै सुकाएर बालिन्छ । (२) <em>बायोग्याँस (गोबरग्याँस)</em> भने वडा {biogasPocket.ward} ({neInt(biogasPocket.biogas)} घर) मा बढी छ — रोचक कुरा, गुईठा र बायोग्याँस दुवै गोबरमै आधारित छन्, तर बायोग्याँसले त्यही गोबरबाट <strong>धुवाँरहित ग्यास + उच्च–गुणस्तरको मल</strong> दिन्छ । अर्थात् पशुपालन भएका वडामा (हे. <a href="/chapters/4/5">पशुपालन</a>) गुईठा बाल्ने घरलाई बायोग्याँसमा रूपान्तरण गर्ने ठूलो, तत्काल सम्भावना छ — एउटै हस्तक्षेपले इन्धन, मल, स्वास्थ्य र वन संरक्षण चारै लाभ दिन्छ ।</p>
+  </div>
+
+  <div class="prose-ne reveal"><p>केही सिमित क्षेत्रका विपन्न घरहरूमा विद्युतीकरण नभए तापनि त्यसको सङ्ख्या नगन्य रहेकाले विद्युतीकरणमा ठूलो लगानी गर्नुपर्ने अवस्था छैन् । तथापि प्रशारण लाइनको सुदृढीकरणका लागि भने प्रशस्त काम गर्नुपर्ने देखिन्छ । विद्युत् प्रशारण लाईन सुधारमा सर्वप्रथम काठका पोलहरू पक्की वा फलामका पोलहरूले विस्थापन गर्नुपर्ने देखिन्छ भने Low Voltage हुने स्थानहरूमा ट्रान्सफर्मर जडान गर्नुपर्ने देखिन्छ ।</p></div>
   <div class="prose-ne reveal"><p>केही सिमित क्षेत्रका विपन्न घरहरूमा विद्युतीकरण नभए तापनि त्यसको सङ्ख्या नगन्य रहेकाले विद्युतीकरणमा ठूलो लगानी गर्नुपर्ने अवस्था छैन् । तथापि प्रशारण लाइनको सुदृढीकरणका लागि भने प्रशस्त काम गर्नुपर्ने देखिन्छ । विद्युत् प्रशारण लाईन सुधारमा सर्वप्रथम काठका पोलहरू पक्की वा फलामका पोलहरूले विस्थापन गर्नुपर्ने देखिन्छ भने Low Voltage हुने स्थानहरूमा ट्रान्सफर्मर जडान गर्नुपर्ने देखिन्छ ।</p></div>
   <div class="prose-ne reveal"><p>विद्युत सेवा बाहेक वैकल्पिक र नवीकरणीय ऊर्जा प्रवर्द्धनका लागि ठोस कार्यक्रमहरू सञ्चालन गर्नुपर्ने देखिन्छ । पशुपालन हुने क्षेत्रमा गोबरग्याँस निर्माणमा प्रोत्साहन र अनुदान दिने र अन्य दुर्गम तथा सुगम दुवै क्षेत्रमा सौर्य ऊर्जा जडान गर्न सके त्यसबाट ऊर्जाको नियमित आपूर्ति हुनुको साथै थप विकासका क्रियाकलापहरूलाई ऊर्जाको सदुपयोग मार्फत गति दिन सकिन्छ । सौर्य ऊर्जाबाट लिफ्ट सिँचाइर् खानेपानी आयोजना सञ्चालन गर्न गार्हस्थ उपभोगका निम्ति प्रयोग गरी बढी भएको ऊर्जालाई राष्ट्रिय प्रशारण लाइनमा िबक्री समेत गर्न सकिन्छ ।</p></div>
   <div class="prose-ne reveal"><p>सामान्तयाः एउटा सामान्य परिवारले दैनिक २ किलोवाट विद्युत खपत गर्दछ । त्यसमा पनि यो उपभोगको मात्रा ग्रामिण भेगहरूमा त्यो भन्दा न्यून हुन्छ । १७.६ वर्ग फिटको सोलार प्यानलले २५० वाट विद्युत उत्पादन गर्दछ । दिनभर करिब ६.८ घण्टा सुर्यको किरणबाट २५० वाट X ६.८ घण्टा गर्दा १.७ किलोवाट विद्युत निस्कन्छ । १.७ किलोवाट X ३० दिन उत्पादन गर्दा महिनामा ५१ किलोवाट विद्युत उत्पादन हुन सक्दछ ।</p></div>
