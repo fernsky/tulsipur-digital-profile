@@ -1,0 +1,275 @@
+---
+import "../styles/global.css";
+import { site as meta } from "../site";
+import { cIcon } from "../lib/climate/labels";
+const title = `जलवायु पोर्टल — ${meta.title}`;
+---
+
+<!doctype html>
+<html lang="ne">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>{title}</title>
+    <meta name="description" content="तुलसीपुर उपमहानगरपालिकाको तापक्रम, वर्षा, आर्द्रता, वायुचाप, हावा र चरम मौसमको ऐतिहासिक (१९४०–) जलवायु विश्लेषण पोर्टल।" />
+    <meta name="theme-color" content="#1e293b" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@100..900&display=swap" />
+  </head>
+  <body class="geo-body">
+    <div id="geo-app">
+      <header class="geo-top">
+        <a href="/" class="geo-brand">
+          <img src="/tulsipur-logo.webp" alt="तुलसीपुर उपमहानगरपालिका" width="40" height="40" class="geo-brand-logo" />
+          <span class="geo-brand-text">
+            <span class="geo-brand-main">तुलसीपुर उपमहानगरपालिका</span>
+            <span class="geo-brand-sub">जलवायु पोर्टल</span>
+          </span>
+        </a>
+        <div class="geo-top-right">
+          <a href="/map" class="geo-back" aria-label="भू-नक्सा पोर्टल">
+            <span set:html={cIcon("map", 18)} /><span class="geo-back-t">भू-नक्सा</span>
+          </a>
+          <a href="/home" class="geo-back" aria-label="प्रोफाइलमा फर्कनुहोस्">
+            <span set:html={cIcon("back", 18)} /><span class="geo-back-t">प्रोफाइल</span>
+          </a>
+          <button id="geo-panel-toggle" class="geo-panel-toggle" aria-label="नियन्त्रण खोल्नुहोस्">
+            <span set:html={cIcon("layers", 18)} />
+          </button>
+        </div>
+      </header>
+
+      <div id="geo-map" class="geo-map"></div>
+
+      <!-- control panel -->
+      <aside id="geo-panel" class="geo-panel">
+        <div class="geo-panel-head">
+          <span set:html={cIcon("layers", 16)} />
+          <span>नियन्त्रण</span>
+          <button id="geo-panel-close" class="geo-panel-close" aria-label="बन्द गर्नुहोस्" set:html={cIcon("close", 16)} />
+        </div>
+        <div id="geo-panel-body" class="geo-panel-body">
+          <div class="geo-boot">तयार हुँदैछ…</div>
+        </div>
+      </aside>
+
+      <!-- analysis drawer (charts) -->
+      <aside id="cl-drawer" class="cl-drawer">
+        <div class="cl-drawer-head">
+          <span set:html={cIcon("trend", 16)} />
+          <span id="cl-drawer-head-t">जलवायु सामान्य</span>
+          <button id="cl-drawer-toggle" class="cl-drawer-toggle" aria-label="बन्द/खोल्नुहोस्" set:html={cIcon("close", 16)} />
+        </div>
+        <div id="cl-drawer-body" class="cl-drawer-body"></div>
+        <div class="cl-drawer-foot">स्रोत: ERA5 पुनर्विश्लेषण · CMIP6 (Open-Meteo)</div>
+      </aside>
+      <button id="cl-drawer-open" class="cl-drawer-open" aria-label="विश्लेषण खोल्नुहोस्" set:html={cIcon("trend", 18)} />
+
+      <!-- legend -->
+      <aside id="geo-legend" class="geo-legend">
+        <div class="geo-legend-h" set:html={cIcon("compass", 14) + "<span>रङ्ग-सूची</span>"} />
+        <div id="geo-legend-body" class="geo-legend-body"></div>
+      </aside>
+
+      <!-- loading HUD -->
+      <div id="geo-hud" class="geo-hud">
+        <div class="geo-hud-row">
+          <span class="geo-hud-spin"></span>
+          <span id="geo-hud-text" class="geo-hud-text">जलवायु तथ्याङ्क लोड हुँदैछ…</span>
+        </div>
+        <div class="geo-hud-track"><div class="geo-hud-bar is-indeterminate"></div></div>
+      </div>
+    </div>
+
+    <script>
+      import { initClimate } from "../lib/climate/portal";
+      import "maplibre-gl/dist/maplibre-gl.css";
+      let booted = false;
+      function boot() {
+        if (booted || !document.getElementById("geo-map")) return;
+        booted = true;
+        initClimate().catch((e) => {
+          console.error(e);
+          const t = document.getElementById("geo-hud-text");
+          if (t) t.textContent = "जलवायु तथ्याङ्क लोड हुन सकेन — पुनः प्रयास गर्नुहोस्।";
+        });
+      }
+      document.addEventListener("astro:page-load", boot);
+      window.addEventListener("DOMContentLoaded", boot);
+      boot();
+
+      function wireChrome() {
+        const panel = document.getElementById("geo-panel");
+        document.getElementById("geo-panel-toggle")?.addEventListener("click", () => panel?.classList.toggle("is-open"));
+        document.getElementById("geo-panel-close")?.addEventListener("click", () => panel?.classList.remove("is-open"));
+        const drawer = document.getElementById("cl-drawer");
+        document.getElementById("cl-drawer-toggle")?.addEventListener("click", () => drawer?.classList.toggle("is-closed"));
+        document.getElementById("cl-drawer-open")?.addEventListener("click", () => drawer?.classList.remove("is-closed"));
+      }
+      wireChrome();
+      document.addEventListener("astro:page-load", wireChrome);
+    </script>
+
+    <style is:global>
+      /* shell — shares the GIS portal's chrome (.geo-*) so the two feel identical */
+      .geo-body { margin: 0; overflow: hidden; background: #ffffff; }
+      .geo-map { background: #ffffff; }
+      #geo-app { position: fixed; inset: 0; display: flex; flex-direction: column;
+        font-family: "Noto Serif Devanagari", system-ui, serif; }
+      .geo-map { flex: 1; min-height: 0; }
+      .geo-map canvas { outline: none; }
+
+      .geo-top { display: flex; align-items: center; gap: 14px; height: 56px; padding: 0 14px;
+        background: var(--color-primary); color: #fff; border-bottom: 1px solid #0b1220; z-index: 30; }
+      .geo-brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: #fff;
+        padding: 4px 6px; border-radius: 10px; transition: background .15s; }
+      .geo-brand:hover { background: #ffffff14; }
+      .geo-brand-logo { height: 40px; width: 40px; flex: 0 0 auto; border-radius: 50%;
+        background: #fff; object-fit: contain; box-shadow: 0 0 0 1px #ffffff33; }
+      .geo-brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+      .geo-brand-main { font-weight: 700; font-size: 1rem; }
+      .geo-brand-sub { font-size: .76rem; color: #cbd5e1; }
+      .geo-top-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+      .geo-back { display: inline-flex; align-items: center; gap: 6px; color: #cbd5e1;
+        padding: 8px 12px; border-radius: 8px; text-decoration: none; transition: background .15s; border: 1px solid #ffffff26; }
+      .geo-back:hover { background: #ffffff1a; color: #fff; }
+      .geo-back-t { font-size: .9rem; }
+      .geo-panel-toggle { display: none; align-items: center; justify-content: center;
+        width: 40px; height: 40px; border-radius: 9px; border: 0; background: #ffffff1a; color: #fff; cursor: pointer; }
+
+      .geo-panel { position: absolute; top: 70px; left: 14px; width: 312px; max-height: calc(100% - 92px);
+        display: flex; flex-direction: column; background: #fff; border: 1px solid var(--color-border);
+        border-radius: 14px; overflow: hidden; z-index: 25; box-shadow: 0 8px 28px #0f172a26; }
+      .geo-panel-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+        background: var(--color-primary); color: #fff; font-weight: 600; font-size: .92rem; }
+      .geo-panel-close { display: none; margin-left: auto; background: transparent; border: 0; color: #cbd5e1; cursor: pointer; }
+      .geo-panel-body { padding: 6px 12px 14px; overflow-y: auto; }
+      .geo-boot { padding: 18px 4px; color: var(--color-text-secondary); font-size: .88rem; }
+
+      .geo-toolbar { display: flex; gap: 8px; padding: 10px 2px 4px; }
+      .geo-tool-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--color-border);
+        background: #fff; font: inherit; font-size: .82rem; color: #1d1d1f; cursor: pointer; transition: background .15s; }
+      .geo-tool-btn:hover { background: #f1f5f9; }
+      #geo-reset { color: var(--color-error); border-color: #fca5a5; }
+      #geo-reset:hover { background: #fef2f2; }
+      #geo-legend-toggle.is-on { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+      .geo-sec { padding: 12px 2px; border-bottom: 1px solid var(--color-border); }
+      .geo-sec:last-child { border-bottom: 0; }
+      .geo-sec-h { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; font-weight: 600; font-size: .86rem; color: #1d1d1f; }
+      .geo-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 7px; font-size: .86rem; color: #1d1d1f; cursor: pointer; }
+      .geo-row:hover { background: #f1f5f9; }
+      .geo-row input { accent-color: var(--color-primary); width: 15px; height: 15px; }
+      .geo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .geo-chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px;
+        border: 1px solid var(--color-border); background: #fff; color: #1d1d1f; font: inherit; font-size: .82rem; cursor: pointer; }
+      .geo-chip:hover { background: #f1f5f9; }
+      .geo-chip.is-on { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+      .geo-chip svg { flex: 0 0 auto; }
+      .geo-select { width: 100%; height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--color-border);
+        background: #fff; font: inherit; font-size: .88rem; color: #0f172a; }
+      .cl-modes { gap: 5px; }
+      .cl-modes .geo-chip { padding: 6px 9px; font-size: .78rem; }
+
+      /* year slider */
+      .cl-slider-wrap { margin-top: 10px; padding: 10px; border: 1px solid var(--color-border); border-radius: 10px; background: #f8fafc; }
+      .cl-slider-top { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: var(--color-text-secondary); }
+      .cl-slider-top b { color: var(--color-primary); font-size: 1.05rem; font-weight: 700; }
+      .cl-play { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+        border-radius: 8px; border: 0; background: var(--color-primary); color: #fff; cursor: pointer; }
+      #cl-year { width: 100%; margin: 8px 0 2px; accent-color: var(--color-primary); }
+      .cl-slider-ends { display: flex; justify-content: space-between; font-size: .7rem; color: var(--color-text-secondary); }
+
+      /* analysis drawer (right) */
+      .cl-drawer { position: absolute; top: 70px; right: 14px; bottom: 26px; width: 416px; max-width: calc(100vw - 28px);
+        display: flex; flex-direction: column; background: #fff; border: 1px solid var(--color-border);
+        border-radius: 14px; overflow: hidden; z-index: 24; box-shadow: 0 8px 28px #0f172a26; transition: transform .28s ease; }
+      .cl-drawer.is-closed { transform: translateX(calc(100% + 20px)); }
+      .cl-drawer-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+        background: var(--color-primary); color: #fff; font-weight: 600; font-size: .92rem; }
+      .cl-drawer-toggle { margin-left: auto; background: transparent; border: 0; color: #cbd5e1; cursor: pointer; }
+      .cl-drawer-body { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+      .cl-drawer-foot { padding: 8px 14px; border-top: 1px solid var(--color-border); font-size: .72rem; color: var(--color-text-secondary); }
+      .cl-drawer-open { display: none; position: absolute; top: 70px; right: 14px; z-index: 23;
+        width: 42px; height: 42px; border-radius: 11px; border: 1px solid var(--color-border);
+        background: var(--color-primary); color: #fff; cursor: pointer; align-items: center; justify-content: center; }
+      .cl-drawer.is-closed ~ .cl-drawer-open { display: inline-flex; }
+
+      .cl-card { border: 1px solid var(--color-border); border-radius: 12px; padding: 11px 12px; background: #fff; }
+      .cl-card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+      .cl-card-h b { font-size: .92rem; color: #0f172a; font-weight: 700; }
+      .cl-card-h span { font-size: .74rem; color: var(--color-text-secondary); }
+      .cc-svg { width: 100%; height: auto; display: block; }
+      .cl-note { margin-top: 7px; font-size: .73rem; line-height: 1.5; color: var(--color-text-secondary); }
+
+      .cl-stats { display: flex; gap: 8px; margin-top: 10px; }
+      .cl-stat { flex: 1; text-align: center; padding: 8px 4px; border-radius: 9px; background: #f1f5f9; }
+      .cl-stat b { display: block; font-size: 1rem; font-weight: 700; color: var(--color-primary); }
+      .cl-stat span { font-size: .68rem; color: var(--color-text-secondary); }
+
+      .cl-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+      .cl-table th { text-align: left; padding: 4px 6px; color: var(--color-text-secondary); font-weight: 600; border-bottom: 1px solid var(--color-border); }
+      .cl-table td { padding: 3px 6px; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+      .cl-table td:last-child, .cl-table th:last-child { text-align: right; font-weight: 600; }
+
+      .cl-season { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .cl-season-i { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; border-left: 3px solid; background: #f8fafc; }
+      .cl-season-i b { display: block; font-size: 1rem; font-weight: 700; color: #0f172a; }
+      .cl-season-i span { font-size: .72rem; color: var(--color-text-secondary); }
+      .cl-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+
+      .cl-rose-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: .72rem; color: var(--color-text-secondary); }
+      .cl-rl { display: inline-flex; align-items: center; gap: 4px; }
+      .cl-rl-sw { width: 11px; height: 11px; border-radius: 2px; }
+      .cl-rl-unit { margin-left: auto; }
+
+      /* legend + HUD + popups (shared with GIS portal) */
+      .geo-legend { position: absolute; right: 446px; bottom: 26px; width: 178px; max-height: 44%;
+        display: flex; flex-direction: column; background: #ffffffee; backdrop-filter: blur(4px);
+        border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; z-index: 22; }
+      .geo-legend-h { display: flex; align-items: center; gap: 6px; padding: 9px 12px; font-weight: 600; font-size: .8rem; color: #1d1d1f; border-bottom: 1px solid var(--color-border); }
+      .geo-legend-body { padding: 8px 12px; overflow-y: auto; }
+      .lg-grp { font-size: .72rem; color: var(--color-text-secondary); margin: 7px 0 4px; }
+      .lg-grp:first-child { margin-top: 0; }
+      .lg-row { display: flex; align-items: center; gap: 7px; font-size: .8rem; color: #1d1d1f; padding: 2px 0; }
+      .geo-sw { width: 13px; height: 13px; border-radius: 3px; flex: 0 0 auto; border: 1px solid #00000022; }
+
+      .geo-hud { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%);
+        display: none; flex-direction: column; gap: 7px; min-width: 280px; max-width: 90vw;
+        padding: 11px 16px; background: #0f172af2; color: #fff; border-radius: 12px; z-index: 35; }
+      .geo-hud-row { display: flex; align-items: center; gap: 9px; font-size: .86rem; }
+      .geo-hud-spin { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; border: 2px solid #ffffff40; border-top-color: #fff; animation: geospin .7s linear infinite; }
+      @keyframes geospin { to { transform: rotate(360deg); } }
+      .geo-hud-track { height: 4px; border-radius: 4px; background: #ffffff22; overflow: hidden; }
+      .geo-hud-bar { height: 100%; width: 40%; background: #2563eb; border-radius: 4px; }
+      .geo-hud-bar.is-indeterminate { animation: geohud 1.2s ease-in-out infinite; }
+      @keyframes geohud { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+
+      .geo-popup .maplibregl-popup-content { border-radius: 11px; padding: 11px 13px; font-family: "Noto Serif Devanagari", serif; border: 1px solid var(--color-border); }
+      .gp-cat { font-size: .72rem; color: #fff; background: var(--color-primary); display: inline-block; padding: 2px 9px; border-radius: 999px; margin-bottom: 7px; }
+      .gp-name { font-size: 1rem; font-weight: 700; color: #0f172a; }
+
+      @media (max-width: 1100px) {
+        .cl-drawer { width: 360px; }
+        .geo-legend { right: 390px; }
+      }
+      @media (max-width: 860px) {
+        .geo-brand-sub, .geo-back-t { display: none; }
+        .geo-top { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 10px; }
+        .geo-top-right { width: 100%; }
+        .geo-panel-toggle { display: inline-flex; }
+        .geo-panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 64%;
+          border-radius: 16px 16px 0 0; transform: translateY(100%); transition: transform .28s ease; z-index: 36; }
+        .geo-panel.is-open { transform: translateY(0); }
+        .geo-panel-close { display: inline-flex; }
+        .cl-drawer { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-width: none; height: 52%;
+          border-radius: 16px 16px 0 0; }
+        .cl-drawer.is-closed { transform: translateY(calc(100% + 20px)); }
+        .geo-legend { right: 14px; bottom: 56%; width: 150px; }
+        .cl-drawer.is-closed ~ .geo-legend { bottom: 14px; }
+      }
+    </style>
+  </body>
+</html>

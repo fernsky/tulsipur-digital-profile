@@ -31,3 +31,6 @@ scripts/clean-tables.json
 # generated search index copied for dev
 public/pagefind/
 image-originals/
+
+# climate pipeline raw-response cache
+scripts/.climate-cache/
