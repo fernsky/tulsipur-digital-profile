@@ -29,6 +29,8 @@ const ctas = [
     <meta name="description" content={site.subtitle} />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#1e293b" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" type="image/webp" href="/tulsipur-logo.webp" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="तुलसीपुर प्रोफाइल" />
@@ -57,13 +59,23 @@ const ctas = [
         </nav>
       </header>
 
-      <!-- Center: logo + title + search -->
+      <!-- Center: official letterhead + search -->
       <main class="landing-main">
         <div class="animate-fade-up flex flex-col items-center text-center">
-          <img src="/tulsipur-logo.webp" alt="तुलसीपुर उपमहानगरपालिका" width="92" height="92"
-            class="h-20 w-20 rounded-2xl bg-white object-contain p-2 shadow-2xl ring-1 ring-white/20 sm:h-[92px] sm:w-[92px]" />
-          <h1 class="mt-6 text-[2rem] font-bold leading-tight text-white drop-shadow sm:text-[2.7rem]">{site.title}</h1>
-          <p class="mt-3 max-w-xl text-[1.05rem] text-white/85">{site.subtitle}</p>
+          <!-- official letterhead: Nepal emblem (left) · text · municipal logo (right) -->
+          <div class="letterhead mx-auto flex w-full max-w-2xl items-center gap-3 rounded-2xl bg-white/95 px-4 py-3.5 shadow-2xl ring-1 ring-black/5 backdrop-blur sm:gap-6 sm:px-8 sm:py-5">
+            <img src="/emblem-nepal.png" alt="नेपालको राष्ट्रिय निशान छाप" width="80" height="80"
+              class="h-14 w-12 shrink-0 object-contain sm:h-[84px] sm:w-[74px]" />
+            <div class="min-w-0 flex-1">
+              <h1 class="text-[1.05rem] font-bold leading-tight text-[#1e293b] sm:text-[1.55rem]">तुलसीपुर उप-महानगरपालिका</h1>
+              <p class="mt-0.5 text-[0.82rem] font-semibold text-[#334155] sm:text-[1rem]">नगर कार्यपालिकाको कार्यालय</p>
+              <p class="text-[0.78rem] text-[#475569] sm:text-[0.92rem]">दाङ, लुम्बिनी प्रदेश</p>
+              <p class="mt-1.5 text-[0.82rem] font-semibold tracking-wide text-[#b91c1c] sm:text-[0.96rem]">हाम्रो तुलसीपुर, राम्रो तुलसीपुर</p>
+            </div>
+            <img src="/tulsipur-logo.webp" alt="तुलसीपुर उपमहानगरपालिका" width="80" height="80"
+              class="h-14 w-14 shrink-0 rounded-full bg-white object-contain p-0.5 sm:h-[84px] sm:w-[84px]" />
+          </div>
+          <p class="mt-5 max-w-xl text-[1.05rem] text-white/85">{site.subtitle}</p>
 
           <!-- Google-style search (plain input wired to Pagefind API) -->
           <div class="landing-search-wrap">
