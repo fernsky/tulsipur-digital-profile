@@ -59,6 +59,10 @@ const title = `जलवायु पोर्टल — ${meta.title}`;
         <div class="cl-drawer-head">
           <span set:html={cIcon("trend", 16)} />
           <span id="cl-drawer-head-t">जलवायु सामान्य</span>
+          <span id="cl-lang" class="cl-lang">
+            <button data-lang="ne" class="is-on">ने</button>
+            <button data-lang="en">EN</button>
+          </span>
           <button id="cl-drawer-toggle" class="cl-drawer-toggle" aria-label="बन्द/खोल्नुहोस्" set:html={cIcon("close", 16)} />
         </div>
         <div id="cl-drawer-body" class="cl-drawer-body"></div>
@@ -172,6 +176,13 @@ const title = `जलवायु पोर्टल — ${meta.title}`;
         background: #fff; font: inherit; font-size: .88rem; color: #0f172a; }
       .cl-modes { gap: 5px; }
       .cl-modes .geo-chip { padding: 6px 9px; font-size: .78rem; }
+      .cl-var-nav { display: flex; align-items: center; gap: 6px; }
+      .cl-var-nav .geo-select { flex: 1; min-width: 0; }
+      .cl-var-arrow { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+        width: 34px; height: 36px; border-radius: 8px; border: 1px solid var(--color-border);
+        background: #fff; color: var(--color-primary); cursor: pointer; transition: background .15s; }
+      .cl-var-arrow:hover { background: #f1f5f9; }
+      #cl-var-next svg { transform: rotate(180deg); }
 
       /* year slider */
       .cl-slider-wrap { margin-top: 10px; padding: 10px; border: 1px solid var(--color-border); border-radius: 10px; background: #f8fafc; }
@@ -189,7 +200,11 @@ const title = `जलवायु पोर्टल — ${meta.title}`;
       .cl-drawer.is-closed { transform: translateX(calc(100% + 20px)); }
       .cl-drawer-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px;
         background: var(--color-primary); color: #fff; font-weight: 600; font-size: .92rem; }
-      .cl-drawer-toggle { margin-left: auto; background: transparent; border: 0; color: #cbd5e1; cursor: pointer; }
+      .cl-lang { margin-left: auto; display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: #ffffff1f; }
+      .cl-lang button { border: 0; background: transparent; color: #cbd5e1; font: inherit; font-size: .72rem; font-weight: 600;
+        padding: 3px 9px; border-radius: 6px; cursor: pointer; }
+      .cl-lang button.is-on { background: #fff; color: var(--color-primary); }
+      .cl-drawer-toggle { margin-left: 8px; background: transparent; border: 0; color: #cbd5e1; cursor: pointer; }
       .cl-drawer-body { padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
       .cl-drawer-foot { padding: 8px 14px; border-top: 1px solid var(--color-border); font-size: .72rem; color: var(--color-text-secondary); }
       .cl-drawer-open { display: none; position: absolute; top: 70px; right: 14px; z-index: 23;

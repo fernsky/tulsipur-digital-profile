@@ -4,6 +4,32 @@
 // actual numbers (baseline, trend, seasonal high/low) mean in everyday terms.
 import { toNe, MONTHS_NE } from "./labels";
 
+// romanized Bikram Sambat months for the English view (Gregorian → dominant BS)
+export const MONTHS_EN = ["Magh", "Falgun", "Chaitra", "Baisakh", "Jestha", "Asar", "Srawan", "Bhadra", "Asoj", "Kartik", "Mangsir", "Poush"];
+
+// English names for every indicator (ids are stable across core + ERA5-Land).
+export const VAR_LABEL_EN: Record<string, string> = {
+  temp: "Temperature (mean)", tmax: "Maximum temperature", tmin: "Minimum temperature", precip: "Rainfall (total)",
+  rh: "Relative humidity", pressure: "Air pressure", cloud: "Cloud cover", wind: "Wind speed",
+  srad: "Solar radiation", et0: "Evapotranspiration (ET₀)",
+  dewpoint: "Dew point", skin_temp: "Surface (skin) temperature",
+  soil_t1: "Soil temp 0–7 cm", soil_t2: "Soil temp 7–28 cm", soil_t3: "Soil temp 28–100 cm", soil_t4: "Soil temp 1–2.5 m",
+  soil_m1: "Soil moisture 0–7 cm", soil_m2: "Soil moisture 7–28 cm", soil_m3: "Soil moisture 28–100 cm", soil_m4: "Soil moisture 1–2.5 m",
+  snow_depth: "Snow depth (w.e.)", snow_cover: "Snow cover", lai_high: "Leaf-area index (high veg.)", lai_low: "Leaf-area index (low veg.)",
+  albedo: "Surface albedo", msl: "Sea-level pressure", wind100: "Wind speed 100 m", tcwv: "Column water vapour", cape: "CAPE (storm energy)",
+};
+export const VAR_SHORT_EN: Record<string, string> = {
+  temp: "Temp", tmax: "Max temp", tmin: "Min temp", precip: "Rain", rh: "Humidity", pressure: "Pressure",
+  cloud: "Cloud", wind: "Wind", srad: "Radiation", et0: "ET₀",
+};
+const UNIT_MAP: Record<string, string> = { "°से": "°C", "मि.मि.": "mm", "कि.मि./घ.": "km/h", "%आयतन": "%vol", "से.मि.": "cm" };
+export const unitTr = (u: string, lang: "ne" | "en") => (lang === "en" ? (UNIT_MAP[u] || u) : u);
+
+// category labels in English
+export const CAT_EN: Record<string, string> = {
+  core: "Core weather", soil: "Soil (temp & moisture)", snow: "Snow", veg: "Vegetation", land: "Land surface", atmos: "Atmosphere (extra)",
+};
+
 export type VarDesc = {
   what: string;  // what it physically measures (first principles)
   why: string;   // why it matters for Tulsipur (agriculture / health / water / hazard)
@@ -190,6 +216,39 @@ export const VAR_DESC: Record<string, VarDesc> = {
   },
 };
 
+// English mirror of VAR_DESC — same meaning, plain English for laypeople.
+export const VAR_DESC_EN: Record<string, VarDesc> = {
+  temp: { what: "The daily average air temperature about two metres above the ground — how warm or cold the air is.", why: "Temperature governs planting and harvest timing, water demand, and human comfort and health.", up: "which signals longer heat, higher irrigation demand and more heat stress", down: "which indicates a cooling tendency" },
+  tmax: { what: "The average of the hottest part of the day (usually early afternoon).", why: "Daytime highs drive heatwaves, crop heat-shock and peak power and water demand.", up: "raising heatwave and sunstroke risk", down: "showing daytime heat easing" },
+  tmin: { what: "The average of the coldest part of the night.", why: "Night-time lows govern winter frost, crop disease and cold-related health issues.", up: "warmer nights — the local fingerprint of global warming", down: "raising winter cold and frost risk" },
+  precip: { what: "Total rainfall in a year in millimetres — how many litres fell per square metre.", why: "Rain is the source of agriculture, drinking water, groundwater and flood/landslide risk.", up: "signalling heavier rainfall and flood risk", down: "which can bring drought and irrigation shortfall" },
+  rh: { what: "Relative humidity — what percent of the maximum moisture the air can hold it currently holds.", why: "Humidity affects mugginess, fungal crop disease, and how well people cool by sweating.", up: "increasing mugginess and fungal crop disease", down: "increasing dryness and evaporation" },
+  pressure: { what: "Surface air pressure — the basic indicator of weather systems (storm vs clear).", why: "Falling pressure usually signals storms and rain; rising pressure clear, settled weather.", up: "showing a tendency toward settled, clear weather", down: "showing more unsettled, rainy weather" },
+  cloud: { what: "What percent of the sky is covered by cloud on average.", why: "Cloud governs solar energy, the day–night temperature gap, and rain likelihood.", up: "reducing solar radiation and raising rain chances", down: "showing more sunny, dry days" },
+  wind: { what: "The daily maximum wind speed at 10 m above the ground.", why: "Wind drives evaporation, pollination, fire spread and wind-energy potential.", up: "raising evaporation and storm-damage risk", down: "showing calmer conditions" },
+  srad: { what: "Energy reaching the surface from the sun — megajoules per square metre per day.", why: "Solar radiation drives crop photosynthesis, evaporation and solar-energy potential.", up: "raising solar-energy potential and evaporation", down: "showing more cloudy or hazy conditions" },
+  et0: { what: "Reference evapotranspiration (ET₀) — an estimate of how much water evaporates from soil and plants.", why: "ET₀ directly sets crop water demand and irrigation scheduling.", up: "raising irrigation demand and water stress", down: "showing reduced water demand" },
+  dewpoint: { what: "The temperature at which air becomes saturated and dew or frost begins to form.", why: "A higher dew point means more moisture in the air — a true measure of mugginess and rain potential.", up: "more atmospheric moisture — more mugginess and rain potential", down: "showing drier air" },
+  skin_temp: { what: "The ground surface's own temperature (not the air) — the sun-heated soil and vegetation surface.", why: "Surface temperature directly sets how fast soil dries, urban heat and evaporation.", up: "surface heating up — soil drying faster", down: "showing a cooler surface" },
+  soil_t1: { what: "The temperature of the topsoil layer (0–7 cm) — the seed-germination zone.", why: "Germination, sprouting and surface biological activity all hinge on this layer.", up: "faster germination but also more surface drying", down: "cooler soil — slower germination" },
+  soil_t2: { what: "The temperature of the root zone (7–28 cm) — the main rooting zone of most crops.", why: "Root growth and nutrient uptake depend on this layer's warmth.", up: "a warmer root zone", down: "a cooler root zone" },
+  soil_t3: { what: "The temperature of the deeper soil layer (28–100 cm).", why: "Important for deep-rooted perennial crops and trees.", up: "deep soil slowly warming", down: "deep soil cooling" },
+  soil_t4: { what: "The temperature of the deepest soil layer (1–2.5 m), with little seasonal swing.", why: "Reflects long-term geothermal storage and groundwater temperature.", up: "long-term ground-heat increase", down: "long-term ground-heat decline" },
+  soil_m1: { what: "The volumetric percent of water in the topsoil (0–7 cm).", why: "A direct indicator of germination conditions and surface drought stress.", up: "moister topsoil — germination-friendly", down: "increasing surface drought stress" },
+  soil_m2: { what: "Soil moisture in the root zone (7–28 cm).", why: "This is the water crops actually drink — the core basis for irrigation decisions.", up: "a larger plant-available water store", down: "raising irrigation demand and crop stress" },
+  soil_m3: { what: "Soil moisture in the deep layer (28–100 cm).", why: "This layer holds the reserve that sustains crops through long dry spells.", up: "a strengthened deep water reserve", down: "a depleting deep water reserve" },
+  soil_m4: { what: "Soil moisture in the deepest layer (1–2.5 m).", why: "Reflects groundwater recharge and the long-term water source for perennials.", up: "a stronger groundwater reserve", down: "a declining long-term reserve — a serious signal" },
+  snow_depth: { what: "The water-equivalent depth of snow on the ground (how much water it would melt to).", why: "Highland snow melts gradually in spring and summer, sustaining rivers and irrigation.", up: "a growing snow reserve", down: "a shrinking snow reserve — less spring flow" },
+  snow_cover: { what: "What percent of the area is covered by snow.", why: "Snow cover sets surface reflectivity, soil warmth and spring water supply.", up: "increasing snow cover", down: "declining snow cover" },
+  lai_high: { what: "The leaf-density index of tall vegetation (trees) — square metres of leaf per square metre of ground.", why: "Tree leaf density reflects forest health, shade, carbon uptake and biodiversity.", up: "increasing forest cover and greenery", down: "forest loss or drought stress" },
+  lai_low: { what: "The leaf-density index of low vegetation (grass, crops, shrubs).", why: "Reflects grazing, crop growth and ground-cover greenery.", up: "increasing grass and crop greenery", down: "declining greenery" },
+  albedo: { what: "Surface reflectivity (albedo) — what percent of sunlight the surface reflects back.", why: "High reflectivity (snow/bare) cools; low (forest/water) absorbs heat — an indicator of land-use change.", up: "the surface getting brighter (snow, bare or exposed)", down: "the surface getting darker (forest or crops)" },
+  msl: { what: "Air pressure reduced to sea level — the standard for comparing weather systems across elevations.", why: "Low-pressure systems link to storms and monsoon; high pressure to clear, settled weather.", up: "a tendency toward high-pressure, settled weather", down: "more low-pressure, rainy systems" },
+  wind100: { what: "Wind speed 100 m above the ground — wind-turbine height.", why: "This is the decisive height for assessing wind-energy potential.", up: "increasing wind-energy potential", down: "decreasing wind-energy potential" },
+  tcwv: { what: "Total column water vapour — all the water in the air column above your head (kg/m²).", why: "The more there is, the more fuel for heavy rain — a direct indicator of monsoon intensity.", up: "more atmospheric moisture fuel — heavy-rain potential", down: "a drying atmosphere" },
+  cape: { what: "Convective available potential energy (CAPE) — how 'explosive' the atmosphere is, the fuel for thunderstorms.", why: "High CAPE means a rising chance of violent thunderstorms, hail and lightning.", up: "rising risk of violent storms and lightning", down: "showing a stable atmosphere" },
+};
+
 export type StatInput = {
   unit: string; decimals: number;
   baseMean: number | null; perDecade: number; totalChange: number;
@@ -197,19 +256,27 @@ export type StatInput = {
   y0: number; y1: number; agg: "mean" | "sum";
 };
 
-// turn the actual statistics into a plain-language reading
-export function statInterpretation(id: string, s: StatInput): string {
-  const d = VAR_DESC[id];
-  const f = (v: number) => toNe(v.toFixed(s.decimals));
+// turn the actual statistics into a plain-language reading (Nepali or English)
+export function statInterpretation(id: string, s: StatInput, lang: "ne" | "en" = "ne"): string {
+  const en = lang === "en";
+  const d = (en ? VAR_DESC_EN : VAR_DESC)[id];
+  const num = (v: number, dec = s.decimals) => en ? v.toFixed(dec) : toNe(v.toFixed(dec));
+  const yr = (y: number) => en ? String(y) : toNe(y);
+  const mon = (i: number) => en ? MONTHS_EN[i] : MONTHS_NE[i];
+  const sgn = (v: number) => (v >= 0 ? "+" : "");
   const dir = s.perDecade > 0.005 ? "up" : s.perDecade < -0.005 ? "down" : "flat";
-  const rateTxt = `प्रति दशक ${s.perDecade >= 0 ? "+" : ""}${toNe(s.perDecade.toFixed(2))} ${s.unit}`;
-  const trendWord = dir === "up" ? "बढ्दो" : dir === "down" ? "घट्दो" : "स्थिर";
-  const consequence = dir === "up" ? (d?.up || "") : dir === "down" ? (d?.down || "") : "ठूलो परिवर्तन देखिँदैन";
-
+  const cons = dir === "up" ? (d?.up || "") : dir === "down" ? (d?.down || "") : (en ? "no major change" : "ठूलो परिवर्तन देखिँदैन");
   const parts: string[] = [];
-  if (s.baseMean != null)
-    parts.push(`<b>आधाररेखा:</b> सन् १९९१–२०२० मा यसको सरदर मान <b>${f(s.baseMean)} ${s.unit}</b> रहेको छ ।`);
-  parts.push(`<b>मौसमी ढाँचा:</b> वर्षभरि <b>${MONTHS_NE[s.warmIdx]}</b> मा सर्वाधिक (${f(s.warmVal)}) र <b>${MONTHS_NE[s.coldIdx]}</b> मा न्यूनतम (${f(s.coldVal)}) ${s.unit} देखिन्छ ।`);
-  parts.push(`<b>दीर्घकालीन प्रवृत्ति:</b> सन् ${toNe(s.y0)}–${toNe(s.y1)} बीच यो ${rateTxt} का दरले <b>${trendWord}</b> छ (कुल ${s.totalChange >= 0 ? "+" : ""}${f(s.totalChange)} ${s.unit}) — ${consequence} ।`);
+  if (en) {
+    const word = dir === "up" ? "rising" : dir === "down" ? "falling" : "stable";
+    if (s.baseMean != null) parts.push(`<b>Baseline:</b> the 1991–2020 average is <b>${num(s.baseMean)} ${s.unit}</b>.`);
+    parts.push(`<b>Seasonal pattern:</b> across the year it peaks in <b>${mon(s.warmIdx)}</b> (${num(s.warmVal)}) and is lowest in <b>${mon(s.coldIdx)}</b> (${num(s.coldVal)}) ${s.unit}.`);
+    parts.push(`<b>Long-term trend:</b> from ${yr(s.y0)} to ${yr(s.y1)} it is <b>${word}</b> at ${sgn(s.perDecade)}${num(s.perDecade, 2)} ${s.unit}/decade (total ${sgn(s.totalChange)}${num(s.totalChange)} ${s.unit}) — ${cons}.`);
+  } else {
+    const word = dir === "up" ? "बढ्दो" : dir === "down" ? "घट्दो" : "स्थिर";
+    if (s.baseMean != null) parts.push(`<b>आधाररेखा:</b> सन् १९९१–२०२० मा यसको सरदर मान <b>${num(s.baseMean)} ${s.unit}</b> रहेको छ ।`);
+    parts.push(`<b>मौसमी ढाँचा:</b> वर्षभरि <b>${mon(s.warmIdx)}</b> मा सर्वाधिक (${num(s.warmVal)}) र <b>${mon(s.coldIdx)}</b> मा न्यूनतम (${num(s.coldVal)}) ${s.unit} देखिन्छ ।`);
+    parts.push(`<b>दीर्घकालीन प्रवृत्ति:</b> सन् ${yr(s.y0)}–${yr(s.y1)} बीच यो प्रति दशक ${sgn(s.perDecade)}${num(s.perDecade, 2)} ${s.unit} का दरले <b>${word}</b> छ (कुल ${sgn(s.totalChange)}${num(s.totalChange)} ${s.unit}) — ${cons} ।`);
+  }
   return parts.join(" ");
 }

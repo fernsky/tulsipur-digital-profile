@@ -6,19 +6,23 @@
 const NE = "०१२३४५६७८९";
 export const toNe = (s: string | number) => String(s).replace(/[0-9]/g, (d) => NE[+d]);
 
-// Gregorian month names in Nepali (ERA5 uses the Gregorian calendar).
+// The data is monthly Gregorian (ERA5), but Nepali users read the Bikram Sambat
+// calendar, so each Gregorian month is labelled with the BS month that mostly
+// overlaps it (Jan→माघ, Apr→बैशाख, Jun→असार …). English view keeps Jan–Dec.
 export const MONTHS_NE = [
-  "जनवरी", "फेब्रुअरी", "मार्च", "अप्रिल", "मे", "जुन",
-  "जुलाई", "अगस्ट", "सेप्टेम्बर", "अक्टोबर", "नोभेम्बर", "डिसेम्बर",
+  "माघ", "फागुन", "चैत", "बैशाख", "जेठ", "असार",
+  "साउन", "भदौ", "असोज", "कात्तिक", "मंसिर", "पुस",
 ];
-export const MONTHS_SHORT = ["जन", "फेब", "मार्च", "अप्रि", "मे", "जुन", "जुला", "अग", "सेप", "अक्टो", "नोभे", "डिसे"];
+export const MONTHS_SHORT = [...MONTHS_NE];
+// romanized Bikram Sambat months for the English view (same Gregorian mapping)
+export const MONTHS_SHORT_EN = ["Magh", "Falgun", "Chaitra", "Baisakh", "Jestha", "Asar", "Srawan", "Bhadra", "Asoj", "Kartik", "Mangsir", "Poush"];
 
 // Seasons (Nepal monsoon framing).
 export const SEASONS = [
-  { id: "winter", label: "हिउँद", months: [11, 0, 1], color: "#0891b2" },     // Dec–Feb
-  { id: "pre", label: "पूर्व-मनसुन", months: [2, 3, 4], color: "#dc2626" },    // Mar–May
-  { id: "monsoon", label: "मनसुन", months: [5, 6, 7, 8], color: "#2563eb" },  // Jun–Sep
-  { id: "post", label: "मनसुन-पश्चात्", months: [9, 10], color: "#d97706" },   // Oct–Nov
+  { id: "winter", label: "हिउँद", label_en: "Winter", months: [11, 0, 1], color: "#0891b2" },     // Dec–Feb
+  { id: "pre", label: "पूर्व-मनसुन", label_en: "Pre-monsoon", months: [2, 3, 4], color: "#dc2626" },    // Mar–May
+  { id: "monsoon", label: "मनसुन", label_en: "Monsoon", months: [5, 6, 7, 8], color: "#2563eb" },  // Jun–Sep
+  { id: "post", label: "मनसुन-पश्चात्", label_en: "Post-monsoon", months: [9, 10], color: "#d97706" },   // Oct–Nov
 ];
 
 // A mappable / chartable climate variable.
@@ -101,24 +105,24 @@ export const VARS: ClimVar[] = [
 ];
 
 // Extreme-climate indices (annual counts derived in the pipeline).
-export const EXTREMES: { id: string; label: string; desc: string; unit: string; color: string }[] = [
-  { id: "hot35", label: "तातो दिन (≥३५°)", desc: "उच्चतम तापक्रम ३५° से माथि भएका दिन", unit: "दिन", color: "#ea580c" },
-  { id: "hot40", label: "अति-तातो दिन (≥४०°)", desc: "उच्चतम तापक्रम ४०° से माथि भएका दिन", unit: "दिन", color: "#b91c1c" },
-  { id: "cold5", label: "चिसो दिन (≤५°)", desc: "न्यूनतम तापक्रम ५° से तल भएका दिन", unit: "दिन", color: "#0284c7" },
-  { id: "heavy50", label: "भारी वर्षा (≥५०मि.मि.)", desc: "एक दिनमा ५० मि.मि. भन्दा बढी वर्षा", unit: "दिन", color: "#1d4ed8" },
-  { id: "max1", label: "अधिकतम १-दिने वर्षा", desc: "वर्षको सबैभन्दा ठूलो एक-दिने वर्षा", unit: "मि.मि.", color: "#7c3aed" },
-  { id: "wet1", label: "वर्षा भएका दिन", desc: "१ मि.मि. भन्दा बढी वर्षा भएका दिन", unit: "दिन", color: "#0891b2" },
-  { id: "cdd", label: "लगातार सुक्खा दिन", desc: "वर्षभरिको सबैभन्दा लामो सुक्खा अवधि", unit: "दिन", color: "#d97706" },
+export const EXTREMES: { id: string; label: string; label_en: string; desc: string; desc_en: string; unit: string; unit_en: string; color: string }[] = [
+  { id: "hot35", label: "तातो दिन (≥३५°)", label_en: "Hot days (≥35°)", desc: "उच्चतम तापक्रम ३५° से माथि भएका दिन", desc_en: "Days with a high above 35°C", unit: "दिन", unit_en: "days", color: "#ea580c" },
+  { id: "hot40", label: "अति-तातो दिन (≥४०°)", label_en: "Very hot days (≥40°)", desc: "उच्चतम तापक्रम ४०° से माथि भएका दिन", desc_en: "Days with a high above 40°C", unit: "दिन", unit_en: "days", color: "#b91c1c" },
+  { id: "cold5", label: "चिसो दिन (≤५°)", label_en: "Cold days (≤5°)", desc: "न्यूनतम तापक्रम ५° से तल भएका दिन", desc_en: "Days with a low below 5°C", unit: "दिन", unit_en: "days", color: "#0284c7" },
+  { id: "heavy50", label: "भारी वर्षा (≥५०मि.मि.)", label_en: "Heavy rain (≥50mm)", desc: "एक दिनमा ५० मि.मि. भन्दा बढी वर्षा", desc_en: "Days with more than 50 mm of rain", unit: "दिन", unit_en: "days", color: "#1d4ed8" },
+  { id: "max1", label: "अधिकतम १-दिने वर्षा", label_en: "Max 1-day rainfall", desc: "वर्षको सबैभन्दा ठूलो एक-दिने वर्षा", desc_en: "The year's largest single-day rainfall", unit: "मि.मि.", unit_en: "mm", color: "#7c3aed" },
+  { id: "wet1", label: "वर्षा भएका दिन", label_en: "Rainy days", desc: "१ मि.मि. भन्दा बढी वर्षा भएका दिन", desc_en: "Days with more than 1 mm of rain", unit: "दिन", unit_en: "days", color: "#0891b2" },
+  { id: "cdd", label: "लगातार सुक्खा दिन", label_en: "Consecutive dry days", desc: "वर्षभरिको सबैभन्दा लामो सुक्खा अवधि", desc_en: "The year's longest dry spell", unit: "दिन", unit_en: "days", color: "#d97706" },
 ];
 
 // Analysis modes shown in the left panel.
-export const MODES: { id: string; label: string; icon: string }[] = [
-  { id: "normals", label: "जलवायु सामान्य", icon: "calendar" },
-  { id: "trends", label: "दीर्घकालीन प्रवृत्ति", icon: "trend" },
-  { id: "extremes", label: "चरम घटना सूचक", icon: "alert" },
-  { id: "wind", label: "हावा गुलाब", icon: "wind" },
-  { id: "spatial", label: "स्थानिक नक्सा", icon: "map" },
-  { id: "projection", label: "भविष्य प्रक्षेपण", icon: "forward" },
+export const MODES: { id: string; label: string; label_en: string; icon: string }[] = [
+  { id: "normals", label: "जलवायु सामान्य", label_en: "Climate normals", icon: "calendar" },
+  { id: "trends", label: "दीर्घकालीन प्रवृत्ति", label_en: "Long-term trends", icon: "trend" },
+  { id: "extremes", label: "चरम घटना सूचक", label_en: "Extreme indices", icon: "alert" },
+  { id: "wind", label: "हावा गुलाब", label_en: "Wind rose", icon: "wind" },
+  { id: "spatial", label: "स्थानिक नक्सा", label_en: "Spatial map", icon: "map" },
+  { id: "projection", label: "भविष्य प्रक्षेपण", label_en: "Future projection", icon: "forward" },
 ];
 
 // value → color from a discrete ascending ramp

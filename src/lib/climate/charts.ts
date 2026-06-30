@@ -60,7 +60,7 @@ export function lineChart(series: { name: string; color: string; pts: Pt[]; dash
 }
 
 // ── climograph: precipitation bars (left axis) + temperature line (right) ────
-export function climograph(normals: { t_mean: number | null; precip: number | null }[]) {
+export function climograph(normals: { t_mean: number | null; precip: number | null }[], months: string[] = MONTHS_SHORT) {
   const precs = normals.map((m) => m.precip ?? 0), temps = normals.map((m) => m.t_mean ?? 0);
   const pMax = niceMax(Math.max(...precs, 10)), tMin = Math.min(...temps) - 3, tMax = Math.max(...temps) + 3;
   const bw = iw / 12;
@@ -76,7 +76,7 @@ export function climograph(normals: { t_mean: number | null; precip: number | nu
     `<rect x="${(sx(i) + 2).toFixed(1)}" y="${syP(p).toFixed(1)}" width="${(bw - 4).toFixed(1)}" height="${(M.t + ih - syP(p)).toFixed(1)}" fill="#60a5fa" rx="1.5"/>`).join("");
   const tline = `<path d="${temps.map((t, i) => `${i ? "L" : "M"}${(sx(i) + bw / 2).toFixed(1)} ${syT(t).toFixed(1)}`).join(" ")}" fill="none" stroke="#dc2626" stroke-width="2" stroke-linejoin="round"/>`;
   const tdots = temps.map((t, i) => `<circle cx="${(sx(i) + bw / 2).toFixed(1)}" cy="${syT(t).toFixed(1)}" r="2.2" fill="#dc2626"/>`).join("");
-  const mlab = MONTHS_SHORT.map((m, i) => `<text x="${(sx(i) + bw / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="#94a3b8">${m}</text>`).join("");
+  const mlab = months.map((m, i) => `<text x="${(sx(i) + bw / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="#94a3b8">${m}</text>`).join("");
   // right temp axis
   const tT = ticks(tMin, tMax, 4);
   const tAxis = tT.map((t) => `<text x="${M.l + iw + 4}" y="${(syT(t) + 3).toFixed(1)}" text-anchor="start" font-size="8" fill="#dc2626">${toNe(Math.round(t))}</text>`).join("");
@@ -146,7 +146,7 @@ export function windRose(rose: { dirs: string[]; bins: number[]; calm: number; d
 }
 
 // ── monthly pattern: 12-point line + area + dots, month-labelled ─────────────
-export function monthlyChart(values: (number | null)[], color = "#1e293b") {
+export function monthlyChart(values: (number | null)[], color = "#1e293b", months: string[] = MONTHS_SHORT) {
   const pts = values.map((v, i) => ({ i, v })).filter((p) => p.v != null) as { i: number; v: number }[];
   if (pts.length < 2) return wrap(`<text x="${W / 2}" y="${H / 2}" text-anchor="middle" font-size="11" fill="#94a3b8">तथ्याङ्क उपलब्ध छैन</text>`);
   let yMin = Math.min(...pts.map((p) => p.v)), yMax = Math.max(...pts.map((p) => p.v));
@@ -162,12 +162,12 @@ export function monthlyChart(values: (number | null)[], color = "#1e293b") {
   const area = `<path d="${dpath} L${sx(pts.at(-1)!.i).toFixed(1)} ${(M.t + ih).toFixed(1)} L${sx(pts[0].i).toFixed(1)} ${(M.t + ih).toFixed(1)} Z" fill="${color}" opacity="0.08"/>`;
   const line = `<path d="${dpath}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`;
   const dots = pts.map((p) => `<circle cx="${sx(p.i).toFixed(1)}" cy="${sy(p.v).toFixed(1)}" r="2.2" fill="${color}"/>`).join("");
-  const mlab = MONTHS_SHORT.map((m, i) => `<text x="${sx(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="#94a3b8">${m}</text>`).join("");
+  const mlab = months.map((m, i) => `<text x="${sx(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="#94a3b8">${m}</text>`).join("");
   return wrap(grid + area + line + dots + mlab, "cc-monthly");
 }
 
 // ── monthly bars (for amount/accumulation indicators) ───────────────────────
-export function monthlyBars(values: (number | null)[], color = "#2563eb") {
+export function monthlyBars(values: (number | null)[], color = "#2563eb", months: string[] = MONTHS_SHORT) {
   const vals = values.map((v) => v ?? 0);
   if (!vals.some((v) => v > 0)) return wrap(`<text x="${W / 2}" y="${H / 2}" text-anchor="middle" font-size="11" fill="#94a3b8">तथ्याङ्क उपलब्ध छैन</text>`);
   const yMax = niceMax(Math.max(...vals, 1));
@@ -178,7 +178,7 @@ export function monthlyBars(values: (number | null)[], color = "#2563eb") {
     `<line x1="${M.l}" y1="${sy(y).toFixed(1)}" x2="${M.l + iw}" y2="${sy(y).toFixed(1)}" stroke="#e2e8f0"/>` +
     `<text x="${M.l - 5}" y="${(sy(y) + 3).toFixed(1)}" text-anchor="end" font-size="8" fill="#94a3b8">${fmt(y, 0)}</text>`).join("");
   const bars = vals.map((v, i) => `<rect x="${(M.l + bw * i + 2).toFixed(1)}" y="${sy(v).toFixed(1)}" width="${(bw - 4).toFixed(1)}" height="${(M.t + ih - sy(v)).toFixed(1)}" fill="${color}" rx="1.5"/>`).join("");
-  const mlab = MONTHS_SHORT.map((m, i) => `<text x="${(M.l + bw * i + bw / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="#94a3b8">${m}</text>`).join("");
+  const mlab = months.map((m, i) => `<text x="${(M.l + bw * i + bw / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="#94a3b8">${m}</text>`).join("");
   return wrap(grid + bars + mlab, "cc-mbars");
 }
 
