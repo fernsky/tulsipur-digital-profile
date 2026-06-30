@@ -95,12 +95,16 @@ const title = `भू-नक्सा पोर्टल — ${meta.title}`;
       window.addEventListener("DOMContentLoaded", boot);
       boot();
 
-      // panel open/close (mobile bottom-sheet)
+      // panel toggle — desktop: collapse the floating card; mobile: bottom-sheet
       function wireChrome() {
+        const app = document.getElementById("geo-app");
         const panel = document.getElementById("geo-panel");
         const tgl = document.getElementById("geo-panel-toggle");
         const cls = document.getElementById("geo-panel-close");
-        tgl && tgl.addEventListener("click", () => panel && panel.classList.toggle("is-open"));
+        tgl && tgl.addEventListener("click", () => {
+          if (window.matchMedia("(max-width: 860px)").matches) panel && panel.classList.toggle("is-open");
+          else app && app.classList.toggle("is-panel-collapsed");
+        });
         cls && cls.addEventListener("click", () => panel && panel.classList.remove("is-open"));
       }
       wireChrome();
@@ -148,13 +152,17 @@ const title = `भू-नक्सा पोर्टल — ${meta.title}`;
       .gsr span { font-size: .74rem; color: var(--color-text-secondary); }
       .gsr-empty { padding: 12px; font-size: .85rem; color: var(--color-text-secondary); }
 
-      .geo-panel-toggle { display: none; align-items: center; justify-content: center;
-        width: 40px; height: 40px; border-radius: 9px; border: 0; background: #ffffff1a; color: #fff; cursor: pointer; }
+      .geo-panel-toggle { display: inline-flex; align-items: center; justify-content: center;
+        width: 40px; height: 40px; border-radius: 9px; border: 0; background: #ffffff1a; color: #fff; cursor: pointer;
+        transition: background .15s; }
+      .geo-panel-toggle:hover { background: #ffffff2e; }
+      #geo-app.is-panel-collapsed .geo-panel-toggle { background: #ffffff33; }
 
       /* ── control panel (desktop: floating left card) ── */
       .geo-panel { position: absolute; top: 70px; left: 14px; width: 312px; max-height: calc(100% - 92px);
         display: flex; flex-direction: column; background: #fff; border: 1px solid var(--color-border);
-        border-radius: 14px; overflow: hidden; z-index: 25; box-shadow: 0 8px 28px #0f172a26; }
+        border-radius: 14px; overflow: hidden; z-index: 25; box-shadow: 0 8px 28px #0f172a26;
+        transition: transform .28s ease, opacity .28s ease; }
       .geo-panel-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px;
         background: var(--color-primary); color: #fff; font-weight: 600; font-size: .92rem; }
       .geo-panel-close { display: none; margin-left: auto; background: transparent; border: 0; color: #cbd5e1; cursor: pointer; }
@@ -201,10 +209,17 @@ const title = `भू-नक्सा पोर्टल — ${meta.title}`;
       .geo-sub { margin: 0 0 6px 8px; padding-left: 8px; border-left: 2px solid var(--color-border); }
       .geo-sub .geo-row { padding: 3px 6px; font-size: .82rem; }
 
-      /* live elevation / slope readout */
-      .geo-coords { position: absolute; left: 14px; bottom: 56px; display: none; gap: 14px;
+      /* live elevation / slope readout — sits clear of the layers panel,
+         slides to the far left when the panel is collapsed */
+      .geo-coords { position: absolute; left: 14px; bottom: 26px; display: none; gap: 14px;
         align-items: center; padding: 7px 13px; background: #0f172af0; color: #fff;
-        border-radius: 9px; font-size: .82rem; z-index: 24; }
+        border-radius: 9px; font-size: .82rem; z-index: 24; transition: left .28s ease; }
+      /* desktop: keep the floating card collapsible and the readout clear of it */
+      @media (min-width: 861px) {
+        .geo-coords { left: 340px; }
+        #geo-app.is-panel-collapsed .geo-coords { left: 14px; }
+        #geo-app.is-panel-collapsed .geo-panel { transform: translateX(calc(-100% - 28px)); opacity: 0; pointer-events: none; }
+      }
       .geo-coords b { font-weight: 700; color: #fbbf24; }
       .geo-coords .gc-ll { color: #94a3b8; font-size: .74rem; }
 
