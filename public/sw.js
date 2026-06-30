@@ -6,12 +6,17 @@
 //     fails (offline) do we serve the cached copy, then the offline page.
 //     This runs on every navigation — no polling.
 //   * /_astro/* (content-hashed, immutable) -> cache-first (never changes).
-//   * other GETs (images, fonts, pagefind shards) -> stale-while-revalidate.
+//   * /pagefind/* -> NETWORK-FIRST. The search index is a self-referential set
+//     of content-hashed files (entry.json points to meta/index/fragment
+//     hashes). A redeploy changes those hashes and removes the old ones, so a
+//     stale entry.json would reference shards that 404 and silently break
+//     search. Always fetch the consistent live index online; cache is fallback.
+//   * other GETs (images, fonts) -> stale-while-revalidate.
 //
 // So an online user always gets fresh content/HTML on navigation; an offline
 // user still gets everything they've visited plus a branded offline fallback.
 // Bump VERSION to invalidate everything on a new deploy.
-const VERSION = "v2";
+const VERSION = "v3";
 const IMMUTABLE = `immutable-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -75,9 +80,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Images, fonts, pagefind index, etc: stale-while-revalidate.
+  // Search index: network-first so the hashed shard set is always consistent.
+  if (url.pathname.startsWith("/pagefind/")) {
+    event.respondWith(networkFirst(request, RUNTIME));
+    return;
+  }
+
+  // Images, fonts, etc: stale-while-revalidate.
   event.respondWith(staleWhileRevalidate(request, RUNTIME));
 });
+
+// Network-first for self-referential hashed assets (the search index): always
+// fetch live when online so entry.json and its shards stay consistent; fall
+// back to whatever is cached only when the network is unavailable.
+async function networkFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const res = await fetch(request);
+    if (res && res.ok) await put(cache, cacheName, request, res.clone());
+    return res;
+  } catch (e) {
+    return (await cache.match(request)) || Response.error();
+  }
+}
 
 function isPageRequest(request, url) {
   if (request.mode === "navigate" || request.destination === "document") return true;
