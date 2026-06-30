@@ -32,7 +32,46 @@ export type ClimVar = {
   scale: [number, string][]; // value-stop → color (ascending), for the map heatmap
   decimals: number;
   agg: "mean" | "sum"; // how a year summarizes (affects spatial value source)
+  category?: string;   // grouping for the variable picker
 };
+
+// Variable-category labels (core = Open-Meteo daily; rest = Copernicus ERA5-Land).
+export const CATEGORIES: Record<string, string> = {
+  core: "आधारभूत मौसम",
+  soil: "माटो (तापक्रम र आर्द्रता)",
+  snow: "हिउँ",
+  veg: "वनस्पति",
+  land: "भू-सतह",
+  atmos: "वायुमण्डल (थप)",
+};
+
+// Flat sequential palettes (light→dark) per category, for data-driven ramps.
+export const PALETTES: Record<string, string[]> = {
+  temp: ["#2c7fb8", "#7fcdbb", "#c7e9b4", "#fed976", "#fd8d3c", "#e31a1c"],
+  soil: ["#2c7fb8", "#7fcdbb", "#c7e9b4", "#fed976", "#fd8d3c", "#e31a1c"],
+  moisture: ["#fde68a", "#fef3c7", "#a7f3d0", "#6ee7b7", "#22d3ee", "#1d4ed8"],
+  snow: ["#f1f5f9", "#e0f2fe", "#bae6fd", "#7dd3fc", "#38bdf8", "#0284c7"],
+  veg: ["#fef9c3", "#d9f99d", "#86efac", "#4ade80", "#22c55e", "#15803d"],
+  generic: ["#f1f5f9", "#cbd5e1", "#94a3b8", "#64748b", "#475569", "#334155"],
+};
+
+// build a 6-stop ascending ramp from a value range + palette
+export function rampFromRange(min: number, max: number, palette: string[]): [number, string][] {
+  const n = palette.length;
+  if (!isFinite(min) || !isFinite(max) || max <= min) return palette.map((c, i) => [i, c] as [number, string]);
+  const step = (max - min) / n;
+  return palette.map((c, i) => [+(min + step * i).toFixed(2), c] as [number, string]);
+}
+
+// pick a palette for an ERA5-Land variable by id / category
+export function paletteFor(id: string, category: string): string[] {
+  if (id.startsWith("soil_m")) return PALETTES.moisture;
+  if (id.startsWith("soil_t") || category === "soil") return PALETTES.soil;
+  if (category === "snow") return PALETTES.snow;
+  if (category === "veg") return PALETTES.veg;
+  if (/temp|skin|dewpoint/.test(id)) return PALETTES.temp;
+  return PALETTES.generic;
+}
 
 // flat sequential ramps (discrete stops, no CSS gradients)
 const TEMP_RAMP: [number, string][] = [
@@ -49,16 +88,16 @@ const CLOUD_RAMP: [number, string][] = [
 ];
 
 export const VARS: ClimVar[] = [
-  { id: "temp", label: "तापक्रम (औसत)", short: "तापक्रम", unit: "°से", annualKey: "t_mean", normalKey: "t_mean", scale: TEMP_RAMP, decimals: 1, agg: "mean" },
-  { id: "tmax", label: "उच्चतम तापक्रम", short: "उच्च ताप", unit: "°से", annualKey: "t_max", normalKey: "t_max", scale: TEMP_RAMP, decimals: 1, agg: "mean" },
-  { id: "tmin", label: "न्यूनतम तापक्रम", short: "न्यून ताप", unit: "°से", annualKey: "t_min", normalKey: "t_min", scale: TEMP_RAMP, decimals: 1, agg: "mean" },
-  { id: "precip", label: "वर्षा (कुल)", short: "वर्षा", unit: "मि.मि.", annualKey: "precip", normalKey: "precip", scale: PRECIP_RAMP, decimals: 0, agg: "sum" },
-  { id: "rh", label: "सापेक्षिक आर्द्रता", short: "आर्द्रता", unit: "%", annualKey: "rh", normalKey: "rh", scale: RH_RAMP, decimals: 0, agg: "mean" },
-  { id: "pressure", label: "वायुमण्डलीय चाप", short: "वायु चाप", unit: "hPa", annualKey: "pressure", normalKey: "pressure", scale: [], decimals: 0, agg: "mean" },
-  { id: "cloud", label: "बादल आवरण", short: "बादल", unit: "%", annualKey: "cloud", normalKey: "cloud", scale: CLOUD_RAMP, decimals: 0, agg: "mean" },
-  { id: "wind", label: "हावाको गति", short: "हावा", unit: "कि.मि./घ.", annualKey: "wind", normalKey: "wind", scale: [], decimals: 1, agg: "mean" },
-  { id: "srad", label: "सौर्य विकिरण", short: "विकिरण", unit: "MJ/m²", annualKey: "srad", normalKey: "srad", scale: [], decimals: 1, agg: "mean" },
-  { id: "et0", label: "वाष्पीकरण (ET₀)", short: "वाष्पीकरण", unit: "मि.मि.", annualKey: "et0", normalKey: "et0", scale: [], decimals: 0, agg: "sum" },
+  { id: "temp", label: "तापक्रम (औसत)", short: "तापक्रम", unit: "°से", annualKey: "t_mean", normalKey: "t_mean", scale: TEMP_RAMP, decimals: 1, agg: "mean", category: "core" },
+  { id: "tmax", label: "उच्चतम तापक्रम", short: "उच्च ताप", unit: "°से", annualKey: "t_max", normalKey: "t_max", scale: TEMP_RAMP, decimals: 1, agg: "mean", category: "core" },
+  { id: "tmin", label: "न्यूनतम तापक्रम", short: "न्यून ताप", unit: "°से", annualKey: "t_min", normalKey: "t_min", scale: TEMP_RAMP, decimals: 1, agg: "mean", category: "core" },
+  { id: "precip", label: "वर्षा (कुल)", short: "वर्षा", unit: "मि.मि.", annualKey: "precip", normalKey: "precip", scale: PRECIP_RAMP, decimals: 0, agg: "sum", category: "core" },
+  { id: "rh", label: "सापेक्षिक आर्द्रता", short: "आर्द्रता", unit: "%", annualKey: "rh", normalKey: "rh", scale: RH_RAMP, decimals: 0, agg: "mean", category: "core" },
+  { id: "pressure", label: "वायुमण्डलीय चाप", short: "वायु चाप", unit: "hPa", annualKey: "pressure", normalKey: "pressure", scale: [], decimals: 0, agg: "mean", category: "core" },
+  { id: "cloud", label: "बादल आवरण", short: "बादल", unit: "%", annualKey: "cloud", normalKey: "cloud", scale: CLOUD_RAMP, decimals: 0, agg: "mean", category: "core" },
+  { id: "wind", label: "हावाको गति", short: "हावा", unit: "कि.मि./घ.", annualKey: "wind", normalKey: "wind", scale: [], decimals: 1, agg: "mean", category: "core" },
+  { id: "srad", label: "सौर्य विकिरण", short: "विकिरण", unit: "MJ/m²", annualKey: "srad", normalKey: "srad", scale: [], decimals: 1, agg: "mean", category: "core" },
+  { id: "et0", label: "वाष्पीकरण (ET₀)", short: "वाष्पीकरण", unit: "मि.मि.", annualKey: "et0", normalKey: "et0", scale: [], decimals: 0, agg: "sum", category: "core" },
 ];
 
 // Extreme-climate indices (annual counts derived in the pipeline).

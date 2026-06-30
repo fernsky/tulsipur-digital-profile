@@ -34,3 +34,4 @@ image-originals/
 
 # climate pipeline raw-response cache
 scripts/.climate-cache/
+scripts/.venv-climate/
