@@ -13,7 +13,7 @@ import {
   VARS, EXTREMES, MODES, MONTHS_NE, SEASONS, CATEGORIES, PALETTES, rampColor, rampFromRange,
   paletteFor, cIcon, toNe, MUNI_BOUNDS, MUNI_CENTER, type ClimVar,
 } from "./labels";
-import { lineChart, climograph, barSeries, anomalyBars, windRose } from "./charts";
+import { lineChart, climograph, barSeries, anomalyBars, windRose, monthlyChart, monthlyBars } from "./charts";
 import { VAR_DESC, statInterpretation } from "./descriptions";
 
 type Annual = Record<string, number> & { year: number };
@@ -346,18 +346,28 @@ function interpCard(v: UVar) {
     intro + `<p class="cl-prose cl-prose-stat">${statInterpretation(v.id, s)}</p>`);
 }
 
+const AMOUNT_VARS = ["precip", "et0"]; // accumulation indicators → bar charts
+
 function drawNormals() {
   const v = uvar(state.varId); const nrm = v.normals();
-  const climo = (v.id === "temp" || v.id === "precip")
+  const isTP = v.id === "temp" || v.id === "precip";
+  const isAmount = AMOUNT_VARS.includes(v.id);
+  // temp/precip get the combined climograph; everyone else gets a monthly chart
+  const climo = isTP
     ? card(head("जलवायु आरेख (Climograph)", period()) + climograph(DATA.normals) + `<div class="cl-note">नीलो स्तम्भ — वर्षा (मि.मि.) · रातो रेखा — औसत तापक्रम (°से)</div>`)
-    : "";
+    : card(head(`${v.label} — मासिक ढाँचा`, `${v.unit} · ${period()}`) +
+        (isAmount ? monthlyBars(nrm, "#2563eb") : monthlyChart(nrm, "#1e293b")) +
+        `<div class="cl-note">१२ महिनाको दीर्घकालीन औसत (जलवायु सामान्य) — वर्षभरि कसरी बदलिन्छ ।</div>`);
   const seasons = SEASONS.map((s) => {
     const vals = s.months.map((mo) => nrm[mo]).filter((x) => x != null) as number[];
     return { ...s, avg: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null };
   });
-  const seasonal = card(head(`${v.label} — मौसमी सामान्य`, v.unit) +
-    `<div class="cl-season">${seasons.map((s) => `<div class="cl-season-i" style="border-color:${s.color}"><span class="cl-dot" style="background:${s.color}"></span><div><b>${s.avg == null ? "—" : toNe(s.avg.toFixed(v.decimals))}</b><span>${s.label}</span></div></div>`).join("")}</div>`);
-  const monthly = card(head(`${v.label} — मासिक सामान्य`, `${v.unit} · ${period()}`) +
+  // seasonal bar chart + cards
+  const sv = seasons.map((s) => s.avg ?? 0);
+  const smax = Math.max(...sv.map(Math.abs), 1);
+  const seasonBars = `<div class="cl-sbars">${seasons.map((s) => `<div class="cl-sbar"><div class="cl-sbar-track"><div class="cl-sbar-fill" style="height:${Math.round((Math.abs(s.avg ?? 0) / smax) * 100)}%;background:${s.color}"></div></div><b>${s.avg == null ? "—" : toNe(s.avg.toFixed(v.decimals))}</b><span>${s.label}</span></div>`).join("")}</div>`;
+  const seasonal = card(head(`${v.label} — मौसमी सारांश`, v.unit) + seasonBars);
+  const monthly = card(head(`${v.label} — मासिक सामान्य (तालिका)`, `${v.unit} · ${period()}`) +
     `<table class="cl-table"><thead><tr><th>महिना</th><th>${v.short}</th></tr></thead><tbody>` +
     nrm.map((m, i) => `<tr><td>${MONTHS_NE[i]}</td><td>${m == null ? "—" : toNe(Number(m).toFixed(v.decimals))}</td></tr>`).join("") + `</tbody></table>`);
   return interpCard(v) + climo + seasonal + monthly;

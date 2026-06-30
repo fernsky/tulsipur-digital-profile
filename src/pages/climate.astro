@@ -219,6 +219,12 @@ const title = `जलवायु पोर्टल — ${meta.title}`;
       .cl-table td { padding: 3px 6px; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
       .cl-table td:last-child, .cl-table th:last-child { text-align: right; font-weight: 600; }
 
+      .cl-sbars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: end; }
+      .cl-sbar { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+      .cl-sbar-track { width: 60%; height: 70px; display: flex; align-items: flex-end; border-radius: 5px 5px 0 0; background: #f1f5f9; }
+      .cl-sbar-fill { width: 100%; border-radius: 5px 5px 0 0; min-height: 3px; transition: height .3s; }
+      .cl-sbar b { font-size: .88rem; font-weight: 700; color: #0f172a; }
+      .cl-sbar span { font-size: .68rem; color: var(--color-text-secondary); text-align: center; }
       .cl-season { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .cl-season-i { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; border-left: 3px solid; background: #f8fafc; }
       .cl-season-i b { display: block; font-size: 1rem; font-weight: 700; color: #0f172a; }
