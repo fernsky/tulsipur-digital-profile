@@ -148,6 +148,7 @@ def aggregate(spec, ds):
     cellmean = da.mean(dim=tc, skipna=True)
     lats = [float(x) for x in cellmean[latn].values]
     lons = [float(x) for x in cellmean[lonn].values]
+    cells = [{"lat": round(la, 3), "lng": round(lo, 3)} for la in lats for lo in lons]
     grid = []
     arr = np.array(cellmean.values, float)
     for i, la in enumerate(lats):
@@ -155,9 +156,26 @@ def aggregate(spec, ds):
             v = arr[i, j]
             if not math.isnan(v):
                 grid.append({"lat": round(la, 3), "lng": round(lo, 3), "v": round(float(v), decimals)})
+
+    # per-year, per-cell grids → year-wise map animation (cells in `cells` order)
+    da2 = da.transpose(tc, latn, lonn)
+    v3 = np.array(da2.values, float)  # (time, lat, lon)
+    grid_years, allvals = [], []
+    for y in sorted(set(years.tolist())):
+        m = years == y
+        if m.sum() < 6:
+            continue
+        a2 = np.nanmean(v3[m], axis=0)  # (lat, lon)
+        flat = [None if math.isnan(x) else round(float(x), decimals) for x in a2.flatten()]
+        grid_years.append({"year": int(y), "v": flat})
+        allvals += [float(x) for x in a2.flatten() if not math.isnan(x)]
+    vmin = round(float(np.nanmin(allvals)), decimals) if allvals else 0.0
+    vmax = round(float(np.nanmax(allvals)), decimals) if allvals else 1.0
+
     return {
-        "id": sid, "label": spec[3], "unit": spec[4], "category": spec[6],
+        "id": sid, "label": spec[3], "unit": spec[4], "category": spec[6], "decimals": decimals,
         "normals": normals, "annual": annual, "trend": trend, "grid": grid,
+        "cells": cells, "gridYears": grid_years, "vmin": vmin, "vmax": vmax,
     }
 
 

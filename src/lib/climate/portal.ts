@@ -10,7 +10,7 @@
 import maplibregl from "maplibre-gl";
 import { BASEMAPS } from "../geo/labels";
 import {
-  VARS, EXTREMES, MODES, MONTHS_NE, SEASONS, CATEGORIES, rampColor, rampFromRange,
+  VARS, EXTREMES, MODES, MONTHS_NE, SEASONS, CATEGORIES, PALETTES, rampColor, rampFromRange,
   paletteFor, cIcon, toNe, MUNI_BOUNDS, MUNI_CENTER, type ClimVar,
 } from "./labels";
 import { lineChart, climograph, barSeries, anomalyBars, windRose } from "./charts";
@@ -27,7 +27,7 @@ type Data = {
   gridAnnual: { row: number; col: number; lat: number; lng: number; years: { year: number; t: number; p: number }[] }[];
   projections: { year: number; t_mean: number; precip: number }[] | null;
 };
-type ExtraVar = { id: string; label: string; unit: string; category: string; normals: (number | null)[]; annual: { year: number; v: number }[]; trend: number; grid: { lat: number; lng: number; v: number }[] };
+type ExtraVar = { id: string; label: string; unit: string; category: string; decimals: number; normals: (number | null)[]; annual: { year: number; v: number }[]; trend: number; grid: { lat: number; lng: number; v: number }[]; cells: { lat: number; lng: number }[]; gridYears: { year: number; v: (number | null)[] }[]; vmin: number; vmax: number };
 type Extra = { area: number[]; normalPeriod: { from: number; to: number }; source: string; categories: Record<string, string>; vars: Record<string, ExtraVar> };
 
 // unified variable descriptor used by the picker, drawer and map
@@ -37,7 +37,9 @@ type UVar = {
   normals: () => (number | null)[];          // [12]
   annual: () => { year: number; v: number }[];
   scale: () => [number, string][];
-  spatial: "animated" | "static" | "none";    // map behavior
+  spatial: "grid" | "uniform" | "none";       // grid = real cells; uniform = single-cell fill
+  years: () => [number, number];              // available animation range
+  cellsFC: (year: number) => GeoJSON.FeatureCollection; // map features for a year
 };
 
 const $ = (s: string, r: Document | HTMLElement = document) => r.querySelector(s) as HTMLElement;
@@ -54,79 +56,79 @@ function linreg(pts: { x: number; y: number }[]) {
 }
 const uvar = (id: string) => UVARS.find((v) => v.id === id)!;
 
-// ── build the unified variable list (core + ERA5-Land) ───────────────────────
+// fixed 3×3 cell polygons tessellating the municipality bbox (Open-Meteo grid)
+function grid3x3Polys() {
+  const [w, s, e, n] = DATA.bounds;
+  const lats = [...new Set(DATA.grid.map((g) => g.lat))].sort((a, b) => b - a);
+  const lngs = [...new Set(DATA.grid.map((g) => g.lng))].sort((a, b) => a - b);
+  const latE = [n, ...lats.slice(0, -1).map((_, i) => (lats[i] + lats[i + 1]) / 2), s];
+  const lngE = [w, ...lngs.slice(0, -1).map((_, i) => (lngs[i] + lngs[i + 1]) / 2), e];
+  const polys: { row: number; col: number; coords: number[][][] }[] = [];
+  for (let r = 0; r < lats.length; r++) for (let c = 0; c < lngs.length; c++)
+    polys.push({ row: r, col: c, coords: [[[lngE[c], latE[r]], [lngE[c + 1], latE[r]], [lngE[c + 1], latE[r + 1]], [lngE[c], latE[r + 1]], [lngE[c], latE[r]]]] });
+  return polys;
+}
+
+// ── build the unified variable list (core + ERA5-Land), every var animatable ──
 function buildUVars() {
   const list: UVar[] = [];
+  const corePal: Record<string, string> = { rh: "moisture", et0: "moisture", srad: "temp", cloud: "generic", pressure: "generic", wind: "generic" };
   for (const v of VARS as ClimVar[]) {
+    const annual = () => DATA.annual.filter((a) => a[v.annualKey!] != null).map((a) => ({ year: a.year, v: a[v.annualKey!] as number }));
+    const isTP = v.id === "temp" || v.id === "precip";
+    let ramp: [number, string][];
+    if (v.scale.length) ramp = v.scale;
+    else { const ys = annual().map((a) => a.v); ramp = rampFromRange(Math.min(...ys), Math.max(...ys), PALETTES[corePal[v.id] || "generic"]); }
+    const which = v.id === "precip" ? "p" : "t";
+    const annualMap = new Map(DATA.annual.map((a) => [a.year, a[v.annualKey!] as number]));
+    const cellsFC = (year: number): GeoJSON.FeatureCollection => ({
+      type: "FeatureCollection",
+      features: grid3x3Polys().map((p) => {
+        let val: number | null;
+        if (isTP) { const g = DATA.gridAnnual.find((x) => x.row === p.row && x.col === p.col); const yy = g?.years.find((y) => y.year === year); val = yy ? (yy as any)[which] : null; }
+        else { val = annualMap.get(year) ?? null; }
+        return { type: "Feature" as const, properties: { val, color: rampColor(val, ramp) }, geometry: { type: "Polygon" as const, coordinates: p.coords } };
+      }),
+    });
+    const yrs = annual();
     list.push({
       id: v.id, label: v.label, short: v.short, unit: v.unit, decimals: v.decimals, category: "core", source: "core",
-      normals: () => DATA.normals.map((m) => m[v.normalKey!]),
-      annual: () => DATA.annual.filter((a) => a[v.annualKey!] != null).map((a) => ({ year: a.year, v: a[v.annualKey!] as number })),
-      scale: () => v.scale,
-      spatial: v.id === "temp" || v.id === "precip" ? "animated" : "none",
+      normals: () => DATA.normals.map((m) => m[v.normalKey!]), annual, scale: () => ramp,
+      spatial: isTP ? "grid" : "uniform",
+      years: () => isTP ? [DATA.period.start, DATA.period.end] : [yrs[0]?.year ?? DATA.period.start, yrs.at(-1)?.year ?? DATA.period.end],
+      cellsFC,
     });
   }
   if (EXTRA) {
     for (const e of Object.values(EXTRA.vars)) {
-      const vals = e.grid.map((g) => g.v);
-      const lo = Math.min(...vals), hi = Math.max(...vals);
-      const decimals = /m²|kg|J|%/.test(e.unit) ? 1 : 1;
+      const ramp = rampFromRange(e.vmin, e.vmax, paletteFor(e.id, e.category));
+      const lats = [...new Set(e.cells.map((c) => c.lat))].sort((a, b) => a - b);
+      const lons = [...new Set(e.cells.map((c) => c.lng))].sort((a, b) => a - b);
+      const hy = (lats.length > 1 ? Math.abs(lats[1] - lats[0]) : 0.1) / 2;
+      const hx = (lons.length > 1 ? Math.abs(lons[1] - lons[0]) : 0.1) / 2;
+      const byYear = new Map(e.gridYears.map((g) => [g.year, g.v]));
+      const cellsFC = (year: number): GeoJSON.FeatureCollection => {
+        const vals = byYear.get(year) || e.cells.map(() => null);
+        return { type: "FeatureCollection", features: e.cells.map((c, i) => ({ type: "Feature" as const, properties: { val: vals[i], color: rampColor(vals[i], ramp) }, geometry: { type: "Polygon" as const, coordinates: [[[c.lng - hx, c.lat + hy], [c.lng + hx, c.lat + hy], [c.lng + hx, c.lat - hy], [c.lng - hx, c.lat - hy], [c.lng - hx, c.lat + hy]]] } })) };
+      };
       list.push({
-        id: e.id, label: e.label, short: e.label, unit: e.unit, decimals, category: e.category, source: "extra",
-        normals: () => e.normals, annual: () => e.annual,
-        scale: () => rampFromRange(lo, hi, paletteFor(e.id, e.category)),
-        spatial: e.grid.length ? "static" : "none",
+        id: e.id, label: e.label, short: e.label, unit: e.unit, decimals: e.decimals ?? 1, category: e.category, source: "extra",
+        normals: () => e.normals, annual: () => e.annual, scale: () => ramp,
+        spatial: e.gridYears.length ? "grid" : "none",
+        years: () => [e.gridYears[0]?.year ?? 1950, e.gridYears.at(-1)?.year ?? DATA.period.end],
+        cellsFC,
       });
     }
   }
   return list;
 }
 
-// ── 3×3 animated cells (Open-Meteo grid) ─────────────────────────────────────
-function animatedCells(): GeoJSON.FeatureCollection {
-  const [w, s, e, n] = DATA.bounds;
-  const lats = [...new Set(DATA.grid.map((g) => g.lat))].sort((a, b) => b - a);
-  const lngs = [...new Set(DATA.grid.map((g) => g.lng))].sort((a, b) => a - b);
-  const latE = [n, ...lats.slice(0, -1).map((_, i) => (lats[i] + lats[i + 1]) / 2), s];
-  const lngE = [w, ...lngs.slice(0, -1).map((_, i) => (lngs[i] + lngs[i + 1]) / 2), e];
-  const which = state.varId === "precip" ? "p" : "t";
-  const v = uvar(state.varId); const ramp = v.scale();
-  const cellVal = (row: number, col: number) => {
-    const g = DATA.gridAnnual.find((p) => p.row === row && p.col === col);
-    const y = g?.years.find((yy) => yy.year === state.year); return y ? y[which] : null;
-  };
-  const feats: GeoJSON.Feature[] = [];
-  for (let r = 0; r < lats.length; r++) for (let c = 0; c < lngs.length; c++) {
-    const val = cellVal(r, c);
-    feats.push({ type: "Feature", properties: { val, color: rampColor(val, ramp) },
-      geometry: { type: "Polygon", coordinates: [[[lngE[c], latE[r]], [lngE[c + 1], latE[r]], [lngE[c + 1], latE[r + 1]], [lngE[c], latE[r + 1]], [lngE[c], latE[r]]]] } });
-  }
-  return { type: "FeatureCollection", features: feats };
-}
-
-// ── 0.1° static cells (ERA5-Land long-term mean) ─────────────────────────────
-function staticCells(e: ExtraVar, ramp: [number, string][]): GeoJSON.FeatureCollection {
-  const h = 0.05;
-  const feats: GeoJSON.Feature[] = e.grid.map((g) => ({
-    type: "Feature", properties: { val: g.v, color: rampColor(g.v, ramp) },
-    geometry: { type: "Polygon", coordinates: [[[g.lng - h, g.lat + h], [g.lng + h, g.lat + h], [g.lng + h, g.lat - h], [g.lng - h, g.lat - h], [g.lng - h, g.lat + h]]] },
-  }));
-  return { type: "FeatureCollection", features: feats };
-}
-
 function renderMap() {
   const v = uvar(state.varId);
   const src = map.getSource("clim-grid") as maplibregl.GeoJSONSource;
   if (!src) return;
-  if (v.spatial === "animated") {
-    src.setData(animatedCells());
-    map.setLayoutProperty("clim-grid", "visibility", "visible");
-  } else if (v.spatial === "static" && EXTRA) {
-    src.setData(staticCells(EXTRA.vars[v.id], v.scale()));
-    map.setLayoutProperty("clim-grid", "visibility", "visible");
-  } else {
-    map.setLayoutProperty("clim-grid", "visibility", "none");
-  }
+  if (v.spatial !== "none") { src.setData(v.cellsFC(state.year) as any); map.setLayoutProperty("clim-grid", "visibility", "visible"); }
+  else map.setLayoutProperty("clim-grid", "visibility", "none");
   const yEl = $("#cl-year-val"); if (yEl) yEl.textContent = toNe(state.year);
   buildLegend();
 }
@@ -263,25 +265,38 @@ function wirePanel() {
     ($("#cl-var") as HTMLSelectElement).value = "temp"; ($("#cl-year") as HTMLInputElement).value = String(state.year);
     onVarChange();
   });
-  updateYearVisibility();
+  updateYearControl();
 }
 
-// when the variable changes: update map, slider visibility, drawer, legend
-function onVarChange() { updateYearVisibility(); renderMap(); renderDrawer(); }
+// when the variable changes: clamp the year to the var's range, update everything
+function onVarChange() { updateYearControl(); renderMap(); renderDrawer(); }
 
-function updateYearVisibility() {
+// every indicator is animatable; show the slider and fit it to the var's years
+function updateYearControl() {
   const v = uvar(state.varId);
   const slider = $("#cl-slider");
-  if (slider) slider.style.display = v.spatial === "animated" ? "" : "none";
+  if (v.spatial === "none") { if (slider) slider.style.display = "none"; return; }
+  if (slider) slider.style.display = "";
+  const [y0, y1] = v.years();
+  const input = $("#cl-year") as HTMLInputElement;
+  if (input) {
+    input.min = String(y0); input.max = String(y1);
+    if (state.year < y0) state.year = y0; if (state.year > y1) state.year = y1;
+    input.value = String(state.year);
+  }
+  const yEl = $("#cl-year-val"); if (yEl) yEl.textContent = toNe(state.year);
+  const ends = document.querySelectorAll(".cl-slider-ends span");
+  if (ends.length === 2) { ends[0].textContent = toNe(y0); ends[1].textContent = toNe(y1); }
 }
 
 function togglePlay() { state.playing ? stopPlay() : startPlay(); }
 function startPlay() {
-  if (uvar(state.varId).spatial !== "animated") return;
+  const v = uvar(state.varId); if (v.spatial === "none") return;
+  const [y0, y1] = v.years();
   state.playing = true; const btn = $("#cl-play"); if (btn) btn.innerHTML = cIcon("pause", 15);
-  if (state.year >= DATA.period.end) state.year = DATA.period.start;
+  if (state.year >= y1) state.year = y0;
   state.timer = window.setInterval(() => {
-    state.year++; if (state.year > DATA.period.end) { state.year = DATA.period.end; stopPlay(); }
+    state.year++; if (state.year > y1) { state.year = y1; stopPlay(); }
     ($("#cl-year") as HTMLInputElement).value = String(state.year);
     renderMap(); if (state.mode === "spatial") renderDrawer();
   }, 360);
@@ -392,24 +407,20 @@ function drawWind() {
 function drawSpatial() {
   const v = uvar(state.varId);
   if (v.spatial === "none")
-    return card(head(`${v.label} — स्थानिक`, "") + `<div class="cl-note">यस सूचकको स्थानिक तह उपलब्ध छैन । तापक्रम वा वर्षा (वार्षिक एनिमेसन) वा ERA5-Land सूचक (माटो/हिउँ/वनस्पति) छान्नुहोस् ।</div>`);
-  if (v.spatial === "static" && EXTRA) {
-    const vals = EXTRA.vars[v.id].grid.map((g) => g.v);
-    const lo = Math.min(...vals), hi = Math.max(...vals), mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-    return card(head(`${v.label} — दीर्घकालीन औसत`, v.unit) +
-      `<div class="cl-note">Copernicus ERA5-Land ०.१° (~९ कि.मि.) · ${toNe(vals.length)} कक्ष · ${period()} सरदर । नक्सामा तुलसीपुरभरको वितरण देखिन्छ ।</div>` +
-      statRow([["न्यूनतम", toNe(lo.toFixed(v.decimals))], ["औसत", toNe(mean.toFixed(v.decimals))], ["अधिकतम", toNe(hi.toFixed(v.decimals))]]));
-  }
-  // animated (temp / precip)
-  const which = state.varId === "precip" ? "p" : "t";
-  const rows = DATA.gridAnnual.map((g) => { const y = g.years.find((yy) => yy.year === state.year); return y ? y[which] : null; }).filter((x) => x != null) as number[];
-  const lo = Math.min(...rows), hi = Math.max(...rows), mean = rows.reduce((a, b) => a + b, 0) / Math.max(rows.length, 1);
+    return card(head(`${v.label} — स्थानिक`, "") + `<div class="cl-note">यस सूचकको स्थानिक तह उपलब्ध छैन ।</div>`);
+  const fc = v.cellsFC(state.year);
+  const vals = fc.features.map((f) => f.properties!.val).filter((x) => x != null) as number[];
+  const lo = vals.length ? Math.min(...vals) : 0, hi = vals.length ? Math.max(...vals) : 0;
+  const mean = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  const srcNote = v.source === "extra"
+    ? `Copernicus ERA5-Land ०.१° (~९ कि.मि.) · ${toNe(fc.features.length)} कक्ष`
+    : v.spatial === "grid" ? `ERA5 (~२८ कि.मि.) ३×३ कक्षमा प्रक्षेपित` : `ERA5 एकल कक्ष — स्थानिक रूपमा एकसमान`;
   const gridCard = card(head(`${v.label} — ${toNe(state.year)}`, v.unit) +
-    `<div class="cl-note">वर्ष स्लाइडर वा ▶ ले ${recordSpan(v)} सम्मको परिवर्तन हेर्नुहोस् । ERA5 (~२८ कि.मि.) ३×३ कक्षमा प्रक्षेपित ।</div>` +
+    `<div class="cl-note">वर्ष स्लाइडर वा ▶ ले ${recordSpan(v)} सम्मको परिवर्तन हेर्नुहोस् । ${srcNote} ।</div>` +
     statRow([["न्यूनतम", toNe(lo.toFixed(v.decimals))], ["औसत", toNe(mean.toFixed(v.decimals))], ["अधिकतम", toNe(hi.toFixed(v.decimals))]]));
   const pts = v.annual().map((a) => ({ x: a.year, y: a.v })); const reg = linreg(pts);
-  const trendCard = card(head(`केन्द्रबिन्दु वार्षिक ${v.short}`, recordSpan(v)) + lineChart([{ name: v.label, color: "#1e293b", pts }], { trend: { color: "#dc2626", slope: reg.slope, intercept: reg.intercept }, yfmt: (x) => toNe(x.toFixed(v.decimals)) }));
-  return gridCard + trendCard;
+  const trendCard = card(head(`वार्षिक ${v.short} (समय-श्रृंखला)`, recordSpan(v)) + lineChart([{ name: v.label, color: "#1e293b", pts }], { trend: { color: "#dc2626", slope: reg.slope, intercept: reg.intercept }, yfmt: (x) => toNe(x.toFixed(v.decimals)) }));
+  return interpCard(v) + gridCard + trendCard;
 }
 
 function drawProjection() {
@@ -431,7 +442,7 @@ function wireMapInspect() {
   const popup = new maplibregl.Popup({ closeButton: true, maxWidth: "240px", className: "geo-popup" });
   map.on("click", "clim-grid", (e) => {
     const f = e.features![0]; const v = uvar(state.varId); const val = f.properties!.val;
-    const when = v.spatial === "animated" ? toNe(state.year) : period();
+    const when = toNe(state.year);
     popup.setLngLat(e.lngLat).setHTML(`<div class="gp-cat">${v.label} · ${when}</div><div class="gp-name">${val == null ? "—" : toNe(Number(val).toFixed(v.decimals))} ${v.unit}</div>`).addTo(map);
   });
   map.on("mouseenter", "clim-grid", () => (map.getCanvas().style.cursor = "pointer"));
@@ -442,7 +453,7 @@ function buildLegend() {
   const el = $("#geo-legend-body"); if (!el) return;
   const v = uvar(state.varId); const stops = v.scale();
   if (v.spatial === "none") { el.innerHTML = `<div class="lg-row geo-muted">${v.label}: स्थानिक तह छैन</div>`; return; }
-  const when = v.spatial === "animated" ? `वर्ष ${toNe(state.year)}` : `${period()} औसत`;
+  const when = `वर्ष ${toNe(state.year)}`;
   el.innerHTML = `<div class="lg-grp">${v.label} (${v.unit})</div>` +
     stops.map((s, i) => `<div class="lg-row"><span class="geo-sw" style="background:${s[1]}"></span>${i === 0 ? "<" : "≥"} ${toNe(Number(s[0]).toFixed(v.decimals))}</div>`).join("") +
     `<div class="lg-grp" style="margin-top:8px">${when}</div>`;
