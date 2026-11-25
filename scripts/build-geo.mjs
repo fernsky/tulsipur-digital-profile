@@ -5,8 +5,9 @@
 //   public/geo/pois.geojson    — points of interest, for client-side clustering
 //   public/geo/meta.json       — layer ids, counts, value domains (drives legend + filters)
 //
-// All sources are in Nepal_Nagarkot_TM_81; everything is reprojected to EPSG:4326.
-// Requires: gdal (ogr2ogr/ogrinfo), tippecanoe, unrar/bsdtar.
+// GDB, cadastral and MTMP sources are in Nepal TM 81 (Everest 1830); they are
+// reprojected to EPSG:4326. The KMZ is already WGS84.
+// Requires: gdal (ogr2ogr/ogrinfo), tippecanoe, bsdtar.
 //
 // Usage:  node scripts/build-geo.mjs   [GEO_SRC=~/Downloads]
 
@@ -36,26 +37,24 @@ function reset() {
   mkdirSync(OUT, { recursive: true });
 }
 
-// ── 1. probe the Nepal CRS from the gdb (cadastral shapefiles carry no .prj) ──
-function probeCRS() {
-  const probe = join(WORK, "crs_probe");
-  rmSync(probe, { recursive: true, force: true });
-  execFileSync("ogr2ogr", ["-f", "ESRI Shapefile", probe, GDB, "Ward_Boundary", "-limit", "1"]);
-  const prj = join(probe, "Ward_Boundary.prj");
-  const wkt = readFileSync(prj, "utf8");
-  const target = join(WORK, "nepal.prj");
-  writeFileSync(target, wkt);
-  ok("probed source CRS:", wkt.slice(0, 40).replace(/\n/g, "") + "…");
-  return target;
-}
+// ── 1. source CRS ─────────────────────────────────────────────────────────
+// The sources' .prj/gdb definitions name the Everest 1830 datum but carry no
+// shift to WGS84, so GDAL leaves every layer ~240 m off. Override the source
+// CRS with the same projection plus the Nepal 1981 → WGS84 shift.
+// (The KMZ is already WGS84 and must not be shifted.)
+const SRC_CRS = "+proj=tmerc +lat_0=0 +lon_0=81 +k=0.9999 +x_0=500000 +y_0=0 " +
+  "+a=6377276.345 +rf=300.8017 +towgs84=293.17,726.18,245.36,0,0,0,0 +units=m +no_defs";
+// The transport master plan sat a uniform ~10 m off OpenStreetMap roads with
+// the shift above (6 m west, 8 m south). Its own shift removes that offset.
+const MTMP_CRS = SRC_CRS.replace(/\+towgs84=\S+/, "+towgs84=286.72,723.25,252.42,0,0,0,0");
 
 // ── 2. cadastral parcels ──────────────────────────────────────────────────
 const CAD_AREAS = ["Duruwa", "Fulbari", "Halwar", "Manpur", "Tarigaun", "Tulsipur", "Urahipur"];
-function buildCadastral(srcPrj) {
+function buildCadastral() {
   log("extracting cadastral archive…");
   const cad = join(WORK, "cadastral");
   mkdirSync(cad, { recursive: true });
-  execFileSync("unrar", ["x", "-o+", "-idq", CAD_RAR, cad + "/"]);
+  execFileSync("bsdtar", ["-xf", CAD_RAR, "-C", cad]);
   const dir = join(cad, "Cadastral_Tulsipur");
   const files = [];
   let total = 0;
@@ -66,7 +65,7 @@ function buildCadastral(srcPrj) {
     // assign source CRS, reproject, tag area name, keep only useful fields
     execFileSync("ogr2ogr", [
       "-f", "GeoJSON", out,
-      "-s_srs", srcPrj, "-t_srs", "EPSG:4326",
+      "-s_srs", SRC_CRS, "-t_srs", "EPSG:4326",
       "-sql", `SELECT parcelno, wardno, mapsheetno, area, '${a}' AS area_name FROM "${a}_1_9"`,
       shp,
     ]);
@@ -109,7 +108,7 @@ function buildGdbLayers() {
   const built = {};
   for (const [id, cfg] of Object.entries(GDB_LAYERS)) {
     const out = join(GJ, `${id}.geojson`);
-    const args = ["-f", "GeoJSON", out, "-t_srs", "EPSG:4326", "-skipfailures"];
+    const args = ["-f", "GeoJSON", out, "-s_srs", SRC_CRS, "-t_srs", "EPSG:4326", "-skipfailures"];
     if (cfg.sql) args.push("-sql", cfg.sql, GDB);
     else args.push(GDB, cfg.layer);
     try {
@@ -125,7 +124,7 @@ function buildGdbLayers() {
 }
 
 // ── 4. mpk transport master plan (lines) ──────────────────────────────────
-function buildMtmp(srcPrj) {
+function buildMtmp() {
   try {
     const mp = join(WORK, "mpk");
     mkdirSync(mp, { recursive: true });
@@ -133,8 +132,7 @@ function buildMtmp(srcPrj) {
     const shp = sh(`find ${JSON.stringify(mp)} -name '*.shp' | head -1`).trim();
     if (!shp) return null;
     const out = join(GJ, "mtmp.geojson");
-    // this shapefile DOES carry a .prj; fall back to probed CRS if needed
-    execFileSync("ogr2ogr", ["-f", "GeoJSON", out, "-t_srs", "EPSG:4326", shp]);
+    execFileSync("ogr2ogr", ["-f", "GeoJSON", out, "-s_srs", MTMP_CRS, "-t_srs", "EPSG:4326", shp]);
     const n = JSON.parse(readFileSync(out, "utf8")).features.length;
     ok(`  mtmp transport plan: ${n.toLocaleString()}`);
     return { file: out, type: "line", count: n };
@@ -256,16 +254,15 @@ function packParcels(files) {
 // ── main ──────────────────────────────────────────────────────────────────
 console.log("\nbuilding tulsipur geospatial data\n" + "─".repeat(40));
 reset();
-const srcPrj = probeCRS();
 
 console.log("\n[1/5] cadastral parcels");
-const cad = buildCadastral(srcPrj);
+const cad = buildCadastral();
 
 console.log("\n[2/5] gdb thematic layers");
 const gdb = buildGdbLayers();
 
 console.log("\n[3/5] transport master plan");
-const mtmp = buildMtmp(srcPrj);
+const mtmp = buildMtmp();
 
 console.log("\n[4/5] points of interest");
 const pois = buildPois();

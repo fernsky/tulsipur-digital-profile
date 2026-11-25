@@ -16,7 +16,7 @@
 // So an online user always gets fresh content/HTML on navigation; an offline
 // user still gets everything they've visited plus a branded offline fallback.
 // Bump VERSION to invalidate everything on a new deploy.
-const VERSION = "v3";
+const VERSION = "v4";
 const IMMUTABLE = `immutable-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 const OFFLINE_URL = "/offline";
