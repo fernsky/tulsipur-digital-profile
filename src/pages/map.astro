@@ -254,8 +254,15 @@ const title = `भू-नक्सा पोर्टल — ${meta.title}`;
       /* ── popups ── */
       .geo-popup .maplibregl-popup-content { border-radius: 11px; padding: 11px 13px;
         font-family: "Noto Serif Devanagari", serif; border: 1px solid var(--color-border); }
+      .geo-popup .maplibregl-popup-close-button { top: 8px; right: 8px; width: 26px; height: 26px;
+        display: grid; place-items: center; padding: 0; border-radius: 999px;
+        font-size: 1.15rem; line-height: 1; color: var(--color-text-secondary); cursor: pointer; }
+      .geo-popup .maplibregl-popup-close-button:hover { background: #f1f5f9; color: #0f172a; }
+      .geo-popup .gp-cat { margin-right: 30px; }
       .gp-cat { font-size: .72rem; color: #fff; background: var(--color-primary);
         display: inline-block; padding: 2px 9px; border-radius: 999px; margin-bottom: 7px; }
+      .gp-note { max-width: 230px; margin-top: 8px; padding-top: 7px; border-top: 1px solid #e2e8f0;
+        font-size: .72rem; line-height: 1.5; color: var(--color-text-secondary); }
       .gp-name { font-size: .98rem; font-weight: 600; color: #0f172a; }
       .gp-row { display: flex; justify-content: space-between; gap: 14px; font-size: .84rem; padding: 2px 0; }
       .gp-row span { color: var(--color-text-secondary); }

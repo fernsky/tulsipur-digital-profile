@@ -9,7 +9,7 @@ export const BASEMAPS: Basemap[] = [
     label: "उपग्रह तस्बिर",
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution: "Esri, Maxar, Earthstar Geographics",
-    maxzoom: 19,
+    maxzoom: 18,
   },
   {
     id: "google-hybrid",
@@ -68,6 +68,7 @@ export const LAYERS: LayerDef[] = [
   { id: "risk_fire", label: "आगलागी जोखिम", kind: "fill", group: "risk" },
   { id: "risk_seismic", label: "भूकम्प जोखिम", kind: "fill", group: "risk" },
   { id: "mtmp", label: "यातायात गुरुयोजना (सडक)", kind: "line", group: "infra", defaultOn: true },
+  { id: "road_row", label: "सडक अधिकार क्षेत्र (ROW, अनुमानित)", kind: "fill", group: "infra" },
   { id: "geology", label: "भूगर्भ", kind: "fill", group: "terrain" },
   { id: "soil", label: "माटो", kind: "fill", group: "terrain" },
 ];

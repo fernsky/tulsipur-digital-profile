@@ -304,7 +304,7 @@ function wirePanel(map: maplibregl.Map, meta: Meta, pois: any) {
   const panel = $("#geo-panel-body");
   if (!panel) return;
 
-  const has = (id: string) => meta.layers[id] && meta.layers[id].count > 0 || id === "parcels" || id === "mtmp";
+  const has = (id: string) => meta.layers[id] && meta.layers[id].count > 0 || id === "parcels" || id === "mtmp" || id === "road_row";
 
   // ── basemaps ──
   const basemapHtml = BASEMAPS.map((b, i) =>
@@ -606,7 +606,16 @@ function wireInteractions(map: maplibregl.Map) {
     if (!f) return;
     popup.setLngLat(e.lngLat).setHTML(describe(f)).addTo(map);
   };
-  map.on("click", inspect(["parcels-hl", "parcels", "landuse", "risk_flood", "risk_landslide", "risk_fire", "risk_seismic", "wards"]));
+  // roads win over the polygons beneath them; a few px of slack for thin lines
+  const roadAt = (pt: maplibregl.Point) => map.queryRenderedFeatures(
+    [[pt.x - 4, pt.y - 4], [pt.x + 4, pt.y + 4]],
+    { layers: ["mtmp", "road_row"].filter((l) => map.getLayer(l)) })[0];
+  map.on("click", (e) => {
+    const road = roadAt(e.point);
+    if (road) popup.setLngLat(e.lngLat).setHTML(describe(road)).addTo(map);
+  });
+  const inspectArea = inspect(["parcels-hl", "parcels", "landuse", "risk_flood", "risk_landslide", "risk_fire", "risk_seismic", "wards"]);
+  map.on("click", (e) => { if (!roadAt(e.point)) inspectArea(e); });
 
   // hover tooltip
   const tip = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12, className: "geo-tip" });
@@ -624,6 +633,13 @@ function describe(f: maplibregl.MapGeoJSONFeature): string {
   const p = f.properties || {};
   const sl = (f as any).sourceLayer;
   const row = (k: string, v: any) => v != null && v !== "" ? `<div class="gp-row"><span>${k}</span><b>${v}</b></div>` : "";
+  if (sl === "mtmp")
+    return `<div class="gp-cat">सडक</div>` +
+      row("नाम", p.name || p.name_en) +
+      row("सतह", p.Surf_Type === "Pitched" ? "कालोपत्रे" : p.Surf_Type === "gravel" ? "ग्राभेल" : p.Surf_Type) +
+      row("चौडाइ / ROW (मि.)", Number(p.width) ? toNe(p.width) : "") +
+      row("केन्द्रबाट दुवैतर्फ (मि.)", Number(p.width) ? toNe(Number(p.width) / 2) : "") +
+      `<div class="gp-note">गुरुयोजनाको तथ्याङ्कमा आधारित अनुमान; कानुनी सिमाना होइन</div>`;
   if (sl === "parcels")
     return `<div class="gp-cat">कित्ता</div>` +
       row("कित्ता नं.", toNe(p.parcelno)) + row("वडा", p.wardno ? toNe(p.wardno) : "") +
@@ -645,6 +661,8 @@ function buildLegend(map: maplibregl.Map) {
   const render = () => {
     const vis = (id: string) => map.getLayer(id) && map.getLayoutProperty(id, "visibility") !== "none";
     const parts: string[] = [];
+    if (vis("road_row"))
+      parts.push(`<div class="lg-grp">सडक</div><div class="lg-row"><span class="geo-sw" style="background:#d946ef"></span>अधिकार क्षेत्र (अनुमानित)</div>`);
     if (vis("landuse"))
       parts.push(`<div class="lg-grp">भू-उपयोग</div>` + Object.values(LANDUSE).map((v) =>
         `<div class="lg-row"><span class="geo-sw" style="background:${v.color}"></span>${v.label}</div>`).join(""));

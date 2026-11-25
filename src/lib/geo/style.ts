@@ -104,6 +104,21 @@ export function buildStyle(basemapId: string): StyleSpecification {
         paint: { "fill-color": "#2563eb", "fill-opacity": 0.5, "fill-outline-color": "#1e3a8a" },
       },
 
+      // indicative right of way: a band as wide (in metres) as the master plan's
+      // `width` attribute, centred on the road line. Pixels per metre doubles
+      // with each zoom level; 69047 = metres per pixel at z0 near 28.1°N.
+      {
+        id: "road_row", type: "line", source: BASE_SRC, "source-layer": "mtmp",
+        layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": "#d946ef",
+          "line-opacity": 0.35,
+          "line-width": ["interpolate", ["exponential", 2], ["zoom"],
+            10, ["*", ["to-number", ["get", "width"]], 1024 / 69047],
+            20, ["*", ["to-number", ["get", "width"]], 1048576 / 69047]],
+        },
+      },
+
       // infrastructure — transport master plan
       {
         id: "mtmp", type: "line", source: BASE_SRC, "source-layer": "mtmp",
